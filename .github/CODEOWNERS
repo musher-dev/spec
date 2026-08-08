@@ -1,15 +1,24 @@
-# Every change to this repository alters a public contract. A CODEOWNERS review
-# is required on the default branch — see .github/rulesets/main-branch.json.
+# See https://docs.github.com/en/repositories/managing-your-repositories-settings-and-features/customizing-your-repository/about-code-owners
+#
+# Pattern matching is gitignore-style and the last matching entry wins. The
+# `*` catch-all covers everything; the entries below restate ownership for the
+# areas where a change alters a public contract, so the intent survives a
+# future split of ownership.
+#
+# NOTE: musher-dev/platform's CODEOWNERS names `@merrelljustin`, which is not a
+# real GitHub account (the API returns 404). Do not copy that handle here — a
+# CODEOWNERS entry naming a nonexistent user silently disables the review gate
+# it appears to configure.
 
-*                       @merrelljustin
+*                       @justinmerrell
 
 # The normative surface. A change here obligates the CLI, the API, and every
 # SDK, and a compatibility break requires a new major directory.
-/specifications/        @merrelljustin
-/conformance/           @merrelljustin
+/specifications/        @justinmerrell
+/conformance/           @justinmerrell
 
 # Architecture decisions are immutable once accepted; supersede, never rewrite.
-/docs/adr/              @merrelljustin
+/docs/adr/              @justinmerrell
 
 # Release, publication, and branch-protection configuration.
-/.github/               @merrelljustin
+/.github/               @justinmerrell
