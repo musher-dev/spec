@@ -125,12 +125,12 @@ tasks:
   check:shell:
     desc: ShellCheck the dev container scripts
     cmds:
-      - shellcheck -x --source-path=.devcontainer/scripts .devcontainer/scripts/*.sh .devcontainer/scripts/lib/*.sh
+      - shellcheck -x --source-path=SCRIPTDIR .devcontainer/scripts/*.sh .devcontainer/scripts/lib/*.sh
 
   check:shell:files:
     desc: ShellCheck specific files (used by the pre-commit hook)
     cmds:
-      - shellcheck -x --source-path=.devcontainer/scripts {{.CLI_ARGS}}
+      - shellcheck -x --source-path=SCRIPTDIR {{.CLI_ARGS}}
 
   check:workflow:
     desc: Lint the GitHub Actions workflows
