@@ -1,0 +1,7 @@
+{
+  "id": "structural-002-wrong-kind",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#envelope",
+  "summary": "A document declaring kind LISTING is rejected by the blueprint schema."
+}

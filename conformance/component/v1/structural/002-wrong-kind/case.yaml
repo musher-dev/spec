@@ -1,0 +1,12 @@
+# `kind` names a different family. Each family's schema constrains kind to
+# its own constant, so a document cannot be validated by the wrong schema.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine

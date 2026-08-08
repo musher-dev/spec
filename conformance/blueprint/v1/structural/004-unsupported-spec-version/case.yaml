@@ -1,0 +1,14 @@
+# A specVersion this schema release does not implement. A validator must
+# reject rather than attempt a best-effort interpretation.
+specVersion: v99
+kind: BLUEPRINT
+metadata:
+  slug: postgres
+  version: 1
+spec:
+  components:
+    db:
+      component: postgres
+      size: general.standard.small
+      connections: {}
+  parameters: {}

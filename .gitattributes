@@ -1,0 +1,18 @@
+# Normalize line endings. Without this, checkouts on Windows drives (including
+# WSL paths under /mnt/c) rewrite every file to CRLF and produce whole-file
+# phantom diffs against the LF blobs stored in git.
+* text=auto eol=lf
+
+*.json    text eol=lf
+*.yaml    text eol=lf
+*.yml     text eol=lf
+*.md      text eol=lf
+*.ts      text eol=lf
+*.sh      text eol=lf
+
+# Generated bundles are reviewed as text but should not inflate diff stats.
+specifications/*/v*/schemas/dist/*.json linguist-generated=true
+
+*.png     binary
+*.jpg     binary
+*.ico     binary

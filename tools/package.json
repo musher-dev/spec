@@ -1,0 +1,32 @@
+{
+  "name": "@musher-dev/spec-tools",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Non-normative build and validation scripts for the Musher specification. Not published; not part of the contract.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "engines": {
+    "bun": ">=1.3.0"
+  },
+  "scripts": {
+    "lint": "bun run src/lint.ts",
+    "bundle": "bun run src/bundle.ts",
+    "drift": "bun run src/drift.ts",
+    "examples": "bun run src/examples.ts",
+    "conformance": "bun run src/conformance.ts",
+    "catalog": "bun run src/catalog.ts",
+    "site": "bun run src/site.ts",
+    "format": "biome format --write .",
+    "format:check": "biome ci ."
+  },
+  "dependencies": {
+    "ajv": "8.17.1",
+    "ajv-formats": "3.0.1",
+    "yaml": "2.8.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.0",
+    "@types/bun": "1.3.14",
+    "typescript": "5.9.3"
+  }
+}

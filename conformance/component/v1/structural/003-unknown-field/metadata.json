@@ -1,0 +1,7 @@
+{
+  "id": "structural-003-unknown-field",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#envelope",
+  "summary": "An undefined top-level property is rejected rather than ignored."
+}

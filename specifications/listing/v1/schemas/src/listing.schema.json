@@ -1,0 +1,286 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.musher.dev/listing/v1/listing",
+  "title": "Musher Listing Document",
+  "description": "The catalog storefront entry for a blueprint or component.",
+  "$comment": "Seeded from the platform's generated catalog schema. Structural and type validation only — cross-document reference resolution, slug/directory agreement, and platform capability checks are separate validation layers. See spec.md.",
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "const": "LISTING",
+      "description": "Document kind discriminator. Must be LISTING.",
+      "title": "Kind",
+      "type": "string"
+    },
+    "metadata": {
+      "$ref": "#/$defs/SeedItemMetadata"
+    },
+    "spec": {
+      "$ref": "#/$defs/SeedListingSpec"
+    },
+    "specVersion": {
+      "description": "Version of the seed authoring document format.",
+      "enum": [
+        "v1"
+      ],
+      "title": "Specversion",
+      "type": "string"
+    }
+  },
+  "required": [
+    "specVersion",
+    "kind",
+    "metadata",
+    "spec"
+  ],
+  "type": "object",
+  "$defs": {
+    "SeedItemMetadata": {
+      "additionalProperties": false,
+      "description": "Identity block shared by the blueprint + listing documents.",
+      "properties": {
+        "slug": {
+          "description": "Item slug — must equal the item's directory name.",
+          "pattern": "^[a-z][a-z0-9-]{0,61}[a-z0-9]$",
+          "title": "Slug",
+          "type": "string"
+        },
+        "version": {
+          "description": "Item version — must agree between blueprint.yaml and listing.yaml.",
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "slug",
+        "version"
+      ],
+      "title": "SeedItemMetadata",
+      "type": "object"
+    },
+    "SeedListingFeatured": {
+      "additionalProperties": false,
+      "description": "Featured-flag declaration on a seeded listing.",
+      "properties": {
+        "enabled": {
+          "default": false,
+          "description": "True to promote the listing on the featured storefront row.",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "rank": {
+          "default": 0,
+          "description": "Ordering weight among featured listings; lower sorts first.",
+          "minimum": 0,
+          "title": "Rank",
+          "type": "integer"
+        }
+      },
+      "title": "SeedListingFeatured",
+      "type": "object"
+    },
+    "SeedListingScreenshot": {
+      "additionalProperties": false,
+      "description": "One storefront screenshot declared as a relative media path.",
+      "properties": {
+        "caption": {
+          "anyOf": [
+            {
+              "maxLength": 280,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Accessible caption shown beneath the screenshot, or null when none.",
+          "title": "Caption"
+        },
+        "file": {
+          "description": "Relative path of the screenshot asset under the item's media/ directory.",
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "File",
+          "type": "string"
+        }
+      },
+      "required": [
+        "file"
+      ],
+      "title": "SeedListingScreenshot",
+      "type": "object"
+    },
+    "SeedListingSpec": {
+      "additionalProperties": false,
+      "description": "The ``spec`` block of a listing document.\n\nMirrors the backstage ``CatalogListingDraftRequest`` field names minus\nserver-side identity (``slug``/``version`` live in ``metadata``;\n``blueprintId``/``blueprintVersion`` are derived; ``parentListingId`` is\nn/a). Deviations: ``icon`` + ``screenshots[].file`` are relative media\npaths (not Files-BC ids), and ``featured`` is seed-only. Drift-gated in\n``tests/unit/seeds/test_catalog_manifest_drift.py``.",
+      "properties": {
+        "category": {
+          "description": "Storefront category the listing is browsed under.",
+          "enum": [
+            "MEDIA",
+            "PRODUCTIVITY",
+            "AI_ML",
+            "DEVELOPER_TOOLS",
+            "INFRASTRUCTURE",
+            "COMMUNICATION",
+            "AUTOMATION",
+            "NETWORKING",
+            "STORAGE",
+            "SECURITY",
+            "GAMING"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "maxLength": 20000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Long-form Markdown storefront description, or null when none.",
+          "title": "Description"
+        },
+        "displayName": {
+          "description": "Storefront title shown to prospective installers.",
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Displayname",
+          "type": "string"
+        },
+        "featured": {
+          "$ref": "#/$defs/SeedListingFeatured",
+          "description": "Featured-row placement; defaults to not featured."
+        },
+        "homepageUrl": {
+          "anyOf": [
+            {
+              "maxLength": 2048,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Project homepage URL, or null when none.",
+          "title": "Homepageurl"
+        },
+        "icon": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Relative path of the listing's icon under the item's media/ directory (e.g. media/icon.png), or null for no icon.",
+          "title": "Icon"
+        },
+        "license": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "License identifier for the listed software, or null when unspecified.",
+          "title": "License"
+        },
+        "lifecycleStage": {
+          "description": "Maturity stage shown on the storefront: STABLE, BETA, EXPERIMENTAL, or SUNSET.",
+          "enum": [
+            "STABLE",
+            "BETA",
+            "EXPERIMENTAL",
+            "SUNSET"
+          ],
+          "title": "Lifecyclestage",
+          "type": "string"
+        },
+        "listingKind": {
+          "description": "Storefront classification (ADR 0071, amended by ADR 0112): BLUEPRINT (curated composition) or COMPONENT (single building block).",
+          "enum": [
+            "BLUEPRINT",
+            "COMPONENT"
+          ],
+          "title": "Listingkind",
+          "type": "string"
+        },
+        "screenshots": {
+          "description": "Storefront screenshots in display order, declared as media paths.",
+          "items": {
+            "$ref": "#/$defs/SeedListingScreenshot"
+          },
+          "title": "Screenshots",
+          "type": "array"
+        },
+        "sourceRepoUrl": {
+          "anyOf": [
+            {
+              "maxLength": 2048,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Source repository URL, or null when none.",
+          "title": "Sourcerepourl"
+        },
+        "summary": {
+          "description": "One-line storefront tagline summarising the listing.",
+          "maxLength": 280,
+          "minLength": 1,
+          "title": "Summary",
+          "type": "string"
+        },
+        "supportUrl": {
+          "anyOf": [
+            {
+              "maxLength": 2048,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Support or documentation URL, or null when none.",
+          "title": "Supporturl"
+        },
+        "tags": {
+          "description": "Free-form discovery tags applied to the listing.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        }
+      },
+      "required": [
+        "listingKind",
+        "displayName",
+        "summary",
+        "category",
+        "lifecycleStage"
+      ],
+      "title": "SeedListingSpec",
+      "type": "object"
+    }
+  }
+}

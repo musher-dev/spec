@@ -1,0 +1,15 @@
+# A misspelled or invented top-level field. Unknown properties are rejected
+# at every level so a typo can never be silently ignored.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: postgres
+  version: 1
+spec:
+  components:
+    db:
+      component: postgres
+      size: general.standard.small
+      connections: {}
+  parameters: {}
+notAField: should be rejected

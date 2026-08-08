@@ -1,0 +1,15 @@
+# Every change to this repository alters a public contract. A CODEOWNERS review
+# is required on the default branch — see .github/rulesets/main-branch.json.
+
+*                       @merrelljustin
+
+# The normative surface. A change here obligates the CLI, the API, and every
+# SDK, and a compatibility break requires a new major directory.
+/specifications/        @merrelljustin
+/conformance/           @merrelljustin
+
+# Architecture decisions are immutable once accepted; supersede, never rewrite.
+/docs/adr/              @merrelljustin
+
+# Release, publication, and branch-protection configuration.
+/.github/               @merrelljustin

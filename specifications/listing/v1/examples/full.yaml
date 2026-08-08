@@ -1,0 +1,45 @@
+# yaml-language-server: $schema=https://schemas.musher.dev/listing/v1/listing.schema.json
+#
+# A storefront entry using the full descriptive surface. Media paths are
+# relative to the listing document.
+specVersion: v1
+kind: LISTING
+metadata:
+  slug: postgres
+  version: 1
+spec:
+  listingKind: COMPONENT
+  displayName: PostgreSQL
+  summary: The open-source relational database — SQL, ACID transactions, and JSONB in one engine
+  description: |
+    ## What it is
+
+    PostgreSQL is an open-source object-relational database combining full SQL
+    with ACID transactions, rich indexing, and JSONB document storage in a
+    single engine.
+
+    ## When to use
+
+    - Your application needs a general-purpose relational database.
+    - Another workload expects a Postgres connection string.
+    - You want relational and document data in one engine rather than two.
+
+    ## Defaults
+
+    A single container of `postgres:17.10-alpine` on port 5432 as a private TCP
+    endpoint. You supply the password at deploy time; a 10 GiB volume keeps the
+    data directory across restarts.
+  category: INFRASTRUCTURE
+  lifecycleStage: STABLE
+  tags:
+    - database
+    - sql
+    - postgres
+    - relational
+  homepageUrl: https://www.postgresql.org
+  sourceRepoUrl: https://github.com/postgres/postgres
+  license: PostgreSQL
+  icon: media/icon.png
+  screenshots:
+    - file: media/overview.png
+      caption: Connection details after deployment

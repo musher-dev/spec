@@ -1,0 +1,19 @@
+# Generated publication tree — assembled by `task site:build`, deployed by CI.
+/site/
+
+# Tooling
+tools/node_modules/
+node_modules/
+*.tsbuildinfo
+
+# Dev container local state
+.devcontainer/.env
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+
+# Task runner cache
+.task/

@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://schemas.musher.dev/blueprint/v1/blueprint.schema.json
+#
+# A single-component blueprint. Parameters are empty, so they are derived from
+# the merged USER-supplied inputs of the referenced components.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: postgres
+  version: 1
+spec:
+  components:
+    db:
+      component: postgres
+      size: general.standard.small
+      connections: {}
+  parameters: {}

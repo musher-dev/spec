@@ -1,0 +1,31 @@
+{
+  "family": "blueprint",
+  "specVersion": "v1",
+  "cases": [
+    {
+      "id": "parser-001-reject-duplicate-keys",
+      "phase": "parser",
+      "path": "parser/001-reject-duplicate-keys"
+    },
+    {
+      "id": "structural-001-minimal-valid",
+      "phase": "structural",
+      "path": "structural/001-minimal-valid"
+    },
+    {
+      "id": "structural-002-wrong-kind",
+      "phase": "structural",
+      "path": "structural/002-wrong-kind"
+    },
+    {
+      "id": "structural-003-unknown-field",
+      "phase": "structural",
+      "path": "structural/003-unknown-field"
+    },
+    {
+      "id": "structural-004-unsupported-spec-version",
+      "phase": "structural",
+      "path": "structural/004-unsupported-spec-version"
+    }
+  ]
+}

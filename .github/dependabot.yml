@@ -1,0 +1,34 @@
+# Keeps the supply chain of the non-normative tooling fresh. Nothing here
+# touches the specification itself.
+#
+# - devcontainers  : bumps Features in devcontainer.json AND refreshes
+#                    .devcontainer/devcontainer-lock.json (digest pins).
+# - github-actions : bumps the actions pinned in .github/workflows/.
+# - bun            : bumps tools/ dependencies (ajv, yaml, biome).
+version: 2
+updates:
+  - package-ecosystem: 'devcontainers'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    commit-message:
+      prefix: 'devcontainer'
+
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    commit-message:
+      prefix: 'ci'
+
+  - package-ecosystem: 'bun'
+    directory: '/tools'
+    schedule:
+      interval: 'weekly'
+    commit-message:
+      prefix: 'chore'
+      prefix-development: 'chore'
+    groups:
+      tooling:
+        patterns:
+          - '*'

@@ -1,0 +1,33 @@
+# yaml-language-server: $schema=https://schemas.musher.dev/component/v1/component.schema.json
+#
+# A component built from source rather than pulled as a prebuilt image, with a
+# public HTTP endpoint and a readiness probe.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: GIT
+      repositoryUrl: https://github.com/musher-dev/examples
+      ref:
+        type: BRANCH
+        name: main
+      build:
+        strategy: DOCKERFILE
+        dockerfilePath: Dockerfile
+        arguments:
+          NODE_ENV: production
+    endpoints:
+      web:
+        containerPort: 8080
+        protocol: HTTP
+        visibility: PUBLIC
+    health:
+      readiness:
+        path: /healthz
+        endpoint: web
+        periodSeconds: 10
+        failureThreshold: 3

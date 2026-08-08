@@ -1,0 +1,53 @@
+name: Lint PR
+
+on:
+  pull_request_target:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  title:
+    name: Conventional PR title
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # The vocabulary here must stay in step with
+      # .github/conventional-commits.yaml and the lefthook commit-msg hook.
+      # The scope drives release-please: feat(component) cuts component/v1.x.0,
+      # while an unscoped feat: releases nothing.
+      - uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            perf
+            docs
+            chore
+            refactor
+            test
+            ci
+            build
+            style
+            revert
+          scopes: |
+            component
+            blueprint
+            listing
+            conformance
+            tools
+            ci
+            devcontainer
+            docs
+            repo
+            deps
+            deps-dev
+          requireScope: false
+          subjectPattern: ^(?![A-Z])(?!.*\.$).+$
+          subjectPatternError: |
+            The subject "{subject}" is invalid for the "{type}" type.
+            It must start with a lowercase letter and must not end with a period.

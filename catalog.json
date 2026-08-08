@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json.schemastore.org/schema-catalog.json",
+  "schemas": [
+    {
+      "description": "Musher blueprint document — a deployable composition of components.",
+      "fileMatch": [
+        "**/blueprint.yaml",
+        "**/blueprint.yml"
+      ],
+      "name": "Musher Blueprint Document",
+      "url": "https://schemas.musher.dev/blueprint/v1/blueprint.schema.json",
+      "versions": {
+        "v1": "https://schemas.musher.dev/blueprint/v1/blueprint.schema.json"
+      }
+    },
+    {
+      "description": "Musher component document — one reusable workload definition.",
+      "fileMatch": [
+        "**/components/*.yaml",
+        "**/components/*.yml"
+      ],
+      "name": "Musher Component Document",
+      "url": "https://schemas.musher.dev/component/v1/component.schema.json",
+      "versions": {
+        "v1": "https://schemas.musher.dev/component/v1/component.schema.json"
+      }
+    },
+    {
+      "description": "Musher listing document — a catalog storefront entry.",
+      "fileMatch": [
+        "**/listing.yaml",
+        "**/listing.yml"
+      ],
+      "name": "Musher Listing Document",
+      "url": "https://schemas.musher.dev/listing/v1/listing.schema.json",
+      "versions": {
+        "v1": "https://schemas.musher.dev/listing/v1/listing.schema.json"
+      }
+    }
+  ],
+  "version": 1
+}

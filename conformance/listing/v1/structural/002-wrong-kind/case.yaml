@@ -1,0 +1,13 @@
+# `kind` names a different family. Each family's schema constrains kind to
+# its own constant, so a document cannot be validated by the wrong schema.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  slug: postgres
+  version: 1
+spec:
+  listingKind: COMPONENT
+  displayName: PostgreSQL
+  summary: The open-source relational database
+  category: INFRASTRUCTURE
+  lifecycleStage: STABLE

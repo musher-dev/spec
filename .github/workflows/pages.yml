@@ -1,0 +1,62 @@
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One deployment at a time, and never cancel one in flight — an interrupted
+# deploy would leave the published origin in an indeterminate state.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Publish schemas.musher.dev
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.14
+
+      - uses: go-task/setup-task@01a4adf9db2d14c1de7a560f09170b6e0df736aa # v2.1.0
+        with:
+          version: 3.x
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install tooling dependencies
+        working-directory: tools
+        run: bun install --frozen-lockfile
+
+      # Publish exactly what is committed. The drift gate in ci.yml is what
+      # guarantees the committed bundle matches its sources, so this must not
+      # rebuild — a rebuild here would let an unreviewed bundle reach the
+      # public origin.
+      - name: Verify committed bundles are current
+        run: task check:drift
+
+      - name: Assemble publication tree
+        run: task site:build
+
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site
+
+      - id: deployment
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0

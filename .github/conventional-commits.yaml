@@ -1,0 +1,34 @@
+# Single source of truth for the Conventional Commits vocabulary.
+#
+# Consumed by .github/workflows/lint-pr.yml. The lefthook commit-msg hook
+# inlines the same type list — keep them in step.
+types:
+  - feat
+  - fix
+  - perf
+  - docs
+  - chore
+  - refactor
+  - test
+  - ci
+  - build
+  - style
+  - revert
+
+# The scope selects which release train a change belongs to. The three
+# specification families release independently, so an unscoped `feat:` will
+# not produce a release.
+scopes:
+  - component
+  - blueprint
+  - listing
+  - conformance
+  - tools
+  - ci
+  - devcontainer
+  - docs
+  - repo
+  - deps
+  - deps-dev
+
+requireScope: false

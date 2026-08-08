@@ -1,0 +1,5 @@
+# The `kind` key appears twice. YAML 1.2 forbids duplicate mapping keys;
+# a permissive parser would silently take the last one.
+specVersion: v1
+kind: BLUEPRINT
+kind: BLUEPRINT

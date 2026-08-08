@@ -1,0 +1,121 @@
+# Conformance Suite
+
+A language-neutral corpus of test vectors. An implementation conforms to a
+Musher specification family when it produces the declared outcome for every
+case in that family's tree.
+
+There is deliberately **no normative runner**. A reference implementation
+becomes the de facto standard, hides normative behaviour inside compiled code,
+and biases the specification toward one language's standard library. Each
+implementation writes its own thin adapter over this data instead. That is what
+makes cross-language parity provable rather than asserted.
+
+`tools/src/conformance.ts` is one such adapter. It exists to keep the fixtures
+honest inside this repository and carries no special authority.
+
+## Layout
+
+```
+conformance/<family>/v<major>/
+  cases.json                   index of every case
+  <phase>/<case-id>/
+    metadata.json              declared outcome
+    case.yaml                  the document under test
+    diagnostics.json           required when expected == "fail"
+```
+
+## `cases.json`
+
+```json
+{
+  "family": "component",
+  "specVersion": "v1",
+  "cases": [
+    { "id": "structural-001-missing-kind", "phase": "structural", "path": "structural/001-missing-kind" }
+  ]
+}
+```
+
+An adapter reads this index rather than walking the filesystem, so adding a
+directory without indexing it is a no-op — index entries are the contract.
+
+## `metadata.json`
+
+```json
+{
+  "id": "structural-001-missing-kind",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#envelope",
+  "summary": "A document omitting the kind discriminator is rejected."
+}
+```
+
+| Field | Requirement |
+|---|---|
+| `id` | REQUIRED. MUST equal the `cases.json` entry and follow `<phase>-<NNN>-<description>`. |
+| `phase` | REQUIRED. One of `parser`, `structural`, `semantic`, `capability`. |
+| `expected` | REQUIRED. `pass` or `fail`. |
+| `clause` | RECOMMENDED. Link to the normative clause the case exercises. Every case should trace to prose. |
+| `summary` | RECOMMENDED. One sentence, present tense. |
+
+## `diagnostics.json`
+
+Required when `expected` is `fail`. A non-empty array:
+
+```json
+[{ "code": "ERR_MISSING_FIELD", "path": "" }]
+```
+
+`path` is a JSON Pointer into the document; `""` is the root.
+
+An implementation passes a failing case when it rejects the document **in the
+declared phase** and produces **at least** the declared diagnostics. Producing
+additional diagnostics is permitted — a validator reporting every problem at
+once is more useful than one that stops at the first.
+
+## What is normative
+
+| Normative | Not normative |
+|---|---|
+| The diagnostic `code` | The human-readable message |
+| The `path` the diagnostic anchors to | The order diagnostics are emitted |
+| The `phase` at which validation fails | Whether extra diagnostics accompany the declared ones |
+
+Different language parsers emit wildly different error text — `serde_yaml` and
+`gopkg.in/yaml.v3` do not agree on a single string. Pinning codes and phases
+instead of messages is what lets Go, Rust, Python, and TypeScript run the
+identical corpus.
+
+## Phases
+
+| Phase | Enforces | Network |
+|---|---|---|
+| `parser` | Strict YAML 1.2 — duplicate keys and aliases rejected | Never |
+| `structural` | The family's JSON Schema 2020-12 bundle | Never |
+| `semantic` | Reference resolution, path containment, dependency cycles | Never |
+| `capability` | Account, region, and quota checks | Server only |
+
+An implementation MUST apply the phases in order and MUST NOT report a
+later-phase diagnostic before the earlier phases pass.
+
+## Coverage status
+
+Cases exist today for the `parser` and `structural` phases only. `semantic` and
+`capability` cases land once the corresponding rules are written into `spec.md`
+— a fixture without a normative clause to cite is an assertion about an
+implementation, not about the specification.
+
+An adapter encountering a phase it does not implement SHOULD skip the case and
+report it as skipped. It MUST NOT report it as passed.
+
+## Adding a case
+
+1. Pick the phase and the next free sequence number in that phase.
+2. Create `<phase>/<NNN>-<description>/` with `metadata.json` and `case.yaml`.
+3. For a failing case, add `diagnostics.json`.
+4. Add the entry to `cases.json`.
+5. Run `task check:conformance`.
+
+A case that does not cite a `clause` will be questioned in review. Fixtures
+exist to pin down prose, not to freeze current implementation behaviour.

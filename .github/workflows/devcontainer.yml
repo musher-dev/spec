@@ -1,0 +1,51 @@
+name: Dev Container
+
+on:
+  push:
+    branches: [main]
+    paths: ['.devcontainer/**', '.github/workflows/devcontainer.yml']
+  pull_request:
+    branches: [main]
+    paths: ['.devcontainer/**', '.github/workflows/devcontainer.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ludeeus/action-shellcheck@00cae500b08a931fb5698e11e79bfbd38e612a38 # 2.0.0
+        env:
+          SHELLCHECK_OPTS: -x --source-path=SCRIPTDIR
+        with:
+          scandir: .devcontainer/scripts
+
+  lockfile:
+    name: Feature Lockfile
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # --frozen-lockfile fails if devcontainer-lock.json is missing or if its
+      # resolved Feature digests drift from devcontainer.json.
+      - name: Enforce devcontainer-lock.json is current
+        run: npx -y @devcontainers/cli build --workspace-folder . --frozen-lockfile
+
+  env-check:
+    name: Env Template Sync
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: go-task/setup-task@01a4adf9db2d14c1de7a560f09170b6e0df736aa # v2.1.0
+        with:
+          version: 3.x
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Verify .env and .env.example stay in sync
+        run: |
+          cp .devcontainer/.env.example .devcontainer/.env
+          task env:check

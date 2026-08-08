@@ -1,0 +1,7 @@
+{
+  "id": "structural-004-unsupported-spec-version",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#envelope",
+  "summary": "An unsupported specVersion is rejected outright."
+}

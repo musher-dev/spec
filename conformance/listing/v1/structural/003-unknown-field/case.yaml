@@ -1,0 +1,14 @@
+# A misspelled or invented top-level field. Unknown properties are rejected
+# at every level so a typo can never be silently ignored.
+specVersion: v1
+kind: LISTING
+metadata:
+  slug: postgres
+  version: 1
+spec:
+  listingKind: COMPONENT
+  displayName: PostgreSQL
+  summary: The open-source relational database
+  category: INFRASTRUCTURE
+  lifecycleStage: STABLE
+notAField: should be rejected

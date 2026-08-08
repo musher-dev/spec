@@ -1,0 +1,7 @@
+{
+  "id": "structural-001-minimal-valid",
+  "phase": "structural",
+  "expected": "pass",
+  "clause": "specifications/listing/v1/spec.md#envelope",
+  "summary": "The smallest document carrying every required field validates."
+}

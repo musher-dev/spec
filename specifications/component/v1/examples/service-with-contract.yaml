@@ -1,0 +1,46 @@
+# yaml-language-server: $schema=https://schemas.musher.dev/component/v1/component.schema.json
+#
+# A stateful service exercising the full surface: a private endpoint, literal
+# and generated environment variables, a persistent volume, health probes, and
+# a configuration contract with a user-supplied sensitive input.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: postgres:17.10-alpine
+    endpoints:
+      primary:
+        containerPort: 5432
+        protocol: TCP
+        visibility: PRIVATE
+    envVars:
+      - key: PGDATA
+        value:
+          type: LITERAL
+          value: /var/lib/postgresql/data/pgdata
+      - key: POSTGRES_DB
+        value:
+          type: LITERAL
+          value: app
+    volumes:
+      data:
+        sizeGib: 10
+        mountPath: /var/lib/postgresql/data
+  contract:
+    inputs:
+      postgresPassword:
+        schema:
+          type: STRING
+          isSensitive: true
+        isRequired: true
+        suppliedBy: USER
+        ui:
+          label: Database password
+        target:
+          envVarKey: POSTGRES_PASSWORD
+    outputs: {}

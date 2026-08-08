@@ -1,0 +1,31 @@
+# yaml-language-server: $schema=https://schemas.musher.dev/blueprint/v1/blueprint.schema.json
+#
+# Two components wired together. Connections are consumer-anchored: the `web`
+# node declares what it consumes and from which role, so a component never
+# needs to know who will depend on it.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: web-and-database
+  version: 1
+spec:
+  components:
+    db:
+      component: postgres
+      size: general.standard.small
+      connections: {}
+    web:
+      component: web-server
+      size: general.standard.small
+      connections:
+        DATABASE_URL:
+          fromRole: db
+          fromOutput: connectionString
+  parameters:
+    siteTitle:
+      schema:
+        type: STRING
+        default: My Application
+      isRequired: false
+      ui:
+        label: Site title

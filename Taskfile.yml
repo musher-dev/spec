@@ -1,0 +1,206 @@
+# Musher Specification Taskfile
+# Usage: task [task-name]
+# List tasks: task --list
+
+version: '3'
+
+vars:
+  TOOLS_DIR: tools
+  SITE_DIR: site
+  LEFTHOOK_VERSION: v2.1.10
+  ACTIONLINT_VERSION: v1.7.11
+
+env:
+  # Keep bun's cache inside the workspace-visible cache dir the dev container
+  # already provisions, so a rebuild does not re-download the world.
+  BUN_INSTALL_CACHE_DIR: '{{.BUN_INSTALL_CACHE_DIR | default "/home/vscode/.cache/bun"}}'
+
+tasks:
+  default:
+    desc: List available tasks
+    cmds:
+      - task --list
+    silent: true
+
+  # ===========================================================================
+  # Setup
+  # ===========================================================================
+
+  setup:
+    desc: Install tooling dependencies and git hooks
+    cmds:
+      - task: setup:tools
+      - task: setup:hooks
+
+  setup:tools:
+    desc: Install the specification tooling dependencies
+    dir: '{{.TOOLS_DIR}}'
+    cmds:
+      - bun install
+
+  setup:hooks:
+    desc: Install repository git hooks
+    status:
+      - test -f .git/hooks/pre-commit
+    cmds:
+      - cmd: git config --unset core.hooksPath
+        ignore_error: true
+      - lefthook install
+
+  # ===========================================================================
+  # Build
+  # ===========================================================================
+
+  bundle:
+    desc: Compile schemas/src into the published schemas/dist bundles
+    dir: '{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/bundle.ts
+      - bun run src/catalog.ts
+
+  catalog:
+    desc: Regenerate the SchemaStore catalog index
+    dir: '{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/catalog.ts
+
+  site:build:
+    desc: Assemble the publication tree served at schemas.musher.dev
+    dir: '{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/site.ts
+
+  # ===========================================================================
+  # Checks
+  # ===========================================================================
+
+  check:
+    desc: Run every check CI runs
+    cmds:
+      - task: check:format
+      - task: check:types
+      - task: check:schema
+      - task: check:drift
+      - task: check:examples
+      - task: check:conformance
+      - task: check:shell
+      - task: check:workflow
+
+  check:schema:
+    desc: Meta-validate schema modules, $id uniqueness, and $ref locality
+    dir: '{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/lint.ts
+
+  check:drift:
+    desc: Fail if a committed bundle does not match a fresh compile
+    dir: '{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/drift.ts
+
+  check:examples:
+    desc: Validate every example document against its family bundle
+    dir: '{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/examples.ts
+
+  check:conformance:
+    desc: Execute the conformance corpus
+    dir: '{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/conformance.ts
+
+  check:format:
+    desc: Check formatting and lint of the tooling sources
+    dir: '{{.TOOLS_DIR}}'
+    cmds:
+      - bun run biome ci .
+
+  check:types:
+    desc: Typecheck the tooling sources
+    dir: '{{.TOOLS_DIR}}'
+    cmds:
+      - bun run tsc --noEmit
+
+  check:shell:
+    desc: ShellCheck the dev container scripts
+    cmds:
+      - shellcheck -x --source-path=.devcontainer/scripts .devcontainer/scripts/*.sh .devcontainer/scripts/lib/*.sh
+
+  check:shell:files:
+    desc: ShellCheck specific files (used by the pre-commit hook)
+    cmds:
+      - shellcheck -x --source-path=.devcontainer/scripts {{.CLI_ARGS}}
+
+  check:workflow:
+    desc: Lint the GitHub Actions workflows
+    cmds:
+      - actionlint
+
+  check:workflow:files:
+    desc: Lint specific workflow files (used by the pre-commit hook)
+    cmds:
+      - actionlint {{.CLI_ARGS}}
+
+  # ===========================================================================
+  # Formatting
+  # ===========================================================================
+
+  fmt:
+    desc: Format the tooling sources
+    dir: '{{.TOOLS_DIR}}'
+    cmds:
+      - bun run biome format --write .
+
+  # ===========================================================================
+  # Environment
+  # ===========================================================================
+
+  env:check:
+    desc: Verify .devcontainer/.env has every key from .env.example
+    cmds:
+      - |
+        bash -c '
+        source .devcontainer/scripts/lib/env-check.sh
+        env_check_drift .devcontainer/.env .devcontainer/.env.example
+        '
+
+  # ===========================================================================
+  # Hooks — thin wrappers invoked by lefthook
+  # ===========================================================================
+
+  hooks:pre-commit:
+    desc: Fast checks run on staged changes
+    cmds:
+      - task: check:format
+      - task: check:schema
+
+  hooks:pre-push:
+    desc: Full verification before pushing
+    cmds:
+      - task: check
+
+  # ===========================================================================
+  # CI entry points
+  # ===========================================================================
+
+  ci:lint:
+    desc: Lint suite as run in CI
+    cmds:
+      - task: check:format
+      - task: check:shell
+      - task: check:workflow
+
+  ci:test:
+    desc: Schema and conformance suite as run in CI
+    cmds:
+      - task: check:schema
+      - task: check:drift
+      - task: check:examples
+      - task: check:conformance
+
+  clean:
+    desc: Remove generated output
+    cmds:
+      - rm -rf {{.SITE_DIR}}
+      - rm -rf {{.TOOLS_DIR}}/node_modules

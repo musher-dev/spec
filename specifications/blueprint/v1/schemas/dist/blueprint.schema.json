@@ -1,0 +1,453 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.musher.dev/blueprint/v1/blueprint.schema.json",
+  "title": "Musher Blueprint Document",
+  "description": "A composition of one or more components into a single deployable application.",
+  "$comment": "Seeded from the platform's generated catalog schema. Structural and type validation only — cross-document reference resolution, slug/directory agreement, and platform capability checks are separate validation layers. See spec.md.",
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "title": "Kind",
+      "description": "Document kind discriminator. Must be BLUEPRINT.",
+      "const": "BLUEPRINT",
+      "type": "string"
+    },
+    "metadata": {
+      "$ref": "#/$defs/SeedItemMetadata"
+    },
+    "spec": {
+      "$ref": "#/$defs/SeedBlueprintSpecRequest"
+    },
+    "specVersion": {
+      "title": "Specversion",
+      "description": "Version of the seed authoring document format.",
+      "enum": [
+        "v1"
+      ],
+      "type": "string"
+    }
+  },
+  "required": [
+    "specVersion",
+    "kind",
+    "metadata",
+    "spec"
+  ],
+  "type": "object",
+  "$defs": {
+    "BlueprintComputeConstraintsRequest": {
+      "title": "BlueprintComputeConstraintsRequest",
+      "description": "Advanced, optional compute pins (ADR 0041) honored by Placement (ADR 0095).",
+      "properties": {
+        "acceleratorInterconnect": {
+          "title": "Acceleratorinterconnect",
+          "description": "Required interconnect such as 'nvlink' or 'pcie', or null for any.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "acceleratorMinVramGb": {
+          "title": "Acceleratorminvramgb",
+          "description": "Minimum accelerator VRAM in GiB, or null for no floor.",
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "acceleratorRuntime": {
+          "title": "Acceleratorruntime",
+          "description": "Required accelerator runtimes, e.g. ['cuda']. Empty means any.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "acceleratorSkuClass": {
+          "title": "Acceleratorskuclass",
+          "description": "Exact accelerator SKU class to pin, or null.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "cpuArchitecture": {
+          "title": "Cpuarchitecture",
+          "description": "Allowed CPU architectures, e.g. ['x86_64', 'arm64']. Empty means any.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "cpuDedication": {
+          "title": "Cpudedication",
+          "description": "CPU dedication: 'shared' or 'dedicated', or null for the platform default.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "networkClass": {
+          "title": "Networkclass",
+          "description": "Required network class such as 'standard', or null for the default.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "storageClass": {
+          "title": "Storageclass",
+          "description": "Required storage class such as 'local-nvme', or null for the default.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "storageMinIops": {
+          "title": "Storageminiops",
+          "description": "Minimum provisioned IOPS, or null for no floor.",
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "type": "object"
+    },
+    "BlueprintConnectionRefRequest": {
+      "title": "BlueprintConnectionRefRequest",
+      "description": "A consumer-anchored wire (map value; keyed by the consumer input key).\n\nThe value names only the producer end (``fromRole`` / ``fromOutput``); the\nconsumer end is derived from the enclosing node (``toRole`` = the node name)\nand the map key (``toInput``). One wire per consumer input (inbound-uniqueness,\nenforced by the publish gate).",
+      "properties": {
+        "fromOutput": {
+          "title": "Fromoutput",
+          "description": "Declared output key on the producer component.",
+          "type": "string"
+        },
+        "fromRole": {
+          "title": "Fromrole",
+          "description": "Node name of the producer component.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "fromRole",
+        "fromOutput"
+      ],
+      "type": "object",
+      "x-additionalPropertiesName": "inputKey"
+    },
+    "BlueprintParameterGeneratorRequest": {
+      "title": "BlueprintParameterGeneratorRequest",
+      "properties": {
+        "byteLength": {
+          "title": "Bytelength",
+          "description": "Number of random bytes generated for the value.",
+          "default": 32,
+          "type": "integer"
+        },
+        "charset": {
+          "title": "Charset",
+          "description": "Explicit character set for the generated value, or null when the encoding default is used.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "encoding": {
+          "title": "Encoding",
+          "description": "Encoding applied to the random bytes: HEX, BASE64, BASE64URL, or ALPHANUMERIC.",
+          "default": "HEX",
+          "enum": [
+            "HEX",
+            "BASE64",
+            "BASE64URL",
+            "ALPHANUMERIC"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "BlueprintParameterRequest": {
+      "title": "BlueprintParameterRequest",
+      "description": "An install-form parameter composed at the graph layer (map value; keyed by key).",
+      "properties": {
+        "description": {
+          "title": "Description",
+          "description": "Help text shown beneath the field, or null when none is set.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "generator": {
+          "description": "Auto-generation spec when the platform mints the value at deploy time, or null when the deploying user supplies it.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BlueprintParameterGeneratorRequest"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "isRequired": {
+          "title": "Isrequired",
+          "description": "True when the deploying user must provide a value before deploying.",
+          "default": false,
+          "type": "boolean"
+        },
+        "schema": {
+          "description": "Data contract of the value: type, format, pattern, enum, default, sensitivity.",
+          "$ref": "#/$defs/BlueprintParameterValueSchemaRequest"
+        },
+        "ui": {
+          "description": "Presentation metadata for the install form.",
+          "$ref": "#/$defs/BlueprintParameterUiRequest"
+        }
+      },
+      "required": [
+        "schema",
+        "ui"
+      ],
+      "type": "object",
+      "x-additionalPropertiesName": "parameterKey"
+    },
+    "BlueprintParameterUiRequest": {
+      "title": "BlueprintParameterUiRequest",
+      "description": "Presentation metadata for an install-form parameter.",
+      "properties": {
+        "label": {
+          "title": "Label",
+          "description": "Human-readable label shown on the install form.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "type": "object"
+    },
+    "BlueprintParameterValueSchemaRequest": {
+      "title": "BlueprintParameterValueSchemaRequest",
+      "description": "Data contract of an install-form parameter value (JSON-Schema subset).",
+      "properties": {
+        "default": {
+          "title": "Default",
+          "description": "Pre-filled value, or null when the deploying user must supply one.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "enum": {
+          "title": "Enum",
+          "description": "Allowed values when the value is a closed enumeration; empty when unconstrained.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "format": {
+          "title": "Format",
+          "description": "Semantic refinement of a STRING value: EMAIL, URI, ENDPOINT_URL, or CONNECTION_STRING; null when unrefined.",
+          "anyOf": [
+            {
+              "enum": [
+                "EMAIL",
+                "URI",
+                "ENDPOINT_URL",
+                "CONNECTION_STRING"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "isSensitive": {
+          "title": "Issensitive",
+          "description": "True when the value is secret material: masked in UIs, never echoed back.",
+          "default": false,
+          "type": "boolean"
+        },
+        "pattern": {
+          "title": "Pattern",
+          "description": "Regular expression the supplied value must match, or null when unconstrained.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "type": {
+          "title": "Type",
+          "description": "Primitive shape of the value: STRING, INTEGER, or BOOLEAN.",
+          "enum": [
+            "STRING",
+            "INTEGER",
+            "BOOLEAN"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object"
+    },
+    "SeedBlueprintNodeRequest": {
+      "title": "SeedBlueprintNodeRequest",
+      "description": "One graph node (map value keyed by node name) — the seed-local ref form.\n\nThe public-wire node (``BlueprintComponentRefRequest``) references a\nComponent by ``componentId`` + ``componentVersion``; a seed item has no ids\nyet, so this node references the sibling ``components/<name>.yaml`` file by\n``component`` (its stem) instead. Every other field (``size``,\n``advanced``, ``connections``) is the wire model's, reused verbatim — the\nfield-set relationship is drift-gated in\n``tests/unit/seeds/test_catalog_manifest_drift.py``.",
+      "additionalProperties": false,
+      "properties": {
+        "advanced": {
+          "description": "Optional advanced compute pins that narrow the eligible-host set at schedule time (ADR 0095).",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BlueprintComputeConstraintsRequest"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "component": {
+          "title": "Component",
+          "description": "Stem of the sibling components/<name>.yaml file this node deploys. The pinned version comes from that file's metadata.version.",
+          "maxLength": 128,
+          "minLength": 1,
+          "type": "string"
+        },
+        "connections": {
+          "title": "Connections",
+          "description": "Inbound wires for this node, keyed by the consumer input key each fills (value names the producer role and output; one wire per input).",
+          "additionalProperties": {
+            "$ref": "#/$defs/BlueprintConnectionRefRequest"
+          },
+          "type": "object"
+        },
+        "size": {
+          "title": "Size",
+          "description": "Compute Profile slug bound to this node, such as general.standard.small. Required per node — the Component carries no compute of its own (ADR 0092).",
+          "maxLength": 128,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "component",
+        "size"
+      ],
+      "type": "object"
+    },
+    "SeedBlueprintSpecRequest": {
+      "title": "SeedBlueprintSpecRequest",
+      "description": "The ``spec`` block of a blueprint document — mirrors ``BlueprintSpecRequest``.\n\n``parameters`` empty means the importer derives the install-form parameters\nfrom the graph's merged USER-supplied inputs (the standard path); a\nnon-empty map is an authored override lowered verbatim.",
+      "additionalProperties": false,
+      "properties": {
+        "components": {
+          "title": "Components",
+          "description": "Component references composing the graph, keyed by graph-local node name.",
+          "additionalProperties": {
+            "$ref": "#/$defs/SeedBlueprintNodeRequest"
+          },
+          "type": "object"
+        },
+        "parameters": {
+          "title": "Parameters",
+          "description": "Authored install-form parameter overrides, keyed by parameter key. Empty means the importer derives parameters from merged USER inputs.",
+          "additionalProperties": {
+            "$ref": "#/$defs/BlueprintParameterRequest"
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "SeedItemMetadata": {
+      "title": "SeedItemMetadata",
+      "description": "Identity block shared by the blueprint + listing documents.",
+      "additionalProperties": false,
+      "properties": {
+        "slug": {
+          "title": "Slug",
+          "description": "Item slug — must equal the item's directory name.",
+          "pattern": "^[a-z][a-z0-9-]{0,61}[a-z0-9]$",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "description": "Item version — must agree between blueprint.yaml and listing.yaml.",
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "slug",
+        "version"
+      ],
+      "type": "object"
+    }
+  }
+}

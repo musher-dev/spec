@@ -1,0 +1,7 @@
+{
+  "id": "structural-002-wrong-kind",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/listing/v1/spec.md#envelope",
+  "summary": "A document declaring kind COMPONENT is rejected by the listing schema."
+}

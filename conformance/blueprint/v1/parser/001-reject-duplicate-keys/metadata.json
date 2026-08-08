@@ -1,0 +1,7 @@
+{
+  "id": "parser-001-reject-duplicate-keys",
+  "phase": "parser",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#envelope",
+  "summary": "A document repeating a mapping key is rejected before structural validation."
+}

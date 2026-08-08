@@ -1,0 +1,118 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # release-please opens (and on merge, tags) a release PR per family.
+  # Tags land as <family>/v<MAJOR>.<MINOR>.<PATCH> — see
+  # .github/release-please/config.json.
+  # ---------------------------------------------------------------------------
+  release-please:
+    name: Release Please
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      paths_released: ${{ steps.release.outputs.paths_released }}
+    steps:
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        id: release
+        with:
+          config-file: .github/release-please/config.json
+          manifest-file: .github/release-please/manifest.json
+
+  # ---------------------------------------------------------------------------
+  # For each family released in this run, build and attach the distribution
+  # archive: the bundle, the normative prose, and the conformance corpus.
+  #
+  # Data artifacts only — no binaries, no generated language bindings. See
+  # GOVERNANCE.md → Binary policy.
+  # ---------------------------------------------------------------------------
+  artifacts:
+    name: Release artifacts
+    needs: release-please
+    if: needs.release-please.outputs.paths_released != '' && needs.release-please.outputs.paths_released != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    strategy:
+      fail-fast: false
+      matrix:
+        path: ${{ fromJson(needs.release-please.outputs.paths_released) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Resolve family and version
+        id: meta
+        env:
+          RELEASED_PATH: ${{ matrix.path }}
+        run: |
+          set -euo pipefail
+          # RELEASED_PATH looks like specifications/component/v1
+          family="$(echo "$RELEASED_PATH" | cut -d/ -f2)"
+          major="$(echo "$RELEASED_PATH" | cut -d/ -f3)"
+          version="$(jq -r --arg k "$RELEASED_PATH" '.[$k]' .github/release-please/manifest.json)"
+          tag="${family}/v${version}"
+          archive="${family}-v${version}.tar.gz"
+          {
+            echo "family=$family"
+            echo "major=$major"
+            echo "version=$version"
+            echo "tag=$tag"
+            echo "archive=$archive"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build distribution archive
+        env:
+          FAMILY: ${{ steps.meta.outputs.family }}
+          MAJOR: ${{ steps.meta.outputs.major }}
+          ARCHIVE: ${{ steps.meta.outputs.archive }}
+        run: |
+          set -euo pipefail
+          staging="$(mktemp -d)"
+          root="${staging}/${FAMILY}-${MAJOR}"
+          mkdir -p "$root"
+
+          cp "specifications/${FAMILY}/${MAJOR}/schemas/dist/${FAMILY}.schema.json" "$root/"
+          cp "specifications/${FAMILY}/${MAJOR}/spec.md" "$root/"
+          cp LICENSE NOTICE "$root/"
+          cp -r "specifications/${FAMILY}/${MAJOR}/examples" "$root/examples"
+          cp -r "conformance/${FAMILY}/${MAJOR}" "$root/conformance"
+          cp conformance/README.md "$root/conformance/README.md"
+
+          # Deterministic archive: sorted entries, no owner or timestamp noise.
+          tar --sort=name --owner=0 --group=0 --numeric-owner \
+              --mtime="@${SOURCE_DATE_EPOCH:-0}" \
+              -czf "$ARCHIVE" -C "$staging" "${FAMILY}-${MAJOR}"
+
+          sha256sum "$ARCHIVE" > "${ARCHIVE}.sha256"
+          cat "${ARCHIVE}.sha256"
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: ${{ steps.meta.outputs.archive }}
+
+      - name: Attach to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.meta.outputs.tag }}
+          ARCHIVE: ${{ steps.meta.outputs.archive }}
+        run: gh release upload "$TAG" "$ARCHIVE" "${ARCHIVE}.sha256" --clobber

@@ -1,0 +1,53 @@
+pre-commit:
+  parallel: true
+  jobs:
+    - name: format
+      glob: 'tools/**/*.{ts,json}'
+      run: task check:format
+
+    - name: schema
+      glob: 'specifications/**/*.schema.json'
+      run: task check:schema
+
+    - name: drift
+      glob: 'specifications/**/*.schema.json'
+      run: task check:drift
+
+    - name: shell
+      glob: '*.sh'
+      run: task check:shell:files -- {staged_files}
+
+    - name: workflow
+      glob: '.github/workflows/*.{yml,yaml}'
+      run: task check:workflow:files -- {staged_files}
+
+commit-msg:
+  jobs:
+    - name: conventional-commits
+      run: |
+        sh -ceu '
+        first_line=$(head -n 1 "$1")
+        case "$first_line" in
+          Merge*) exit 0 ;;
+        esac
+        pattern="^(feat|fix|chore|docs|style|refactor|perf|test|ci|build|revert)(\\(.+\\))?(!)?: .+"
+        if ! printf "%s\n" "$first_line" | grep -Eq "$pattern"; then
+          printf "%s\n" "ERROR: Commit message does not follow Conventional Commits format." >&2
+          printf "%s\n" "" >&2
+          printf "%s\n" "  Expected: <type>(<scope>): <description>" >&2
+          printf "  Got:      %s\n" "$first_line" >&2
+          printf "%s\n" "" >&2
+          printf "%s\n" "  Types:  feat, fix, chore, docs, style, refactor, perf, test, ci, build, revert" >&2
+          printf "%s\n" "  Scopes: component, blueprint, listing, conformance, tools, ci," >&2
+          printf "%s\n" "          devcontainer, docs, repo, deps" >&2
+          printf "%s\n" "" >&2
+          printf "%s\n" "  The scope drives release-please. feat(component): cuts component/v1.x.0;" >&2
+          printf "%s\n" "  an unscoped feat: releases nothing." >&2
+          exit 1
+        fi
+        ' -- {1}
+
+pre-push:
+  jobs:
+    - name: verify
+      run: task hooks:pre-push
