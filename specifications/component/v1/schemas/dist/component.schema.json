@@ -37,6 +37,7 @@
   "$defs": {
     "ComponentBuildRequest": {
       "title": "ComponentBuildRequest",
+      "additionalProperties": false,
       "properties": {
         "arguments": {
           "title": "Arguments",
@@ -89,6 +90,7 @@
     },
     "ComponentConfigRefEnvVarValueRequest": {
       "title": "ComponentConfigRefEnvVarValueRequest",
+      "additionalProperties": false,
       "properties": {
         "configKey": {
           "title": "Configkey",
@@ -113,6 +115,7 @@
     },
     "ComponentContractRequest": {
       "title": "ComponentContractRequest",
+      "additionalProperties": false,
       "properties": {
         "inputs": {
           "title": "Inputs",
@@ -135,6 +138,7 @@
     },
     "ComponentEndpointRequest": {
       "title": "ComponentEndpointRequest",
+      "additionalProperties": false,
       "properties": {
         "containerPort": {
           "title": "Containerport",
@@ -175,6 +179,7 @@
     "ComponentEnvVarRequest": {
       "title": "ComponentEnvVarRequest",
       "description": "One environment-variable entry (Kubernetes-style named entry).",
+      "additionalProperties": false,
       "properties": {
         "key": {
           "title": "Key",
@@ -212,6 +217,7 @@
     },
     "ComponentGitRefRequest": {
       "title": "ComponentGitRefRequest",
+      "additionalProperties": false,
       "properties": {
         "name": {
           "title": "Name",
@@ -236,6 +242,7 @@
     },
     "ComponentGitSourceRequest": {
       "title": "ComponentGitSourceRequest",
+      "additionalProperties": false,
       "properties": {
         "build": {
           "description": "How the repository is built into an image, or null when defaults apply.",
@@ -282,6 +289,7 @@
     "ComponentHealthProbesRequest": {
       "title": "ComponentHealthProbesRequest",
       "description": "Staged health probes (ADR 0093): startup, readiness, liveness.",
+      "additionalProperties": false,
       "properties": {
         "liveness": {
           "description": "Aliveness gate; failure restarts the container. Optional.",
@@ -324,6 +332,7 @@
     },
     "ComponentImageSourceRequest": {
       "title": "ComponentImageSourceRequest",
+      "additionalProperties": false,
       "properties": {
         "ref": {
           "title": "Ref",
@@ -345,6 +354,7 @@
     },
     "ComponentInputRequest": {
       "title": "ComponentInputRequest",
+      "additionalProperties": false,
       "properties": {
         "description": {
           "title": "Description",
@@ -441,6 +451,7 @@
     },
     "ComponentInputTargetRequest": {
       "title": "ComponentInputTargetRequest",
+      "additionalProperties": false,
       "properties": {
         "envVarKey": {
           "title": "Envvarkey",
@@ -459,6 +470,7 @@
     "ComponentInputUiRequest": {
       "title": "ComponentInputUiRequest",
       "description": "Presentation metadata for a USER-supplied input.\n\nThe install-form control is derived from the input's schema (enum →\nselect, BOOLEAN → toggle, EMAIL format → email field, sensitive →\nmasked field) — only the label needs declaring.",
+      "additionalProperties": false,
       "properties": {
         "label": {
           "title": "Label",
@@ -473,6 +485,7 @@
     },
     "ComponentLiteralEnvVarValueRequest": {
       "title": "ComponentLiteralEnvVarValueRequest",
+      "additionalProperties": false,
       "properties": {
         "isSensitive": {
           "title": "Issensitive",
@@ -500,6 +513,7 @@
     },
     "ComponentOutputRequest": {
       "title": "ComponentOutputRequest",
+      "additionalProperties": false,
       "properties": {
         "description": {
           "title": "Description",
@@ -550,6 +564,7 @@
     },
     "ComponentProbeRequest": {
       "title": "ComponentProbeRequest",
+      "additionalProperties": false,
       "properties": {
         "endpoint": {
           "title": "Endpoint",
@@ -607,6 +622,7 @@
     },
     "ComponentScheduleRequest": {
       "title": "ComponentScheduleRequest",
+      "additionalProperties": false,
       "properties": {
         "cron": {
           "title": "Cron",
@@ -621,6 +637,7 @@
     },
     "ComponentSpecRequest": {
       "title": "ComponentSpecRequest",
+      "additionalProperties": false,
       "properties": {
         "contract": {
           "description": "The composition contract: typed inputs the component needs and outputs it publishes.",
@@ -638,6 +655,7 @@
     },
     "ComponentValueGeneratorRequest": {
       "title": "ComponentValueGeneratorRequest",
+      "additionalProperties": false,
       "properties": {
         "byteLength": {
           "title": "Bytelength",
@@ -676,6 +694,7 @@
     "ComponentValueSchemaRequest": {
       "title": "ComponentValueSchemaRequest",
       "description": "Data contract of an input or output value (JSON-Schema subset).",
+      "additionalProperties": false,
       "properties": {
         "default": {
           "title": "Default",
@@ -776,6 +795,7 @@
     },
     "ComponentVolumeRequest": {
       "title": "ComponentVolumeRequest",
+      "additionalProperties": false,
       "properties": {
         "accessMode": {
           "title": "Accessmode",
@@ -813,6 +833,7 @@
     },
     "ComponentWorkloadRequest": {
       "title": "ComponentWorkloadRequest",
+      "additionalProperties": false,
       "properties": {
         "command": {
           "title": "Command",
