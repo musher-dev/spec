@@ -1,0 +1,16 @@
+# Port 0 binds nothing. The bound is a grammar, so the schema carries it.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+    endpoints:
+      web:
+        containerPort: 0
+        protocol: HTTP
+        visibility: PRIVATE

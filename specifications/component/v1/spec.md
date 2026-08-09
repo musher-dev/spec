@@ -261,8 +261,82 @@ resolves. The floating-tag rule applies only to a reference carrying no digest.
 
 ### <a id="endpoints"></a>5.2 Endpoints
 
-> **TODO** — Port range, protocol/visibility interaction, and whether more than
-> one `PUBLIC` endpoint is permitted.
+`endpoints` is a mapping from endpoint name to one port the workload listens
+on. `containerPort`, `protocol` and `visibility` are all REQUIRED — an endpoint
+missing any of them describes a port nothing can route to. Only a `SERVICE` may
+declare one; [§5](#workload) carries the rest of that rule.
+
+**An endpoint name is a reference.** A name MUST match
+`^[a-z][a-z0-9-]{0,61}[a-z0-9]$` — the grammar
+[blueprint §4.1](../../blueprint/v1/spec.md#component-reference) quotes for a
+slug — and one that does not is rejected in the `structural` phase with
+`ERR_INVALID_VALUE`. The name is not decoration: [§5.4](#health) points a probe
+at one and [§6.1](#inputs) derives an address from one, so a dot or a space in
+a name is a hazard rather than a matter of taste. The 63-character bound is a
+DNS label, which is what the name becomes.
+
+**`containerPort` is an integer from 1 to 65535.** Outside that range there is
+no port to bind. The bound is `structural` and carries `ERR_INVALID_VALUE`.
+
+A port below 1024 SHOULD NOT be used. Binding one needs a capability the runtime
+grants to the container, and a workload that does not hold it fails at deploy
+time with nothing in the document to blame. It stays advice rather than a
+rejection because whether that grant exists is a fact about the runtime this
+document cannot see, and a rule that rejects on a fact it cannot check is
+guessing. Making it a MUST later rejects documents v1 accepts, and is therefore
+breaking.
+
+**A `PUBLIC` endpoint is reached over HTTP.** `visibility: PUBLIC` publishes the
+endpoint at an externally reachable URL, and what publishes it speaks the HTTP
+family. `protocol` on a `PUBLIC` endpoint MUST therefore be one of `HTTP`,
+`HTTPS`, `WS` or `GRPC`; a `TCP` or `UDP` endpoint MUST be `PRIVATE`. The rule
+is `structural` and carries `ERR_INVALID_VALUE`.
+
+[§5.4](#health) is the second argument for it. A probe polls an HTTP path, and
+`readiness` is REQUIRED for a `SERVICE` exposing a `PUBLIC` endpoint — so a
+`PUBLIC` `TCP` endpoint would compel a probe it has no way to express.
+
+**A component MAY declare more than one `PUBLIC` endpoint**, and each one
+publishes its own URL. A component fronting an API on one port and a console on
+another is one component rather than two, and nothing about routing the second
+is harder than routing the first.
+
+The consequence is a rule and not a caveat: **anything naming a public address
+MUST name the endpoint it means.** Where two exist there is no such thing as
+"the component's URL". [§6.1](#inputs) is where that bites, and where the
+selector lives.
+
+**The primary endpoint.** A reference MAY omit the endpoint it targets — a
+probe's `endpoint` and a platform default's both admit null — and the primary
+endpoint is what null selects. It is:
+
+1. the workload's sole endpoint, where it declares exactly one; failing that
+2. its sole `PUBLIC` endpoint, where it declares exactly one; failing that
+3. nothing.
+
+Where it is nothing, a reference that omits the endpoint is rejected in the
+`semantic` phase with `ERR_AMBIGUOUS_ENDPOINT`. The schema cannot express this
+for the reason [§5.4](#health) gives: the endpoint names are mapping keys
+elsewhere in the document.
+
+"Nothing" is reached two ways and both are rejected, though they read
+differently to an author. A workload declaring several candidates has too many
+and must choose. A workload declaring no endpoint at all has none, and a probe
+on it polls a port that does not exist — which [§5](#workload) permits the
+workload to be, since a `SERVICE` MAY declare no endpoint, but which no probe
+can survive.
+
+**Why that is an error rather than a tiebreak.** Electing the first name in sort
+order would give every document an answer, and would let a new endpoint called
+`api` silently re-point a probe that has worked for a year. A rule that changes
+what an unedited line means is the failure [§2](#envelope) rejects a misspelled
+optional field to avoid.
+
+**What v1 does not constrain.** Two endpoints MAY declare the same
+`containerPort`, and nothing says which of them anything routing to that port
+should believe. That silence is a gap rather than a considered permission, and
+is recorded here so a reader can tell the two apart. Closing it rejects
+documents that validate today.
 
 ### <a id="env-vars"></a>5.3 Environment variables
 
@@ -285,10 +359,12 @@ polls an HTTP path.
 `successThreshold: 1`, `failureThreshold: 3`.
 
 `endpoint` names the endpoint whose port the probe targets; null selects the
-primary endpoint. A probe naming an endpoint the workload does not declare is
-rejected in the `semantic` phase with `ERR_UNKNOWN_ENDPOINT`. The schema cannot
-express it — the endpoint names are mapping keys elsewhere in the document, and
-JSON Schema cannot constrain a value against a sibling's keys.
+primary endpoint [§5.2](#endpoints) elects, and is rejected with
+`ERR_AMBIGUOUS_ENDPOINT` where that section elects none. A probe naming an
+endpoint the workload does not declare is rejected with `ERR_UNKNOWN_ENDPOINT`.
+Both are `semantic`, and the schema can express neither — the endpoint names are
+mapping keys elsewhere in the document, and JSON Schema cannot constrain a value
+against a sibling's keys.
 
 **`readiness` is REQUIRED for a `SERVICE` exposing at least one `PUBLIC`
 endpoint**, and OPTIONAL everywhere else, including on a `SERVICE` whose
@@ -350,6 +426,28 @@ left to a default: `isSensitive` defaults to `false`, and a generated value not
 marked sensitive is echoed back into logs and interfaces. The value rides on a
 `USER` input because that is the slot the install form already reserves for it
 — the user simply does not have to type it.
+
+**A platform default derives the value from the component's own addressing.**
+`platformDefault` is OPTIONAL and null by default. Where it is present, `source`
+is REQUIRED and selects what is derived — `PUBLIC_URL` for the full URL of a
+public endpoint, `PUBLIC_HOSTNAME` for its hostname alone — and `endpoint` names
+which endpoint it is derived from.
+
+`endpoint` is null by default and selects the primary endpoint
+[§5.2](#endpoints) elects. Since a component MAY expose several `PUBLIC`
+endpoints, one that does MUST name the endpoint here: null elects nothing there
+and is rejected with `ERR_AMBIGUOUS_ENDPOINT`.
+
+Two further rules follow the name, both `semantic`. An endpoint the workload
+does not declare is `ERR_UNKNOWN_ENDPOINT` — the same code and the same reason
+as a probe's. An endpoint that is declared but `PRIVATE` is
+`ERR_ENDPOINT_NOT_PUBLIC`: both sources derive an externally reachable address,
+and a `PRIVATE` endpoint has none to give.
+
+**A platform default is not a `CONNECTION`.** The value comes from the
+component's own workload, never from an upstream node, which is the same line
+[§6.2](#outputs) draws around an output. `suppliedBy` is unconstrained by
+`platformDefault` in v1 — a gap, recorded rather than described as a decision.
 
 ### <a id="outputs"></a>6.2 Outputs
 
@@ -432,7 +530,9 @@ different text and that is expected.
 | `ERR_INVALID_TYPE` | `structural` | A value has the wrong type. |
 | `ERR_INVALID_VALUE` | `structural` | A value violates a pattern, enum, or bound. |
 | `ERR_UNPINNED_IMAGE` | `semantic` | An image reference carries a floating tag. |
-| `ERR_UNKNOWN_ENDPOINT` | `semantic` | A probe names an endpoint the workload does not declare. |
+| `ERR_UNKNOWN_ENDPOINT` | `semantic` | A probe or a platform default names an endpoint the workload does not declare. |
+| `ERR_AMBIGUOUS_ENDPOINT` | `semantic` | A reference omits the endpoint, and the workload elects no primary. |
+| `ERR_ENDPOINT_NOT_PUBLIC` | `semantic` | A platform default deriving a public address names a `PRIVATE` endpoint. |
 | `ERR_VERSION_NOT_MONOTONIC` | `capability` | A published component version is not greater than the lineage's current version. |
 
 The `parser` and `structural` rows are the shared envelope registry: the

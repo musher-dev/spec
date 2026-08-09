@@ -1,0 +1,6 @@
+[
+  {
+    "code": "ERR_AMBIGUOUS_ENDPOINT",
+    "path": "/spec/workload/health/readiness/endpoint"
+  }
+]

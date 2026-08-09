@@ -1,0 +1,7 @@
+{
+  "id": "structural-024-container-port-below-range",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#endpoints",
+  "summary": "A containerPort below 1 is rejected."
+}

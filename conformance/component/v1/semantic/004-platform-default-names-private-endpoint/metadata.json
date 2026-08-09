@@ -1,0 +1,7 @@
+{
+  "id": "semantic-004-platform-default-names-private-endpoint",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#inputs",
+  "summary": "A platform default deriving a public address from a PRIVATE endpoint is rejected."
+}

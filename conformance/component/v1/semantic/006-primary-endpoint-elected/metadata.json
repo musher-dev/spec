@@ -1,0 +1,7 @@
+{
+  "id": "semantic-006-primary-endpoint-elected",
+  "phase": "semantic",
+  "expected": "pass",
+  "clause": "specifications/component/v1/spec.md#endpoints",
+  "summary": "The sole PUBLIC endpoint is the primary a probe naming none resolves to."
+}

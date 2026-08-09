@@ -1,0 +1,7 @@
+{
+  "id": "structural-028-public-grpc-endpoint",
+  "phase": "structural",
+  "expected": "pass",
+  "clause": "specifications/component/v1/spec.md#endpoints",
+  "summary": "GRPC is one of the protocols a PUBLIC endpoint may serve."
+}

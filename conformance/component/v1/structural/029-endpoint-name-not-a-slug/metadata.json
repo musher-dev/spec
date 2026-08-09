@@ -1,0 +1,7 @@
+{
+  "id": "structural-029-endpoint-name-not-a-slug",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#endpoints",
+  "summary": "An endpoint name outside the slug grammar is rejected."
+}

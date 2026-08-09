@@ -1,0 +1,21 @@
+# GRPC rides on HTTP/2, so it is one of the four protocols a PUBLIC endpoint
+# may serve.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+    endpoints:
+      rpc:
+        containerPort: 8080
+        protocol: GRPC
+        visibility: PUBLIC
+    health:
+      readiness:
+        path: /healthz
+        endpoint: rpc

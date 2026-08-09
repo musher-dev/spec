@@ -1,0 +1,7 @@
+{
+  "id": "semantic-005-no-primary-endpoint-elected",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#endpoints",
+  "summary": "A reference omitting the endpoint is rejected where the workload elects no primary."
+}

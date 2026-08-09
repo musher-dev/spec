@@ -138,6 +138,41 @@
       "path": "structural/023-field-from-newer-release"
     },
     {
+      "id": "structural-024-container-port-below-range",
+      "phase": "structural",
+      "path": "structural/024-container-port-below-range"
+    },
+    {
+      "id": "structural-025-container-port-above-range",
+      "phase": "structural",
+      "path": "structural/025-container-port-above-range"
+    },
+    {
+      "id": "structural-026-privileged-container-port",
+      "phase": "structural",
+      "path": "structural/026-privileged-container-port"
+    },
+    {
+      "id": "structural-027-public-tcp-endpoint",
+      "phase": "structural",
+      "path": "structural/027-public-tcp-endpoint"
+    },
+    {
+      "id": "structural-028-public-grpc-endpoint",
+      "phase": "structural",
+      "path": "structural/028-public-grpc-endpoint"
+    },
+    {
+      "id": "structural-029-endpoint-name-not-a-slug",
+      "phase": "structural",
+      "path": "structural/029-endpoint-name-not-a-slug"
+    },
+    {
+      "id": "structural-030-two-public-endpoints",
+      "phase": "structural",
+      "path": "structural/030-two-public-endpoints"
+    },
+    {
       "id": "semantic-001-floating-tag-image-reference",
       "phase": "semantic",
       "path": "semantic/001-floating-tag-image-reference"
@@ -146,6 +181,31 @@
       "id": "semantic-002-probe-names-unknown-endpoint",
       "phase": "semantic",
       "path": "semantic/002-probe-names-unknown-endpoint"
+    },
+    {
+      "id": "semantic-003-platform-default-names-unknown-endpoint",
+      "phase": "semantic",
+      "path": "semantic/003-platform-default-names-unknown-endpoint"
+    },
+    {
+      "id": "semantic-004-platform-default-names-private-endpoint",
+      "phase": "semantic",
+      "path": "semantic/004-platform-default-names-private-endpoint"
+    },
+    {
+      "id": "semantic-005-no-primary-endpoint-elected",
+      "phase": "semantic",
+      "path": "semantic/005-no-primary-endpoint-elected"
+    },
+    {
+      "id": "semantic-006-primary-endpoint-elected",
+      "phase": "semantic",
+      "path": "semantic/006-primary-endpoint-elected"
+    },
+    {
+      "id": "semantic-007-probe-on-endpointless-workload",
+      "phase": "semantic",
+      "path": "semantic/007-probe-on-endpointless-workload"
     }
   ]
 }

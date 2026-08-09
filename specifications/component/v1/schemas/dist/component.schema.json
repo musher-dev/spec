@@ -125,9 +125,38 @@
     },
     "ComponentEndpoint": {
       "additionalProperties": false,
+      "allOf": [
+        {
+          "$comment": "spec.md §5.2. A PUBLIC endpoint is published at a URL by something that speaks the HTTP family, so TCP and UDP have no URL to publish. A bare conditional carrying no `type` declares no properties of its own, so lint.ts checkClosedObjects correctly skips it.",
+          "if": {
+            "properties": {
+              "visibility": {
+                "const": "PUBLIC"
+              }
+            },
+            "required": [
+              "visibility"
+            ]
+          },
+          "then": {
+            "properties": {
+              "protocol": {
+                "enum": [
+                  "HTTP",
+                  "HTTPS",
+                  "WS",
+                  "GRPC"
+                ]
+              }
+            }
+          }
+        }
+      ],
       "properties": {
         "containerPort": {
-          "description": "Port the workload listens on inside the container.",
+          "description": "Port the workload listens on inside the container. Below 1024 needs a capability the runtime grants, so spec.md §5.2 discourages it without rejecting it.",
+          "maximum": 65535,
+          "minimum": 1,
           "type": "integer"
         },
         "protocol": {
@@ -415,14 +444,10 @@
           "type": "boolean"
         },
         "platformDefault": {
-          "description": "Platform-derived default bound into the target env var — PUBLIC_HOSTNAME injects the component's own public endpoint hostname, PUBLIC_URL the full https URL of that endpoint; null when the value is user-supplied, wired, or generated.",
+          "description": "Default derived from the component's own addressing and bound into the target env var; null when the value is user-supplied, wired, or generated.",
           "anyOf": [
             {
-              "enum": [
-                "PUBLIC_HOSTNAME",
-                "PUBLIC_URL"
-              ],
-              "type": "string"
+              "$ref": "#/$defs/ComponentPlatformDefault"
             },
             {
               "type": "null"
@@ -619,13 +644,45 @@
       "type": "object",
       "x-additionalPropertiesName": "outputName"
     },
+    "ComponentPlatformDefault": {
+      "description": "Default derived from the component's own public addressing. Which endpoint it derives from is named rather than assumed, because spec.md §5.2 permits more than one PUBLIC endpoint.",
+      "additionalProperties": false,
+      "properties": {
+        "endpoint": {
+          "description": "Name of the PUBLIC endpoint the value is derived from. Null selects the primary endpoint spec.md §5.2 elects.",
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9-]{0,61}[a-z0-9]$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "source": {
+          "description": "What is derived: PUBLIC_HOSTNAME for the endpoint's hostname alone, PUBLIC_URL for its full URL.",
+          "enum": [
+            "PUBLIC_HOSTNAME",
+            "PUBLIC_URL"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "source"
+      ],
+      "type": "object"
+    },
     "ComponentProbe": {
       "additionalProperties": false,
       "properties": {
         "endpoint": {
-          "description": "Name of the endpoint whose port the probe targets. Null selects the primary endpoint.",
+          "description": "Name of the endpoint whose port the probe targets. Null selects the primary endpoint spec.md §5.2 elects.",
           "anyOf": [
             {
+              "pattern": "^[a-z][a-z0-9-]{0,61}[a-z0-9]$",
               "type": "string"
             },
             {
@@ -1007,6 +1064,10 @@
           "description": "Endpoints the workload exposes, keyed by endpoint name. Only a SERVICE may declare one; on any other kind the mapping must be absent or empty.",
           "additionalProperties": {
             "$ref": "#/$defs/ComponentEndpoint"
+          },
+          "propertyNames": {
+            "$comment": "spec.md §5.2. An endpoint name is referenced by probes and by platform defaults, and becomes a DNS label, so it takes the slug grammar rather than an arbitrary key.",
+            "pattern": "^[a-z][a-z0-9-]{0,61}[a-z0-9]$"
           },
           "type": "object"
         },

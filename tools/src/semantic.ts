@@ -113,26 +113,113 @@ function checkImageRef(document: Json, out: Diagnostic[]): void {
 }
 
 /**
- * Component §5.4 — a probe's `endpoint` MUST name a declared endpoint. JSON
- * Schema cannot: the names are mapping keys elsewhere in the document, and no
- * keyword constrains a value against a sibling's keys.
+ * Component §5.2 — the endpoint a null reference selects. The sole endpoint
+ * where the workload declares exactly one, failing that its sole PUBLIC one,
+ * failing that nothing.
+ *
+ * §5.2 chose "nothing" over a sort-order tiebreak deliberately: a tiebreak
+ * lets a new endpoint named `api` silently re-point a probe that already works.
  */
-function checkProbeEndpoints(document: Json, out: Diagnostic[]): void {
-  const workload = child(child(document, 'spec'), 'workload')
-  const health = child(workload, 'health')
-  if (!isObject(health)) return
+function primaryEndpoint(endpoints: Json | undefined): string | undefined {
+  const names = keysOf(endpoints)
+  if (names.length === 1) return names[0]
 
-  const declared = new Set(keysOf(child(workload, 'endpoints')))
-  for (const probe of keysOf(health)) {
-    // null selects the primary endpoint, so only a named one can be wrong.
-    const endpoint = asString(child(child(health, probe), 'endpoint'))
-    if (endpoint !== undefined && !declared.has(endpoint)) {
+  const publicNames = names.filter(
+    (name) => child(child(endpoints, name), 'visibility') === 'PUBLIC',
+  )
+  return publicNames.length === 1 ? publicNames[0] : undefined
+}
+
+/**
+ * One place a document names an endpoint: a probe's `endpoint` (§5.4) or a
+ * platform default's (§6.1). `mustBePublic` is what separates them — both
+ * platform-default sources derive an externally reachable address.
+ */
+interface EndpointReference {
+  /** The raw value, so an explicit null and an absent key are one case. */
+  readonly value: Json | undefined
+  readonly path: string
+  readonly subject: string
+  readonly mustBePublic: boolean
+}
+
+/**
+ * Component §5.2, §5.4 and §6.1. JSON Schema can express none of this: the
+ * endpoint names are mapping keys elsewhere in the document, and no keyword
+ * constrains a value against a sibling's keys.
+ */
+function checkEndpointReference(
+  reference: EndpointReference,
+  endpoints: Json | undefined,
+  out: Diagnostic[],
+): void {
+  const named = asString(reference.value)
+
+  // Absent or null both select the primary, which §5.2 may elect to be nothing.
+  if (named === undefined) {
+    if (primaryEndpoint(endpoints) === undefined) {
       out.push({
-        code: 'ERR_UNKNOWN_ENDPOINT',
-        path: `/spec/workload/health/${token(probe)}/endpoint`,
-        message: `probe targets endpoint "${endpoint}", which the workload does not declare`,
+        code: 'ERR_AMBIGUOUS_ENDPOINT',
+        path: reference.path,
+        message: `${reference.subject} names no endpoint, and the workload elects no primary`,
       })
     }
+    return
+  }
+
+  const declared = child(endpoints, named)
+  if (declared === undefined) {
+    out.push({
+      code: 'ERR_UNKNOWN_ENDPOINT',
+      path: reference.path,
+      message: `${reference.subject} targets endpoint "${named}", which the workload does not declare`,
+    })
+    return
+  }
+
+  if (reference.mustBePublic && child(declared, 'visibility') !== 'PUBLIC') {
+    out.push({
+      code: 'ERR_ENDPOINT_NOT_PUBLIC',
+      path: reference.path,
+      message: `${reference.subject} derives a public address from endpoint "${named}", which is PRIVATE`,
+    })
+  }
+}
+
+/** Every endpoint a component document names, in document order. */
+function endpointReferences(document: Json): EndpointReference[] {
+  const spec = child(document, 'spec')
+  const health = child(child(spec, 'workload'), 'health')
+  const inputs = child(child(spec, 'contract'), 'inputs')
+  const references: EndpointReference[] = []
+
+  for (const probe of keysOf(health)) {
+    references.push({
+      value: child(child(health, probe), 'endpoint'),
+      path: `/spec/workload/health/${token(probe)}/endpoint`,
+      subject: `${probe} probe`,
+      mustBePublic: false,
+    })
+  }
+
+  for (const input of keysOf(inputs)) {
+    const platformDefault = child(child(inputs, input), 'platformDefault')
+    if (!isObject(platformDefault)) continue
+    references.push({
+      value: child(platformDefault, 'endpoint'),
+      path: `/spec/contract/inputs/${token(input)}/platformDefault/endpoint`,
+      subject: `platform default on input "${input}"`,
+      mustBePublic: true,
+    })
+  }
+
+  return references
+}
+
+function checkEndpointReferences(document: Json, out: Diagnostic[]): void {
+  const endpoints = child(child(child(document, 'spec'), 'workload'), 'endpoints')
+  for (const reference of endpointReferences(document)) {
+    checkEndpointReference(reference, endpoints, out)
   }
 }
 
@@ -638,7 +725,7 @@ export function semanticDiagnostics(
 
   if (family.name === 'component') {
     checkImageRef(document, out)
-    checkProbeEndpoints(document, out)
+    checkEndpointReferences(document, out)
   }
   if (family.name === 'blueprint') {
     checkConnectionRoles(document, out)
