@@ -1,0 +1,7 @@
+{
+  "id": "structural-012-unpinned-image-reference",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#source",
+  "summary": "An image reference carrying neither tag nor digest is rejected."
+}

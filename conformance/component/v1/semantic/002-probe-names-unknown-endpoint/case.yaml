@@ -1,0 +1,22 @@
+# The probe targets "api", but the only endpoint is "web". JSON Schema cannot
+# catch this: the endpoint names are mapping keys elsewhere in the document,
+# and no keyword constrains a value against a sibling's keys.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+    endpoints:
+      web:
+        containerPort: 8080
+        protocol: HTTP
+        visibility: PUBLIC
+    health:
+      readiness:
+        path: /healthz
+        endpoint: api

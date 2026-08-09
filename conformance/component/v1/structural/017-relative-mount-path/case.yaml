@@ -1,0 +1,16 @@
+# A mount path is resolved by the container runtime, not relative to anything
+# in this document. A relative path has no meaning to resolve against.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: postgres:17.10-alpine
+    volumes:
+      data:
+        sizeGib: 10
+        mountPath: var/lib/postgresql/data

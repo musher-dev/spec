@@ -1,0 +1,17 @@
+# suppliedBy defaults to USER, so omitting it does not opt out of the rule.
+# A form cannot render a field it has no label for.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+  contract:
+    inputs:
+      siteTitle:
+        schema:
+          type: STRING

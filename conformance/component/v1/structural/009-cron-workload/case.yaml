@@ -1,0 +1,13 @@
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: CRON
+    command: /bin/backup
+    schedule:
+      cron: "0 3 * * *"
+    source:
+      type: IMAGE
+      ref: ghcr.io/musher-dev/backup:1.0.2

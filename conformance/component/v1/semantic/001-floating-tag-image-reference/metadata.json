@@ -1,0 +1,7 @@
+{
+  "id": "semantic-001-floating-tag-image-reference",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#source",
+  "summary": "An image reference whose tag is in the floating set is rejected."
+}

@@ -1,0 +1,20 @@
+# Only a SERVICE may expose an endpoint. A WORKER that declares one has
+# either the wrong kind or a misplaced endpoint, and both are worth saying out
+# loud — accepting it silently leaves an author expecting traffic that will
+# never arrive.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: WORKER
+    command: /bin/consume
+    source:
+      type: IMAGE
+      ref: ghcr.io/musher-dev/worker:1.4.0
+    endpoints:
+      web:
+        containerPort: 8080
+        protocol: HTTP
+        visibility: PRIVATE

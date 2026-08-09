@@ -1,0 +1,13 @@
+# A JOB is a one-shot command. Without one there is no workload to run, and
+# the image's default command is not a substitute — a job that silently ran a
+# service's entrypoint would never terminate.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: JOB
+    source:
+      type: IMAGE
+      ref: ghcr.io/musher-dev/migrate:2.0.1

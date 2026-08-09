@@ -1,0 +1,7 @@
+{
+  "id": "structural-020-user-input-without-ui",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#inputs",
+  "summary": "A USER input omitting ui is rejected, including when suppliedBy is defaulted."
+}

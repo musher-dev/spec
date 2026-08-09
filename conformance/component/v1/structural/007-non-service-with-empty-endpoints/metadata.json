@@ -1,0 +1,7 @@
+{
+  "id": "structural-007-non-service-with-empty-endpoints",
+  "phase": "structural",
+  "expected": "pass",
+  "clause": "specifications/component/v1/spec.md#workload",
+  "summary": "A forbidden mapping may still be written empty; only a declared entry is an error."
+}

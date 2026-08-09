@@ -1,0 +1,6 @@
+[
+  {
+    "code": "ERR_INVALID_TYPE",
+    "path": "/spec/contract/outputs/connectionString/value"
+  }
+]

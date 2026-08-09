@@ -1,0 +1,7 @@
+{
+  "id": "structural-017-relative-mount-path",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#volumes",
+  "summary": "A relative volume mountPath is rejected."
+}

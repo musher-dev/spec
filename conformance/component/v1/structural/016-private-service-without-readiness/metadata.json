@@ -1,0 +1,7 @@
+{
+  "id": "structural-016-private-service-without-readiness",
+  "phase": "structural",
+  "expected": "pass",
+  "clause": "specifications/component/v1/spec.md#health",
+  "summary": "A SERVICE whose endpoints are all PRIVATE is exempt from the readiness rule."
+}

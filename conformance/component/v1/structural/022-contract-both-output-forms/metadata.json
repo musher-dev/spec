@@ -1,0 +1,7 @@
+{
+  "id": "structural-022-contract-both-output-forms",
+  "phase": "structural",
+  "expected": "pass",
+  "clause": "specifications/component/v1/spec.md#outputs",
+  "summary": "A generated input, a DERIVED output, and a DECLARED output together validate."
+}

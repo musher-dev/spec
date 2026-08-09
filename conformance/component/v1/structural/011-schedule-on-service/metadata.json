@@ -1,0 +1,7 @@
+{
+  "id": "structural-011-schedule-on-service",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#workload",
+  "summary": "A schedule on a SERVICE is rejected rather than ignored."
+}

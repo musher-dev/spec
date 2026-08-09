@@ -1,0 +1,23 @@
+# A platform-minted value is secret material. isSensitive defaults to false,
+# so leaving it unwritten is not a neutral omission — it is the wrong answer,
+# and the generated value would be echoed back into logs and interfaces.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+  contract:
+    inputs:
+      apiKey:
+        schema:
+          type: STRING
+        suppliedBy: USER
+        generator:
+          encoding: HEX
+        ui:
+          label: API key

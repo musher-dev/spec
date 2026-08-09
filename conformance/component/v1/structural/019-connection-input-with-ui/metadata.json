@@ -1,0 +1,7 @@
+{
+  "id": "structural-019-connection-input-with-ui",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#inputs",
+  "summary": "Presentation metadata on a CONNECTION input is rejected."
+}

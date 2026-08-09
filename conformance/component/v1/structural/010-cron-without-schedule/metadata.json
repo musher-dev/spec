@@ -1,0 +1,7 @@
+{
+  "id": "structural-010-cron-without-schedule",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#workload",
+  "summary": "A CRON omitting schedule is rejected; nothing says when it runs."
+}

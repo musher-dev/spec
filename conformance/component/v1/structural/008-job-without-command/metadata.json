@@ -1,0 +1,7 @@
+{
+  "id": "structural-008-job-without-command",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#workload",
+  "summary": "A JOB omitting command is rejected; there is nothing for it to run."
+}

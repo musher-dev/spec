@@ -1,0 +1,6 @@
+[
+  {
+    "code": "ERR_UNKNOWN_ENDPOINT",
+    "path": "/spec/workload/health/readiness/endpoint"
+  }
+]
