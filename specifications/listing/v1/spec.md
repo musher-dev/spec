@@ -96,7 +96,7 @@ fixture in [`conformance/listing/v1/`](../../../conformance/listing/v1/).
 
 ## <a id="known-debt"></a>9. Known debt
 
-Seeded from the platform's generated schema; `$defs` retain `Seed…` affixes,
-and `SeedListingFeatured` encodes a seed-authoring-only concern that may not
-belong in the public contract. See
+Seeded from the platform's generated schema. The naming that arrived with it
+has been cleaned, and the seed-authoring-only `featured` block has been removed
+from the contract (§4). The sections above marked TODO remain. See
 [component §10](../../component/v1/spec.md#known-debt).

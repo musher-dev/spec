@@ -78,7 +78,9 @@ an unscoped `feat:` releases nothing.
 ## Known debt
 
 The three schemas were seeded from the platform's Pydantic-generated catalog
-schemas. Their `$defs` names still carry implementation affixes (`Seed…`,
-`…Request`) and some auto-generated `title` values are mangled (`Specversion`).
-Cleaning these is tracked as a v1 pre-stable task — do not treat the current
-names as settled, and do not add new ones in that style.
+schemas. The naming and the generated titles have been cleaned and `lint.ts`
+now rejects both, but the seeding still shows in the prose: some `description`
+text uses platform vocabulary (`snapshot compute`, Compute Profile slugs) that
+a reader outside `musher-dev/platform` cannot resolve. The `TODO` sections in
+each `spec.md` are the larger remaining gap — they are what keeps v1
+pre-stable.
