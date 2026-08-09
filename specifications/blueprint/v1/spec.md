@@ -305,6 +305,11 @@ mapping has no sequence, and a rule that depended on file order, on parse
 order, or on an identifier internal to a control plane would not be
 reproducible by someone reading the document.
 
+The comparison is unambiguous across implementations: [§4](#components)
+confines a node name to lowercase ASCII letters, digits and hyphens, so byte
+order and lexicographic order coincide and no collation or locale can change
+the result.
+
 **A conflicting redeclaration is an error.** Where a later node declares a key
 already taken and its declaration differs, the blueprint is rejected in the
 `semantic` phase with `ERR_CONFLICTING_INPUT_SCHEMA`. An identical

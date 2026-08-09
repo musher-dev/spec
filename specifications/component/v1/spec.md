@@ -94,8 +94,11 @@ and the shape decides which of the remaining fields carry meaning.
 `source`, `envVars`, and `volumes` are permitted on every kind. Every rule in
 the table is decided in the `structural` phase.
 
-**Forbidden means rejected, not ignored.** A forbidden field MAY be absent, an
-empty mapping, or an explicit null; anything else is an error.
+**Forbidden means rejected, not ignored.** A forbidden field MAY be omitted, or
+written in its own empty form — `endpoints: {}` for a mapping, `schedule: null`
+for a nullable block. Anything else is an error, and the two empty forms are
+not interchangeable: `endpoints` is a mapping and takes no null,
+`schedule` is a nullable block and takes no empty mapping.
 [§2](#envelope) has already settled why — a misspelled field is an error rather
 than a silently ignored one, "including when the misspelled field is optional,
 where ignoring it would silently substitute the default". A `schedule` on a
@@ -110,10 +113,9 @@ than meaningless, so it stays permitted.
 
 **A `SERVICE` MAY declare no endpoint.** The smallest component that validates
 is a service running a pinned image and nothing else. A service exposing no
-endpoint and a worker are operationally the same thing, so requiring at least
-one endpoint is a defensible rule — but it would reject documents this
-specification currently accepts, which makes it a breaking change rather than
-one v1 can absorb.
+endpoint and a worker are operationally much the same thing, so requiring at
+least one endpoint is a defensible rule. It is simply not this version's rule,
+and adopting it later rejects documents v1 accepts.
 
 Input and output keys are unique within a component because `contract.inputs`
 and `contract.outputs` are mappings. A repeated key is `ERR_DUPLICATE_KEY` in
