@@ -1,0 +1,7 @@
+{
+  "id": "structural-009-version-pinned-on-local-reference",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#component-reference",
+  "summary": "componentVersion on a local reference is rejected; the version is the referenced document's own."
+}

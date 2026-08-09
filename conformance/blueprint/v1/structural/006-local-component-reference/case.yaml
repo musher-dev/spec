@@ -1,0 +1,21 @@
+# The repo-local reference form, in both layouts it has to support: a nested
+# `components/` directory and a flat sibling file. The `./` prefix is what
+# selects the local resolver — without it a bare slug and a UUID are
+# indistinguishable, since a UUID beginning with a hex letter satisfies the
+# slug grammar.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: web-and-database
+  version: 1
+spec:
+  components:
+    db:
+      component: ./components/postgres.yaml
+      size: general.standard.small
+      connections: {}
+    web:
+      component: ./component-web.yaml
+      size: general.standard.small
+      connections: {}
+  parameters: {}

@@ -1,0 +1,7 @@
+{
+  "id": "structural-008-bare-component-stem",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#component-reference",
+  "summary": "A reference carrying neither a relative-path prefix nor a UUID matches no resolver and is rejected."
+}

@@ -31,6 +31,36 @@
       "id": "structural-005-nested-unknown-field",
       "phase": "structural",
       "path": "structural/005-nested-unknown-field"
+    },
+    {
+      "id": "structural-006-local-component-reference",
+      "phase": "structural",
+      "path": "structural/006-local-component-reference"
+    },
+    {
+      "id": "structural-007-published-component-reference",
+      "phase": "structural",
+      "path": "structural/007-published-component-reference"
+    },
+    {
+      "id": "structural-008-bare-component-stem",
+      "phase": "structural",
+      "path": "structural/008-bare-component-stem"
+    },
+    {
+      "id": "structural-009-version-pinned-on-local-reference",
+      "phase": "structural",
+      "path": "structural/009-version-pinned-on-local-reference"
+    },
+    {
+      "id": "structural-010-published-reference-without-version",
+      "phase": "structural",
+      "path": "structural/010-published-reference-without-version"
+    },
+    {
+      "id": "structural-011-traversal-inside-local-reference",
+      "phase": "structural",
+      "path": "structural/011-traversal-inside-local-reference"
     }
   ]
 }

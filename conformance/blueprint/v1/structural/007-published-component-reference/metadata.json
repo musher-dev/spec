@@ -1,0 +1,7 @@
+{
+  "id": "structural-007-published-component-reference",
+  "phase": "structural",
+  "expected": "pass",
+  "clause": "specifications/blueprint/v1/spec.md#component-reference",
+  "summary": "A published component reference is a UUID carrying the lineage version it pins."
+}

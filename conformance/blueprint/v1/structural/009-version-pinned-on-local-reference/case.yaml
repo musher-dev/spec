@@ -1,0 +1,16 @@
+# A local reference that also pins a version. The referenced document already
+# carries its own `metadata.version`, so a second version here could disagree
+# with it and there would be no rule saying which one wins.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: postgres
+  version: 1
+spec:
+  components:
+    db:
+      component: ./components/postgres.yaml
+      componentVersion: 3
+      size: general.standard.small
+      connections: {}
+  parameters: {}

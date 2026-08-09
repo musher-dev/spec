@@ -1,0 +1,16 @@
+# The published reference form: a component UUID plus the lineage version it
+# pins. The version is required here because, unlike a local reference, there
+# is no document on disk whose `metadata.version` could supply it.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: postgres
+  version: 1
+spec:
+  components:
+    db:
+      component: 550e8400-e29b-41d4-a716-446655440000
+      componentVersion: 3
+      size: general.standard.small
+      connections: {}
+  parameters: {}
