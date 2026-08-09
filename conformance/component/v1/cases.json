@@ -133,6 +133,11 @@
       "path": "structural/022-contract-both-output-forms"
     },
     {
+      "id": "structural-023-field-from-newer-release",
+      "phase": "structural",
+      "path": "structural/023-field-from-newer-release"
+    },
+    {
       "id": "semantic-001-floating-tag-image-reference",
       "phase": "semantic",
       "path": "semantic/001-floating-tag-image-reference"

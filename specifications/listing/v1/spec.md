@@ -31,7 +31,9 @@ spec: { listingKind: …, displayName: …, … }
 ```
 
 `kind` MUST be `LISTING`. All envelope rules in
-[component §2](../../component/v1/spec.md#envelope) apply identically.
+[component §2](../../component/v1/spec.md#envelope), and the version
+compatibility rules in
+[component §3](../../component/v1/spec.md#compatibility), apply identically.
 
 Do not confuse `kind` with `spec.listingKind`. `kind` identifies the document
 format; `listingKind` identifies what the listing points at (`BLUEPRINT` or
