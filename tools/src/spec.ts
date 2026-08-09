@@ -143,15 +143,29 @@ export function canonicalJson(value: Json): string {
   return `${JSON.stringify(canonicalize(value), null, 2)}\n`
 }
 
-/** Walk every nested object in a schema document, root included. */
-export function* walkObjects(node: Json): Generator<{ [k: string]: Json }> {
+/** Escape a single JSON Pointer reference token (RFC 6901 §3). */
+function escapePointerToken(token: string): string {
+  return token.replace(/~/g, '~0').replace(/\//g, '~1')
+}
+
+/**
+ * Walk every nested object in a schema document, root included, pairing each
+ * with the JSON Pointer that locates it. The pointer is what lets a diagnostic
+ * name the offending subschema instead of describing it.
+ */
+export function* walkObjects(
+  node: Json,
+  pointer = '',
+): Generator<{ node: { [k: string]: Json }; pointer: string }> {
   if (Array.isArray(node)) {
-    for (const item of node) yield* walkObjects(item)
+    for (const [index, item] of node.entries()) yield* walkObjects(item, `${pointer}/${index}`)
     return
   }
   if (!isObject(node)) return
-  yield node
-  for (const key of Object.keys(node)) yield* walkObjects(node[key] as Json)
+  yield { node, pointer }
+  for (const key of Object.keys(node)) {
+    yield* walkObjects(node[key] as Json, `${pointer}/${escapePointerToken(key)}`)
+  }
 }
 
 export function relativeToRepo(path: string): string {

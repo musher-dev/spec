@@ -99,7 +99,7 @@ function conceptToDefName(concept: string): string {
 /** Refuse to emit a bundle that would make a validator reach over the network. */
 function assertSelfContained(bundle: { [k: string]: Json }, family: Family): void {
   const defs = isObject(bundle.$defs) ? bundle.$defs : {}
-  for (const node of walkObjects(bundle)) {
+  for (const { node } of walkObjects(bundle)) {
     const ref = node.$ref
     if (typeof ref !== 'string') continue
     if (!ref.startsWith('#/$defs/')) {
