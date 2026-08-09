@@ -36,6 +36,7 @@
   "type": "object",
   "$defs": {
     "BlueprintComputeConstraintsRequest": {
+      "additionalProperties": false,
       "description": "Advanced, optional compute pins (ADR 0041) honored by Placement (ADR 0095).",
       "properties": {
         "acceleratorInterconnect": {
@@ -152,6 +153,7 @@
       "type": "object"
     },
     "BlueprintConnectionRefRequest": {
+      "additionalProperties": false,
       "description": "A consumer-anchored wire (map value; keyed by the consumer input key).\n\nThe value names only the producer end (``fromRole`` / ``fromOutput``); the\nconsumer end is derived from the enclosing node (``toRole`` = the node name)\nand the map key (``toInput``). One wire per consumer input (inbound-uniqueness,\nenforced by the publish gate).",
       "properties": {
         "fromOutput": {
@@ -174,6 +176,7 @@
       "x-additionalPropertiesName": "inputKey"
     },
     "BlueprintParameterGeneratorRequest": {
+      "additionalProperties": false,
       "properties": {
         "byteLength": {
           "default": 32,
@@ -211,6 +214,7 @@
       "type": "object"
     },
     "BlueprintParameterRequest": {
+      "additionalProperties": false,
       "description": "An install-form parameter composed at the graph layer (map value; keyed by key).",
       "properties": {
         "description": {
@@ -262,6 +266,7 @@
       "x-additionalPropertiesName": "parameterKey"
     },
     "BlueprintParameterUiRequest": {
+      "additionalProperties": false,
       "description": "Presentation metadata for an install-form parameter.",
       "properties": {
         "label": {
@@ -277,6 +282,7 @@
       "type": "object"
     },
     "BlueprintParameterValueSchemaRequest": {
+      "additionalProperties": false,
       "description": "Data contract of an install-form parameter value (JSON-Schema subset).",
       "properties": {
         "default": {
