@@ -17,7 +17,11 @@
       "description": "Musher component document — one reusable workload definition.",
       "fileMatch": [
         "**/components/*.yaml",
-        "**/components/*.yml"
+        "**/components/*.yml",
+        "**/component.yaml",
+        "**/component.yml",
+        "**/component-*.yaml",
+        "**/component-*.yml"
       ],
       "name": "Musher Component Document",
       "url": "https://schemas.musher.dev/component/v1/component.schema.json",
