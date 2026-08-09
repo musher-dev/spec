@@ -54,6 +54,13 @@ format; `listingKind` identifies what the listing points at (`BLUEPRINT` or
 > the governance rule for adding a term — this is the field most likely to need
 > extension, and unmanaged growth makes the storefront incoherent.
 
+Featured-row placement is **not** part of this contract. A listing document
+MUST NOT declare `spec.featured`; promotion is a storefront-operator action,
+not an authoring one. A document that declares it is rejected in the
+`structural` phase with `ERR_UNKNOWN_FIELD`, like any other unknown property —
+accepting it silently would let an author believe they had promoted their own
+listing.
+
 ## <a id="media"></a>5. Media
 
 `icon` and `screenshots[].file` are paths relative to the listing document.

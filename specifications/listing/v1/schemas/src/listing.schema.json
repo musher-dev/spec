@@ -33,24 +33,6 @@
   ],
   "type": "object",
   "$defs": {
-    "ListingFeatured": {
-      "additionalProperties": false,
-      "description": "Featured-flag declaration on a listing.",
-      "properties": {
-        "enabled": {
-          "default": false,
-          "description": "True to promote the listing on the featured storefront row.",
-          "type": "boolean"
-        },
-        "rank": {
-          "default": 0,
-          "description": "Ordering weight among featured listings; lower sorts first.",
-          "minimum": 0,
-          "type": "integer"
-        }
-      },
-      "type": "object"
-    },
     "ListingMetadata": {
       "additionalProperties": false,
       "description": "Identity block of a listing document. The same shape carries on the sibling blueprint document, and the two must agree.",
@@ -140,10 +122,6 @@
           "maxLength": 200,
           "minLength": 1,
           "type": "string"
-        },
-        "featured": {
-          "$ref": "#/$defs/ListingFeatured",
-          "description": "Featured-row placement; defaults to not featured."
         },
         "homepageUrl": {
           "anyOf": [
