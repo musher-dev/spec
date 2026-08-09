@@ -72,9 +72,11 @@
           "description": "Accessible caption shown beneath the screenshot, or null when none."
         },
         "file": {
-          "description": "Relative path of the screenshot asset under the item's media/ directory.",
+          "$comment": "Lookahead-free so it compiles under RE2 as well as ECMA-262. A segment must begin with a letter or digit, which is how `.` and `..` are excluded without a negative lookahead; the extension alternation is spelled in character classes because a JSON Schema pattern carries no case-insensitive flag. See spec.md §5.",
+          "description": "Path of the screenshot asset under the item's media/ directory, relative to the item root. Must be a .png, .jpg, .jpeg or .webp below media/.",
           "maxLength": 512,
           "minLength": 1,
+          "pattern": "^media/(?:[A-Za-z0-9][A-Za-z0-9._-]*/)*[A-Za-z0-9][A-Za-z0-9._-]*\\.(?:[Pp][Nn][Gg]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp])$",
           "type": "string"
         }
       },
@@ -139,6 +141,9 @@
         "icon": {
           "anyOf": [
             {
+              "$comment": "The same grammar ListingScreenshot.file carries; see the note there.",
+              "maxLength": 512,
+              "pattern": "^media/(?:[A-Za-z0-9][A-Za-z0-9._-]*/)*[A-Za-z0-9][A-Za-z0-9._-]*\\.(?:[Pp][Nn][Gg]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp])$",
               "type": "string"
             },
             {
@@ -146,7 +151,7 @@
             }
           ],
           "default": null,
-          "description": "Relative path of the listing's icon under the item's media/ directory (e.g. media/icon.png), or null for no icon."
+          "description": "Path of the listing's icon under the item's media/ directory (e.g. media/icon.png), relative to the item root, or null for no icon."
         },
         "license": {
           "anyOf": [
