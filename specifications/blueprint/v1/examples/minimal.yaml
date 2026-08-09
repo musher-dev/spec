@@ -2,6 +2,11 @@
 #
 # A single-component blueprint. Parameters are empty, so they are derived from
 # the merged USER-supplied inputs of the referenced components.
+#
+# `component` is a repo-local reference: it resolves relative to the directory
+# holding this file, and the version it deploys is that document's own
+# `metadata.version`. The paths here are illustrative — examples are validated
+# structurally, and reference resolution belongs to the semantic phase.
 specVersion: v1
 kind: BLUEPRINT
 metadata:
@@ -10,7 +15,7 @@ metadata:
 spec:
   components:
     db:
-      component: postgres
+      component: ./components/postgres.yaml
       size: general.standard.small
       connections: {}
   parameters: {}

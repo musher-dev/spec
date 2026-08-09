@@ -3,6 +3,9 @@
 # Two components wired together. Connections are consumer-anchored: the `web`
 # node declares what it consumes and from which role, so a component never
 # needs to know who will depend on it.
+#
+# The two nodes show that a repo-local reference does not mandate a directory
+# layout — `db` names a document under `components/`, `web` a flat sibling.
 specVersion: v1
 kind: BLUEPRINT
 metadata:
@@ -11,11 +14,11 @@ metadata:
 spec:
   components:
     db:
-      component: postgres
+      component: ./components/postgres.yaml
       size: general.standard.small
       connections: {}
     web:
-      component: web-server
+      component: ./component-web-server.yaml
       size: general.standard.small
       connections:
         DATABASE_URL:

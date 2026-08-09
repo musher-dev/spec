@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=https://schemas.musher.dev/blueprint/v1/blueprint.schema.json
+#
+# The published reference form. `component` is the UUID of a component the
+# platform already holds, and `componentVersion` pins the lineage version to
+# deploy — required here, because no document on disk carries it.
+#
+# The same field carries both forms; the shape of the value selects the
+# resolver. A local reference would begin `./` or `../`, and must not carry a
+# `componentVersion`.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: postgres
+  version: 1
+spec:
+  components:
+    db:
+      component: 550e8400-e29b-41d4-a716-446655440000
+      componentVersion: 3
+      size: general.standard.small
+      connections: {}
+  parameters: {}
