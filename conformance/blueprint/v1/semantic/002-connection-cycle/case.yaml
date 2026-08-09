@@ -1,0 +1,31 @@
+# Mutual discovery: `api` reads `web`'s address and `web` reads `api`'s. Every
+# output here is a function of its own node, so a two-pass resolver would
+# settle this without complaint — the graph is rejected because a
+# specification that permits cycles obliges every implementation to be that
+# resolver, and forecloses any later rule needing an order.
+#
+# The walk is reported from `api`, the lexicographically smallest node in the
+# cycle, so that two implementations finding this cycle name it identically:
+# api -> web -> api.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: mutual-discovery
+  version: 1
+spec:
+  components:
+    api:
+      component: ./components/api.yaml
+      size: general.standard.small
+      connections:
+        WEB_URL:
+          fromRole: web
+          fromOutput: publicUrl
+    web:
+      component: ./components/web.yaml
+      size: general.standard.small
+      connections:
+        API_URL:
+          fromRole: api
+          fromOutput: privateAddress
+  parameters: {}
