@@ -1,0 +1,20 @@
+# A CONNECTION input is wired from an upstream output and never reaches the
+# install form. A label on one describes a field that will never render.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+  contract:
+    inputs:
+      databaseUrl:
+        schema:
+          type: STRING
+        suppliedBy: CONNECTION
+        ui:
+          label: Database URL

@@ -31,6 +31,101 @@
       "id": "structural-005-nested-unknown-field",
       "phase": "structural",
       "path": "structural/005-nested-unknown-field"
+    },
+    {
+      "id": "structural-006-non-service-with-endpoints",
+      "phase": "structural",
+      "path": "structural/006-non-service-with-endpoints"
+    },
+    {
+      "id": "structural-007-non-service-with-empty-endpoints",
+      "phase": "structural",
+      "path": "structural/007-non-service-with-empty-endpoints"
+    },
+    {
+      "id": "structural-008-job-without-command",
+      "phase": "structural",
+      "path": "structural/008-job-without-command"
+    },
+    {
+      "id": "structural-009-cron-workload",
+      "phase": "structural",
+      "path": "structural/009-cron-workload"
+    },
+    {
+      "id": "structural-010-cron-without-schedule",
+      "phase": "structural",
+      "path": "structural/010-cron-without-schedule"
+    },
+    {
+      "id": "structural-011-schedule-on-service",
+      "phase": "structural",
+      "path": "structural/011-schedule-on-service"
+    },
+    {
+      "id": "structural-012-unpinned-image-reference",
+      "phase": "structural",
+      "path": "structural/012-unpinned-image-reference"
+    },
+    {
+      "id": "structural-013-digest-pinned-image-reference",
+      "phase": "structural",
+      "path": "structural/013-digest-pinned-image-reference"
+    },
+    {
+      "id": "structural-014-git-source-without-build",
+      "phase": "structural",
+      "path": "structural/014-git-source-without-build"
+    },
+    {
+      "id": "structural-015-public-service-without-readiness",
+      "phase": "structural",
+      "path": "structural/015-public-service-without-readiness"
+    },
+    {
+      "id": "structural-016-private-service-without-readiness",
+      "phase": "structural",
+      "path": "structural/016-private-service-without-readiness"
+    },
+    {
+      "id": "structural-017-relative-mount-path",
+      "phase": "structural",
+      "path": "structural/017-relative-mount-path"
+    },
+    {
+      "id": "structural-018-generated-input-not-sensitive",
+      "phase": "structural",
+      "path": "structural/018-generated-input-not-sensitive"
+    },
+    {
+      "id": "structural-019-connection-input-with-ui",
+      "phase": "structural",
+      "path": "structural/019-connection-input-with-ui"
+    },
+    {
+      "id": "structural-020-user-input-without-ui",
+      "phase": "structural",
+      "path": "structural/020-user-input-without-ui"
+    },
+    {
+      "id": "structural-021-derived-output-with-value",
+      "phase": "structural",
+      "path": "structural/021-derived-output-with-value"
+    },
+    {
+      "id": "structural-022-contract-both-output-forms",
+      "phase": "structural",
+      "path": "structural/022-contract-both-output-forms"
+    },
+    {
+      "id": "semantic-001-floating-tag-image-reference",
+      "phase": "semantic",
+      "path": "semantic/001-floating-tag-image-reference"
+    },
+    {
+      "id": "semantic-002-probe-names-unknown-endpoint",
+      "phase": "semantic",
+      "path": "semantic/002-probe-names-unknown-endpoint"
     }
   ]
 }

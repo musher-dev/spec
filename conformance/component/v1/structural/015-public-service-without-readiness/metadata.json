@@ -1,0 +1,7 @@
+{
+  "id": "structural-015-public-service-without-readiness",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#health",
+  "summary": "A SERVICE exposing a PUBLIC endpoint must declare a readiness probe."
+}

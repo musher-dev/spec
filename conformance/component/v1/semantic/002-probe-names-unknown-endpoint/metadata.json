@@ -1,0 +1,7 @@
+{
+  "id": "semantic-002-probe-names-unknown-endpoint",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#health",
+  "summary": "A probe naming an endpoint the workload does not declare is rejected."
+}

@@ -1,0 +1,13 @@
+# A git repository is not an image. Leaving the build strategy implicit makes
+# the resulting image a property of whichever builder happened to run, not of
+# this document.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: GIT
+      repositoryUrl: https://github.com/musher-dev/examples

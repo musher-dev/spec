@@ -1,0 +1,15 @@
+# `Web_Server` is not a node name. The grammar is the one `metadata.slug`
+# uses, so a name that reads as an identifier in one language and not in
+# another cannot be what a connection's `fromRole` refers to.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: web-and-database
+  version: 1
+spec:
+  components:
+    Web_Server:
+      component: ./components/web.yaml
+      size: general.standard.small
+      connections: {}
+  parameters: {}

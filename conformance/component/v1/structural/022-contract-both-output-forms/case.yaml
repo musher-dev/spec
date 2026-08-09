@@ -1,0 +1,41 @@
+# The whole contract surface in one document: a generated USER input marked
+# sensitive, an output the platform resolves, and an output this document
+# states outright.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: postgres:17.10-alpine
+    endpoints:
+      primary:
+        containerPort: 5432
+        protocol: TCP
+        visibility: PRIVATE
+  contract:
+    inputs:
+      postgresPassword:
+        schema:
+          type: STRING
+          isSensitive: true
+        suppliedBy: USER
+        generator:
+          encoding: BASE64URL
+          byteLength: 32
+        ui:
+          label: Database password
+    outputs:
+      connectionString:
+        schema:
+          type: STRING
+          format: CONNECTION_STRING
+        valueFrom: DERIVED
+      databaseName:
+        schema:
+          type: STRING
+        valueFrom: DECLARED
+        value: app

@@ -1,0 +1,16 @@
+# `assets/` is a perfectly ordinary directory name and an entirely legal
+# relative path. It is rejected because one fixed directory is what lets a
+# publisher copy an item's media without reading its listing first.
+specVersion: v1
+kind: LISTING
+metadata:
+  slug: postgres
+  version: 1
+spec:
+  listingKind: COMPONENT
+  displayName: PostgreSQL
+  summary: The open-source relational database
+  category: INFRASTRUCTURE
+  lifecycleStage: STABLE
+  screenshots:
+    - file: assets/overview.png

@@ -434,7 +434,10 @@
           "additionalProperties": {
             "$ref": "#/$defs/BlueprintNode"
           },
-          "description": "Component references composing the graph, keyed by graph-local node name.",
+          "description": "Component references composing the graph, keyed by graph-local node name. The name is what a connection's fromRole refers to and what the parameter merge orders the graph by; it means nothing outside this document.",
+          "propertyNames": {
+            "pattern": "^[a-z][a-z0-9-]{0,61}[a-z0-9]$"
+          },
           "type": "object"
         },
         "parameters": {

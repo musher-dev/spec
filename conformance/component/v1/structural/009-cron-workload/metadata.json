@@ -1,0 +1,7 @@
+{
+  "id": "structural-009-cron-workload",
+  "phase": "structural",
+  "expected": "pass",
+  "clause": "specifications/component/v1/spec.md#workload",
+  "summary": "A CRON carrying both command and schedule validates."
+}

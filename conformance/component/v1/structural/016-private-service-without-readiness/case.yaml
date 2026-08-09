@@ -1,0 +1,18 @@
+# The readiness rule is deliberately narrow. A private consumer inside the
+# mesh retries; nothing user-facing depends on this replica being ready the
+# first time, so the probe stays optional.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: postgres:17.10-alpine
+    endpoints:
+      primary:
+        containerPort: 5432
+        protocol: TCP
+        visibility: PRIVATE

@@ -1,0 +1,7 @@
+{
+  "id": "structural-007-icon-escaping-the-item",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/listing/v1/spec.md#media",
+  "summary": "A media path spelling a traversal is rejected before containment is considered."
+}

@@ -55,9 +55,53 @@ declarative apply — describe a row in a control plane, not a document. They
 MUST NOT appear on a blueprint document, and a validator MUST reject them with
 `ERR_UNKNOWN_FIELD` like any other unknown property.
 
-> **TODO** — `metadata.slug` MUST equal the containing item directory name;
-> `metadata.version` MUST agree with the sibling listing document. State the
-> diagnostic codes for each violation and which phase detects them.
+Three rules bind the item together. All three are `semantic`, and all three
+are measured against the item root defined below.
+
+| Rule | Diagnostic |
+|---|---|
+| `metadata.slug` MUST equal the item directory name. | `ERR_SLUG_MISMATCH` |
+| `metadata.version` MUST equal the sibling listing's `metadata.version`. | `ERR_VERSION_MISMATCH` |
+| Every component document in the item MUST be referenced by some node. | `ERR_UNREFERENCED_COMPONENT` |
+
+**An unreferenced component document is an error, not dead weight.** A
+component nothing references is not deployed, not checked against any node,
+and not visible to a reader working out what the item contains. Permitted, it
+accumulates: last release's `postgres.yaml` sitting beside the one actually in
+use, with nothing in the directory saying which is live. The diagnostic
+anchors at `/spec/components` — the mapping that should have named the file —
+because a JSON Pointer addresses this document, and the file it is complaining
+about is not in it.
+
+### <a id="item-directory"></a>3.1 The item directory
+
+A blueprint does not travel alone. It and its sibling listing belong to a
+**catalog item**: one directory holding one deployable thing.
+
+```
+<slug>/
+  blueprint.yaml        this document
+  listing.yaml          the sibling storefront entry
+  components/           the component documents the graph references
+  media/                icon and screenshots
+```
+
+The directory containing `blueprint.yaml` is the **item root**. It is what
+§3's three rules are measured against, what
+[§4.1](#component-reference) means by containment, and what
+[listing §5](../../listing/v1/spec.md#media) resolves a media path inside.
+
+Only two names in that tree are fixed: `blueprint.yaml` and `listing.yaml`.
+Component documents MAY sit anywhere under the root — `components/` is a
+convention, and [§4.1](#component-reference) accepts a flat sibling equally.
+`media/` is fixed too, but by the listing family rather than by this one.
+
+**A document with no directory has no item root.** Every rule in this section
+needs one, so an implementation handed a document rather than a directory MUST
+NOT report any of them. It has not been given the means to check, and a
+diagnostic it cannot substantiate is worse than a silence.
+[§4.1](#component-reference) draws the same line for the component reference,
+for the same reason.
 
 ## <a id="components"></a>4. Component graph
 
@@ -65,10 +109,21 @@ MUST NOT appear on a blueprint document, and a validator MUST reject them with
 reference. The node name is the identifier used by connections; it is local to
 this blueprint and carries no meaning outside it.
 
-> **TODO** — Node name grammar and uniqueness.
+A node name MUST match `^[a-z][a-z0-9-]{0,61}[a-z0-9]$`, the same grammar
+`metadata.slug` uses. Uniqueness needs no rule of its own: `spec.components`
+is a mapping, so a repeated node name is `ERR_DUPLICATE_KEY` in the `parser`
+phase, before the graph is looked at.
+
+The name is graph-local, which is to say it means nothing outside this
+document. Two blueprints MAY each declare a node called `db` and neither is
+the other's. Its one job is to be what [§4.2](#connections) `fromRole` names,
+and what [§5.2](#merge) orders the graph by.
 
 > **TODO** — `size` MUST name a Compute Profile in `family.tier.size` form.
 > State whether an unknown profile is a `semantic` or a `capability` failure.
+> The profile vocabulary itself is not defined in this repository and a reader
+> outside the platform cannot resolve a slug like `general.standard.small`;
+> naming where it is published is part of closing this.
 
 ### <a id="component-reference"></a>4.1 Component reference
 
@@ -157,23 +212,131 @@ connections:
     fromOutput: connectionString
 ```
 
-> **TODO** — Normative rules: `fromRole` MUST name a node in the same
-> blueprint; `fromOutput` MUST name a declared output of that node's component;
-> the output's type MUST be compatible with the consuming input's schema.
+The producer end MUST resolve.
 
-> **TODO** — **Cycle detection.** The connection graph MUST be acyclic. This is
-> the canonical example of a rule JSON Schema cannot express; it belongs to the
-> `semantic` phase with code `ERR_DEPENDENCY_CYCLE`. Specify how the cycle is
-> reported (the participating node names, in a deterministic order).
+- `fromRole` MUST name a node in this blueprint. A connection cannot reach
+  outside the graph it is written in. `ERR_UNKNOWN_ROLE`.
+- `fromOutput` MUST name an output declared by the component that node
+  deploys. `ERR_UNKNOWN_OUTPUT`.
+
+Both are `semantic`. The first needs only this document; the second needs the
+referenced component document, which a repo-local reference makes readable
+without a network.
+
+The consumer end needs no rule. The map key names the input being filled and
+the enclosing node names the consumer, so one input cannot take two wires —
+the mapping already makes that structural.
+
+**The connection graph MUST be acyclic.** A cycle is rejected in the
+`semantic` phase with `ERR_DEPENDENCY_CYCLE`.
+
+This is the canonical rule JSON Schema cannot express, and it is worth being
+straight about what it costs, because a resolver does not need it. An output
+is a function of its own node and nothing else
+([component §6.2](../../component/v1/spec.md#outputs)), so an implementation
+that resolves every output before binding any edge needs no topological order
+and does not fail on a cycle. Acyclicity is not a resolution hazard.
+
+It is required anyway. A specification that permits cycles obliges every
+implementation, in every language, to be that two-pass resolver in perpetuity,
+and forecloses any later rule that needs an order — an ordered rollout, a
+health-gated start, a value that legitimately does depend on an inbound edge.
+It also obliges every reader of a blueprint to work out for themselves whether
+the composition in front of them terminates. A two-node cycle is legible; a
+six-node one is not. The rule costs one traversal, which is less than the
+option it keeps open.
+
+**Reporting a cycle.** The diagnostic MUST name the participating nodes as a
+closed walk, beginning at the lexicographically smallest node name in the
+cycle and following edges from there — `db → cache → queue → db`. Two
+implementations that find the same cycle then report the same walk, which is
+what makes the node names comparable across a conformance corpus instead of an
+artifact of whichever node the traversal happened to start from. The
+diagnostic anchors at `/spec/components/<first>/connections`.
+
+> **TODO** — Type compatibility between the output and the input it feeds.
+> `schema.semanticType` is the tag a composition layer matches on, but the
+> matching rule is not stated, and neither is what happens when a `STRING`
+> output feeds an `INTEGER` input. See
+> [component §6.2](../../component/v1/spec.md#outputs).
 
 ## <a id="parameters"></a>5. Parameters
 
-An empty `parameters` mapping is not the same as an absent one.
+`spec.parameters` is the install form: what a deploying user is asked for once,
+for the whole composition, rather than once per node.
 
-> **TODO** — Specify derivation: when `parameters` is empty, the effective
-> parameter set is derived from the merged `USER`-supplied inputs of the
-> referenced components. Define the merge rule for two components declaring the
-> same input name with different schemas.
+**Absent and empty mean the same thing.** Both say "derive the form from the
+graph". An earlier draft of this section asserted a difference between them;
+nothing in the document distinguishes a missing key from an empty mapping, and
+a distinction no author can express is one that survives in a specification
+and in no implementation.
+
+A non-empty mapping is an authored override, used in place of derivation
+rather than merged with it.
+
+### <a id="derivation"></a>5.1 Derivation
+
+When `parameters` is empty, the effective parameter set is derived from the
+`USER`-supplied inputs of the components the graph references, merged by
+[§5.2](#merge).
+
+A `CONNECTION` input is never derived — it is satisfied by a wire, not by a
+person. An input carrying a `generator` **is** derived, even though the user
+never types a value for it: a client rendering the install form still has to
+know it exists, and "three secrets will be generated for you" is a thing worth
+being able to say.
+
+A derived parameter takes the declaring input's `schema`, `ui` and
+`isRequired` unchanged. [Component §6.1](../../component/v1/spec.md#inputs)
+requires a `USER` input to carry `ui`, so every derived parameter arrives with
+the label a form needs; there is no such thing as a derived parameter that
+cannot be rendered.
+
+### <a id="merge"></a>5.2 Merge
+
+Two components MAY declare an input under the same key. The merge is
+**first-wins in lexicographic node-name order**:
+
+1. Sort the entries of `spec.components` by node name.
+2. Walk them in that order, taking each `USER` input key not already taken.
+
+Node name because it is the only total order the document itself supplies. A
+mapping has no sequence, and a rule that depended on file order, on parse
+order, or on an identifier internal to a control plane would not be
+reproducible by someone reading the document.
+
+The comparison is unambiguous across implementations: [§4](#components)
+confines a node name to lowercase ASCII letters, digits and hyphens, so byte
+order and lexicographic order coincide and no collation or locale can change
+the result.
+
+**A conflicting redeclaration is an error.** Where a later node declares a key
+already taken and its declaration differs, the blueprint is rejected in the
+`semantic` phase with `ERR_CONFLICTING_INPUT_SCHEMA`. An identical
+redeclaration is absorbed in silence — two components that agree on what
+`adminPassword` is are not in conflict, and making them say so twice in
+different words would be the only way to trip this.
+
+Two declarations are identical when their `schema` blocks are equal once
+defaults are applied. `ui` and `isRequired` are not compared: they describe how
+a value is asked for, not what it is, and the first node's presentation winning
+is a presentation decision rather than a contract one.
+
+**Why this is not silent first-wins.** Taking the first schema and discarding a
+different second one settles the ambiguity without telling anyone there was
+one. The second component then receives a value validated against the first
+component's rules — a bare `STRING` where it required an enum member, a
+64-byte secret where its pattern allowed 32. Nothing fails at validation time.
+It fails at deploy time, inside the consuming workload, a long way from the two
+documents that disagreed and with nothing pointing back at them.
+
+An author who wants one shared value across two components says so by writing
+`spec.parameters` outright, which is what an authored override is for.
+
+> **TODO** — How an authored parameter binds to the component inputs it
+> satisfies. Derivation makes that correspondence by key; an override is used
+> verbatim, which does not say what happens to a parameter key matching no
+> input, or to a `USER` input no parameter covers.
 
 ## <a id="validation-layers"></a>6. Validation layers
 
@@ -200,8 +363,8 @@ family adds:
 | `ERR_DEPENDENCY_CYCLE` | `semantic` | The connection graph contains a cycle. |
 | `ERR_SLUG_MISMATCH` | `semantic` | `metadata.slug` disagrees with the item directory name. |
 | `ERR_VERSION_MISMATCH` | `semantic` | `metadata.version` disagrees with the sibling listing document. |
-
-> **TODO** — Confirm this list is complete once §4 and §5 are written.
+| `ERR_UNREFERENCED_COMPONENT` | `semantic` | A component document in the item is referenced by no node. |
+| `ERR_CONFLICTING_INPUT_SCHEMA` | `semantic` | Two nodes declare the same input key with different schemas. |
 
 ## <a id="conformance"></a>8. Conformance
 

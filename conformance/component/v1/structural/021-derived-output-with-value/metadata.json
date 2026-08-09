@@ -1,0 +1,7 @@
+{
+  "id": "structural-021-derived-output-with-value",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#outputs",
+  "summary": "A DERIVED output carrying a static value is rejected."
+}

@@ -1,0 +1,7 @@
+{
+  "id": "structural-008-media-outside-the-media-directory",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/listing/v1/spec.md#media",
+  "summary": "A media path whose first segment is not media/ is rejected."
+}

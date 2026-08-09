@@ -61,6 +61,21 @@
       "id": "structural-011-traversal-inside-local-reference",
       "phase": "structural",
       "path": "structural/011-traversal-inside-local-reference"
+    },
+    {
+      "id": "structural-012-invalid-node-name",
+      "phase": "structural",
+      "path": "structural/012-invalid-node-name"
+    },
+    {
+      "id": "semantic-001-connection-names-unknown-role",
+      "phase": "semantic",
+      "path": "semantic/001-connection-names-unknown-role"
+    },
+    {
+      "id": "semantic-002-connection-cycle",
+      "phase": "semantic",
+      "path": "semantic/002-connection-cycle"
     }
   ]
 }

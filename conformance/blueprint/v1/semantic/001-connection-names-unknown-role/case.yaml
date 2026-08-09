@@ -1,0 +1,23 @@
+# `fromRole: database` names no node — the only other node is `db`. A
+# connection cannot reach outside the graph it is written in, so there is
+# nowhere else this could have meant. The whole graph is in this one document,
+# which is why the check needs no sibling file.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: web-and-database
+  version: 1
+spec:
+  components:
+    db:
+      component: ./components/postgres.yaml
+      size: general.standard.small
+      connections: {}
+    web:
+      component: ./components/web.yaml
+      size: general.standard.small
+      connections:
+        DATABASE_URL:
+          fromRole: database
+          fromOutput: connectionString
+  parameters: {}

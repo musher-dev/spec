@@ -1,0 +1,7 @@
+{
+  "id": "structural-014-git-source-without-build",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#source",
+  "summary": "A GIT source omitting build is rejected; nothing says how the image is made."
+}

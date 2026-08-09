@@ -1,0 +1,13 @@
+# A CRON with no schedule names no time to run at. Defaulting one would be
+# the platform choosing when someone else's job fires.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: CRON
+    command: /bin/backup
+    source:
+      type: IMAGE
+      ref: ghcr.io/musher-dev/backup:1.0.2

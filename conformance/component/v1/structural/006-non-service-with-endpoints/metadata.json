@@ -1,0 +1,7 @@
+{
+  "id": "structural-006-non-service-with-endpoints",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#workload",
+  "summary": "A WORKER declaring an endpoint is rejected rather than having it ignored."
+}

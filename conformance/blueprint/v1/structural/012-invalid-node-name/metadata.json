@@ -1,0 +1,7 @@
+{
+  "id": "structural-012-invalid-node-name",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#components",
+  "summary": "A node name outside the slug grammar is rejected."
+}

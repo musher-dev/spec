@@ -29,6 +29,8 @@ export interface Family {
   readonly srcDir: string
   readonly distDir: string
   readonly examplesDir: string
+  /** Absolute path to the family's normative prose. */
+  readonly specPath: string
   /** Absolute path to the generated bundle. */
   readonly bundlePath: string
   /** Canonical publication URL of the bundle within its major-version alias. */
@@ -75,6 +77,7 @@ export function discoverFamilies(): Family[] {
         srcDir: join(dir, 'schemas', 'src'),
         distDir: join(dir, 'schemas', 'dist'),
         examplesDir: join(dir, 'examples'),
+        specPath: join(dir, 'spec.md'),
         bundlePath: join(dir, 'schemas', 'dist', `${name}.schema.json`),
         bundleUrl: `${SCHEMA_ORIGIN}/${name}/${major}/${name}.schema.json`,
         conformanceDir: join(CONFORMANCE_DIR, name, major),

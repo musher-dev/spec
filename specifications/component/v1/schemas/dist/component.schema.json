@@ -221,16 +221,8 @@
       "additionalProperties": false,
       "properties": {
         "build": {
-          "description": "How the repository is built into an image, or null when defaults apply.",
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ComponentBuild"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
+          "description": "How the repository is built into an image. Required — a git source has no image until something builds one, and leaving the strategy implicit makes the resulting image depend on the builder rather than on this document.",
+          "$ref": "#/$defs/ComponentBuild"
         },
         "ref": {
           "description": "Branch or commit to build from, or null when unpinned.",
@@ -256,7 +248,8 @@
       },
       "required": [
         "type",
-        "repositoryUrl"
+        "repositoryUrl",
+        "build"
       ],
       "type": "object"
     },
@@ -307,7 +300,10 @@
       "additionalProperties": false,
       "properties": {
         "ref": {
-          "description": "OCI image reference the workload runs from.",
+          "description": "OCI image reference the workload runs from. Must carry a tag or an @sha256 digest — a bare name is an implicit :latest and shifts under the registry.",
+          "$comment": "Lookahead-free so it compiles under RE2 as well as ECMA-262. The tag colon is the one after the final slash, which is what keeps a registry port (localhost:5000/nginx) from reading as a tag. Only the grammar is here: the floating-tag blocklist stays a semantic rule so it can grow without a major version. See spec.md §5.1.",
+          "maxLength": 512,
+          "pattern": "^(?:[A-Za-z0-9][A-Za-z0-9.-]*(?::[0-9]+)?/)?(?:[a-z0-9][a-z0-9._-]*/)*[a-z0-9][a-z0-9._-]*(?::[A-Za-z0-9_][A-Za-z0-9._-]{0,127}|(?::[A-Za-z0-9_][A-Za-z0-9._-]{0,127})?@sha256:[0-9a-f]{64})$",
           "type": "string"
         },
         "type": {
@@ -324,6 +320,70 @@
     },
     "ComponentInput": {
       "additionalProperties": false,
+      "allOf": [
+        {
+          "$comment": "spec.md §6.1. suppliedBy defaults to USER, and a default is invisible to a validator, so the USER branch is the `else` — an absent suppliedBy takes it.",
+          "else": {
+            "properties": {
+              "ui": {
+                "$ref": "#/$defs/ComponentInputUi"
+              }
+            },
+            "required": [
+              "ui"
+            ]
+          },
+          "if": {
+            "properties": {
+              "suppliedBy": {
+                "const": "CONNECTION"
+              }
+            },
+            "required": [
+              "suppliedBy"
+            ]
+          },
+          "then": {
+            "properties": {
+              "ui": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "$comment": "spec.md §6.1: a generated value is secret material. isSensitive is required explicitly because its default is false — the wrong answer here — while suppliedBy is only constrained when written, because its default is already USER.",
+          "if": {
+            "properties": {
+              "generator": {
+                "not": {
+                  "type": "null"
+                }
+              }
+            },
+            "required": [
+              "generator"
+            ]
+          },
+          "then": {
+            "properties": {
+              "schema": {
+                "properties": {
+                  "isSensitive": {
+                    "const": true
+                  }
+                },
+                "required": [
+                  "isSensitive"
+                ]
+              },
+              "suppliedBy": {
+                "const": "USER"
+              }
+            }
+          }
+        }
+      ],
       "properties": {
         "description": {
           "description": "Human-readable description of the input, or null when none is set.",
@@ -484,7 +544,29 @@
       "type": "object"
     },
     "ComponentOutput": {
+      "$comment": "spec.md §6.2. valueFrom is required and has two members, so the else branch is exactly DECLARED.",
       "additionalProperties": false,
+      "else": {
+        "properties": {
+          "value": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "value"
+        ]
+      },
+      "if": {
+        "properties": {
+          "valueFrom": {
+            "const": "DERIVED"
+          }
+        },
+        "required": [
+          "valueFrom"
+        ]
+      },
       "properties": {
         "description": {
           "description": "Human-readable description of the output, or null when none is set.",
@@ -527,6 +609,13 @@
         "schema",
         "valueFrom"
       ],
+      "then": {
+        "properties": {
+          "value": {
+            "type": "null"
+          }
+        }
+      },
       "type": "object",
       "x-additionalPropertiesName": "outputName"
     },
@@ -757,6 +846,8 @@
         },
         "mountPath": {
           "description": "Absolute path where the volume is mounted in the workload.",
+          "maxLength": 512,
+          "pattern": "^/",
           "type": "string"
         },
         "sizeGib": {
@@ -773,9 +864,135 @@
     },
     "ComponentWorkload": {
       "additionalProperties": false,
+      "allOf": [
+        {
+          "$comment": "Kind × field validity, spec.md §5. Every branch below is a bare conditional carrying no `type`, so lint.ts checkClosedObjects correctly skips it — the object is closed once, by the schema that declares its properties.",
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "WORKER",
+                  "JOB",
+                  "CRON"
+                ]
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "endpoints": {
+                "maxProperties": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "JOB",
+                  "CRON"
+                ]
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "command": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "command"
+            ]
+          }
+        },
+        {
+          "else": {
+            "properties": {
+              "schedule": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "CRON"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "schedule": {
+                "$ref": "#/$defs/ComponentSchedule"
+              }
+            },
+            "required": [
+              "schedule"
+            ]
+          }
+        },
+        {
+          "$comment": "spec.md §5.4: readiness is required for a SERVICE exposing at least one PUBLIC endpoint. Endpoints are a mapping, and no keyword asserts `some member matches` over one, so the condition is spelled as the negation of `every member fails to match`.",
+          "if": {
+            "properties": {
+              "endpoints": {
+                "not": {
+                  "additionalProperties": {
+                    "properties": {
+                      "visibility": {
+                        "not": {
+                          "const": "PUBLIC"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "kind": {
+                "const": "SERVICE"
+              }
+            },
+            "required": [
+              "endpoints",
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "health": {
+                "$ref": "#/$defs/ComponentHealthProbes",
+                "properties": {
+                  "readiness": {
+                    "$ref": "#/$defs/ComponentProbe"
+                  }
+                },
+                "required": [
+                  "readiness"
+                ]
+              }
+            },
+            "required": [
+              "health"
+            ]
+          }
+        }
+      ],
       "properties": {
         "command": {
-          "description": "Command run for JOB and CRON workloads, or null otherwise.",
+          "description": "Command the workload runs. Required for JOB and CRON, which have nothing to run without it. On a SERVICE or WORKER it overrides the image's default command.",
           "anyOf": [
             {
               "type": "string"
@@ -787,7 +1004,7 @@
           "default": null
         },
         "endpoints": {
-          "description": "Endpoints the workload exposes, keyed by endpoint name.",
+          "description": "Endpoints the workload exposes, keyed by endpoint name. Only a SERVICE may declare one; on any other kind the mapping must be absent or empty.",
           "additionalProperties": {
             "$ref": "#/$defs/ComponentEndpoint"
           },
@@ -823,7 +1040,7 @@
           "type": "string"
         },
         "schedule": {
-          "description": "Cron schedule for CRON workloads, or null otherwise.",
+          "description": "Cron schedule a CRON workload runs on. Required for CRON and rejected on every other kind, where a schedule would mean nothing.",
           "anyOf": [
             {
               "$ref": "#/$defs/ComponentSchedule"

@@ -1,0 +1,15 @@
+# Traversal is now unspellable rather than merely resolved-and-rejected. A
+# segment must begin with a letter or digit, so `..` cannot appear at all, and
+# the escape is caught by the grammar instead of by the filesystem.
+specVersion: v1
+kind: LISTING
+metadata:
+  slug: postgres
+  version: 1
+spec:
+  listingKind: COMPONENT
+  displayName: PostgreSQL
+  summary: The open-source relational database
+  category: INFRASTRUCTURE
+  lifecycleStage: STABLE
+  icon: ../../etc/passwd.png

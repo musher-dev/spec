@@ -1,0 +1,15 @@
+# The permitted set is png, jpg, jpeg and webp. A gif is not in it, and the
+# storefront would have no way to render a format it was never told about.
+specVersion: v1
+kind: LISTING
+metadata:
+  slug: postgres
+  version: 1
+spec:
+  listingKind: COMPONENT
+  displayName: PostgreSQL
+  summary: The open-source relational database
+  category: INFRASTRUCTURE
+  lifecycleStage: STABLE
+  screenshots:
+    - file: media/overview.gif
