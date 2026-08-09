@@ -46,8 +46,10 @@ spec: { … }
 | `metadata` | REQUIRED. Identity. |
 | `spec` | REQUIRED. The definition itself. |
 
-Unknown properties MUST be rejected at every level. A misspelled field is an
-error, never a silently ignored one.
+Unknown properties MUST be rejected with `ERR_UNKNOWN_FIELD` at every level, not
+only at the root of the envelope. A misspelled field is an error, never a
+silently ignored one — including when the misspelled field is optional, where
+ignoring it would silently substitute the default.
 
 A validator encountering a `specVersion` it does not support MUST reject the
 document with `ERR_UNSUPPORTED_SPEC_VERSION` and MUST NOT attempt a best-effort
