@@ -433,6 +433,10 @@ const UNCOVERED: ReadonlyMap<string, string> = new Map([
     'ERR_UNKNOWN_COMPONENT',
     'capability — resolving a published reference needs the catalog, and no phase this repository runs may reach the network',
   ],
+  [
+    'ERR_VERSION_NOT_MONOTONIC',
+    'capability — comparing a version against the lineage it extends needs the catalog, and a fixture is one document with no previous release to be greater than',
+  ],
 ])
 
 /**

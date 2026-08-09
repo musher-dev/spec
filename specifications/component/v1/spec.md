@@ -115,9 +115,69 @@ release its consumers hold.
 
 ## <a id="metadata"></a>4. Metadata
 
-> **TODO** — Define `metadata.version` semantics: monotonicity requirements, the
-> relationship to the containing item's version, and whether reuse of a version
-> number with different content is an error.
+`metadata` carries `version` and nothing else. A component document has no
+`slug`. A [blueprint](../../blueprint/v1/spec.md#identity) and its listing each
+name the item they are two halves of; a component is not the item, and the name
+it answers to is the stem of the file that holds it — which is what a repo-local
+reference spells out in full
+([blueprint §4.1](../../blueprint/v1/spec.md#component-reference)). Any other
+property is `ERR_UNKNOWN_FIELD`, as [§2](#envelope) requires at every level.
+
+`version` is an integer, 1 or greater. It is REQUIRED and never defaulted, so
+what a node deploys is a function of this file alone.
+
+**The version names a position in one component's lineage.** It is not a SemVer
+triple and carries no compatibility meaning: nothing is derivable from the
+distance between 2 and 7, and nothing is promised about how one version behaves
+against another. It orders, and that is the whole of its job.
+
+**Two reference forms pin it, and only one writes it down.**
+
+| Reference form | What pins the version |
+|---|---|
+| Repo-local | The referenced document's own `metadata.version`. `componentVersion` MUST NOT be present. |
+| Published | `componentVersion` on the node. |
+
+**A version is used once.** Each publication of a component MUST carry a version
+strictly greater than the highest already published for that component. Gaps are
+permitted — 1 to 7 is a release and not an error — but a version that does not
+increase is rejected in the `capability` phase with `ERR_VERSION_NOT_MONOTONIC`.
+
+Reuse is the case the rule exists for. `componentVersion: 3` on a published node
+is the whole of what that node deploys, and a registry that let 3 mean two
+different documents would make the pin name nothing. The repo-local form has the
+same problem one step removed: a blueprint that deployed version 3 last month
+and version 3 today, with different bytes behind it, has no way to say so.
+
+**Why the phase is `capability`.** Deciding the rule needs to know what was
+published before, which needs the catalog, which needs the network — and
+[§7](#validation-layers) forbids the `parser`, `structural` and `semantic`
+phases from requiring it. A client validating a file it has just written cannot
+see the lineage and MUST NOT report this rule. Offline validation is therefore
+exactly as strict as it was.
+
+Whether a registry treats an identical re-submission as a no-op rather than as a
+publication is outside this contract. This document orders publications; it does
+not define when two YAML files are the same document.
+
+**The version is not the item's version.**
+[Blueprint §3](../../blueprint/v1/spec.md#identity) pins a blueprint to its
+sibling listing, and neither is pinned to any component beneath it. The two
+numbers count different things: an item's version counts releases of the item, a
+component's counts releases of the component, and in the published form one
+component is deployed by many items at once.
+
+A release of a component an item deploys SHOULD be accompanied by a release of
+the item, because the listing describes what would be installed and a component
+that has moved makes that description stale. It is a SHOULD and carries no
+diagnostic: the disagreement is visible only across two revisions, and a
+validator is handed one.
+
+**What v1 does not constrain.** Nothing orders one component's versions against
+another's — two components in the same item sitting at 4 and 11 mean nothing
+worth reading into. Nothing checks a version offline at all: `minimum: 1` is the
+whole of the `structural` rule, and every other statement in this section is
+either `capability` or a SHOULD.
 
 ## <a id="workload"></a>5. Workload
 
@@ -373,12 +433,13 @@ different text and that is expected.
 | `ERR_INVALID_VALUE` | `structural` | A value violates a pattern, enum, or bound. |
 | `ERR_UNPINNED_IMAGE` | `semantic` | An image reference carries a floating tag. |
 | `ERR_UNKNOWN_ENDPOINT` | `semantic` | A probe names an endpoint the workload does not declare. |
+| `ERR_VERSION_NOT_MONOTONIC` | `capability` | A published component version is not greater than the lineage's current version. |
 
 The `parser` and `structural` rows are the shared envelope registry: the
 [blueprint](../../blueprint/v1/spec.md#diagnostics) and
 [listing](../../listing/v1/spec.md#diagnostics) families declare themselves
-additions to this table rather than restating it. The two `semantic` codes are
-this family's own.
+additions to this table rather than restating it. The `semantic` and
+`capability` rows are this family's own.
 
 ## <a id="conformance"></a>9. Conformance
 
