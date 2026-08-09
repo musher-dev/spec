@@ -8,7 +8,7 @@ metadata:
 spec:
   components:
     db:
-      component: postgres
+      component: ./components/postgres.yaml
       size: general.standard.small
       connections: {}
   parameters: {}

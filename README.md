@@ -36,7 +36,10 @@ Or bind by glob in VS Code `settings.json`:
 ```json
 {
   "yaml.schemas": {
-    "https://schemas.musher.dev/component/v1/component.schema.json": "**/components/*.yaml",
+    "https://schemas.musher.dev/component/v1/component.schema.json": [
+      "**/components/*.yaml",
+      "**/component-*.yaml"
+    ],
     "https://schemas.musher.dev/blueprint/v1/blueprint.schema.json": "**/blueprint.yaml",
     "https://schemas.musher.dev/listing/v1/listing.schema.json": "**/listing.yaml"
   }

@@ -183,7 +183,27 @@
     },
     "BlueprintNode": {
       "additionalProperties": false,
-      "description": "One node of the blueprint's graph, keyed by node name.\n\nA node places one component document — named by ``component``, the stem of\nthe sibling ``components/<name>.yaml`` file — onto a compute ``size``, with\noptional host constraints (``advanced``) and inbound wires\n(``connections``).",
+      "description": "One node of the blueprint's graph, keyed by node name.\n\nA node places one component document — named by ``component`` — onto a\ncompute ``size``, with optional host constraints (``advanced``) and inbound\nwires (``connections``).\n\nThe form of ``component`` selects how it resolves: a reference beginning\n``./`` or ``../`` names a document in the same repository, and one shaped\nlike a UUID names a published component and additionally requires\n``componentVersion``. See spec.md §4.1.",
+      "else": {
+        "required": [
+          "componentVersion"
+        ]
+      },
+      "if": {
+        "properties": {
+          "component": {
+            "pattern": "^\\.{1,2}/"
+          }
+        },
+        "required": [
+          "component"
+        ]
+      },
+      "then": {
+        "properties": {
+          "componentVersion": false
+        }
+      },
       "properties": {
         "advanced": {
           "anyOf": [
@@ -198,10 +218,23 @@
           "description": "Optional advanced compute pins that narrow the eligible-host set at schedule time."
         },
         "component": {
-          "description": "Stem of the sibling components/<name>.yaml file this node deploys. The pinned version comes from that file's metadata.version.",
-          "maxLength": 128,
-          "minLength": 1,
+          "anyOf": [
+            {
+              "pattern": "^(?:\\./|(?:\\.\\./)+)(?:[A-Za-z0-9][A-Za-z0-9._-]*/)*[A-Za-z0-9][A-Za-z0-9._-]*\\.ya?ml$"
+            },
+            {
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          ],
+          "$comment": "Both patterns are lookahead-free so they compile under RE2 as well as ECMA-262. A path segment must begin with a letter or digit, which is how `.` and `..` are excluded as interior segments without a negative lookahead; that leaves one spelling per target and keeps the containment check in the semantic phase from having to normalise first.",
+          "description": "Reference to the component document this node deploys, in one of two forms. A repo-local reference begins ./ or ../ and ends .yaml or .yml, and resolves relative to the directory holding this blueprint document; its version is the referenced document's metadata.version. A published reference is the component's UUID and requires componentVersion. The relative-path prefix is what tells the two apart — a bare slug is not distinguishable from a UUID.",
+          "maxLength": 256,
           "type": "string"
+        },
+        "componentVersion": {
+          "description": "Lineage version pinned by a published reference. Required on a published reference and rejected on a repo-local one, where the referenced document's own metadata.version supplies it.",
+          "minimum": 1,
+          "type": "integer"
         },
         "connections": {
           "additionalProperties": {

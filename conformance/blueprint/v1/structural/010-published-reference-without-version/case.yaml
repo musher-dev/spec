@@ -1,0 +1,15 @@
+# A published reference with no version. Nothing on disk carries the lineage
+# version for this form, so omitting it would leave the node pinned to
+# whatever the registry serves at deploy time.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: postgres
+  version: 1
+spec:
+  components:
+    db:
+      component: 550e8400-e29b-41d4-a716-446655440000
+      size: general.standard.small
+      connections: {}
+  parameters: {}

@@ -1,0 +1,17 @@
+# A local reference spelling a traversal into an interior segment. Every
+# segment must begin with a letter or digit, so `..` cannot appear except in
+# the leading prefix. Two spellings of one target would otherwise both be
+# valid, and the semantic containment check would have to normalise before it
+# could compare.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: postgres
+  version: 1
+spec:
+  components:
+    db:
+      component: ./components/../../etc/passwd.yaml
+      size: general.standard.small
+      connections: {}
+  parameters: {}

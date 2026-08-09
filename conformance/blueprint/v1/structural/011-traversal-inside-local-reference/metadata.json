@@ -1,0 +1,7 @@
+{
+  "id": "structural-011-traversal-inside-local-reference",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#component-reference",
+  "summary": "A local reference with a traversal in an interior segment is rejected before containment is considered."
+}
