@@ -1,0 +1,17 @@
+# An anchor nothing refers to. It expands to nothing, changes no value, and
+# leaves a document that is valid in every other respect — so a rule written
+# against aliases alone lets it through.
+#
+# It is rejected because an author who writes one is reaching for a feature this
+# contract withholds, and finding that out now beats finding it out when the
+# alias is added.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source: &image
+      type: IMAGE
+      ref: nginx:1.29.4-alpine

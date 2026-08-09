@@ -1,0 +1,7 @@
+{
+  "id": "parser-003-reject-lone-anchor",
+  "phase": "parser",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#envelope",
+  "summary": "An anchor with no alias is rejected, not merely an alias."
+}

@@ -1,0 +1,15 @@
+# Expanded, this document is entirely valid: the description repeats the
+# tagline. It is rejected anyway — the rule is about the spelling, not about
+# what the spelling produces.
+specVersion: v1
+kind: LISTING
+metadata:
+  slug: acme-wiki
+  version: 1
+spec:
+  listingKind: COMPONENT
+  displayName: Acme Wiki
+  summary: &tagline A wiki backed by PostgreSQL
+  description: *tagline
+  category: PRODUCTIVITY
+  lifecycleStage: STABLE

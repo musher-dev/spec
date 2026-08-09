@@ -1,0 +1,7 @@
+# A tab where the indentation should be. YAML 1.2 forbids tabs as
+# indentation, and the document never becomes a mapping — so no later phase
+# has anything to inspect, which is why the pipeline stops here.
+specVersion: v1
+kind: COMPONENT
+metadata:
+	version: 1

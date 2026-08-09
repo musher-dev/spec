@@ -1,0 +1,7 @@
+{
+  "id": "parser-002-reject-anchors-and-aliases",
+  "phase": "parser",
+  "expected": "fail",
+  "clause": "specifications/listing/v1/spec.md#envelope",
+  "summary": "A document using a YAML anchor and alias is rejected before structural validation."
+}
