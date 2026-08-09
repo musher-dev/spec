@@ -49,7 +49,9 @@ spec: { … }
 Unknown properties MUST be rejected with `ERR_UNKNOWN_FIELD` at every level, not
 only at the root of the envelope. A misspelled field is an error, never a
 silently ignored one — including when the misspelled field is optional, where
-ignoring it would silently substitute the default.
+ignoring it would silently substitute the default. A property that *is* defined,
+by a schema release the validator does not hold, is the same error for a reason
+[§3](#compatibility) gives.
 
 A validator encountering a `specVersion` it does not support MUST reject the
 document with `ERR_UNSUPPORTED_SPEC_VERSION` and MUST NOT attempt a best-effort
@@ -69,9 +71,47 @@ it holds.
 Within a major version, validation MUST NOT become stricter. A document that
 validated against `v1.0.0` MUST validate against every later `v1.x.y`.
 
-> **TODO** — Specify the behaviour when a document uses a field introduced in a
-> schema release newer than the validator holds. Expected shape: reject with
-> `ERR_UNKNOWN_FIELD` and instruct the operator to update, rather than ignore.
+**A validator holding an older release than the document was written against
+MUST reject it.** A field introduced in `v1.3.0` is, to a validator holding
+`v1.1.0`, a property the schema does not define, and it is rejected in the
+`structural` phase with `ERR_UNKNOWN_FIELD` like any other. A validator MUST NOT
+ignore, strip, or pass through a property it cannot evaluate, and MUST NOT relax
+the rule on a claim that the property is new — no such claim is verifiable.
+
+**The code is `ERR_UNKNOWN_FIELD` because the validator cannot tell the two
+cases apart.** `specVersion` names the family, not the release, so nothing in
+the document says which release it was written against. A field from a later
+release and a misspelling are the same bytes to a validator that holds neither
+definition. A code that said so — `ERR_SCHEMA_TOO_OLD` — would require the
+validator to know what it is missing, which is precisely what it does not have.
+
+**Guessing is the failure [§2](#envelope) exists to prevent.** Ignoring a
+misspelled optional field silently substitutes the default; a field from a newer
+release is that hazard with a worse ending. The author wrote it, the schema
+defining it exists, and the only party who cannot see it is the validator. A
+document rejected for a field the operator can look up is recoverable. A
+document accepted with that field dropped is not.
+
+Because the diagnostic cannot name the cause, the implementation is where an
+operator has to find it. An implementation SHOULD make the schema release it
+evaluated against discoverable — in the diagnostic, in a `--version`-style
+output, or both — and SHOULD name updating the validator among the remedies.
+Message text is not normative ([§8](#diagnostics)), so this is a recommendation
+about what an implementation surfaces, not about the words it chooses.
+
+**Why the release is not pinned in the document.** Letting `specVersion` carry
+`v1.3.0` would turn this failure into `ERR_UNSUPPORTED_SPEC_VERSION`, which
+names the cause exactly. That alternative is still rejected. `specVersion` is
+the document-format discriminator and declaring a family is the whole of its
+job ([§2](#envelope)); pinning a release there asks every author to name a
+floor they have no way to know, and makes a document that would validate
+everywhere fail against the releases it never needed.
+
+**The guarantee runs one way.** An old document validates against a new
+validator; a new document does not validate against an old one. A field added in
+`v1.N.0` is therefore usable only where the consumer holds `v1.N.0` or later,
+and a document that must validate everywhere is written against the oldest
+release its consumers hold.
 
 ## <a id="metadata"></a>4. Metadata
 
