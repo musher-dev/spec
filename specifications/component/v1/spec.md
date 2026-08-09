@@ -167,11 +167,10 @@ that is declared to fail is a conformance failure.
 ## <a id="known-debt"></a>10. Known debt
 
 This schema was seeded from the platform's Pydantic-generated catalog schema.
-The following MUST be resolved before v1 is declared stable:
+The naming that arrived with it — `$defs` keys carrying `Seed…`/`…Request`
+affixes, and generated `title` values like `Specversion` — has been cleaned,
+and `tools/src/lint.ts` now rejects both. The remaining debt MUST be resolved
+before v1 is declared stable:
 
-1. `$defs` names carry implementation affixes (`SeedComponentMetadata`,
-   `ComponentSpecRequest`). Renaming is a breaking change to `$ref` targets and
-   is scheduled deliberately, not incidentally.
-2. Auto-generated `title` values are mangled (`Specversion`, `Builderimage`).
-3. Every section above marked TODO is currently defined only by the schema's
+1. Every section above marked TODO is currently defined only by the schema's
    structure, which is not a substitute for prose.

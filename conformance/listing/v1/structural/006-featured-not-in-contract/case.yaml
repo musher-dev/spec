@@ -1,0 +1,19 @@
+# Featured-row placement is set by the storefront operator, not by the author
+# of a listing document, so `spec.featured` is not part of this contract. A
+# document that declares it is rejected like any other unknown property —
+# silently ignoring it would let an author believe they had promoted their own
+# listing.
+specVersion: v1
+kind: LISTING
+metadata:
+  slug: postgres
+  version: 1
+spec:
+  listingKind: COMPONENT
+  displayName: PostgreSQL
+  summary: The open-source relational database
+  category: INFRASTRUCTURE
+  lifecycleStage: STABLE
+  featured:
+    enabled: true
+    rank: 0

@@ -115,5 +115,6 @@ fixture in [`conformance/blueprint/v1/`](../../../conformance/blueprint/v1/).
 
 ## <a id="known-debt"></a>9. Known debt
 
-Seeded from the platform's generated schema; `$defs` retain `Seed…`/`…Request`
-affixes. See [component §10](../../component/v1/spec.md#known-debt).
+Seeded from the platform's generated schema. The naming that arrived with it
+has been cleaned; the sections above marked TODO have not. See
+[component §10](../../component/v1/spec.md#known-debt).

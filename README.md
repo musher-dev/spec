@@ -107,8 +107,9 @@ overwritten.
 ## Status
 
 `v1` is **pre-stable**. The schemas here were seeded from the platform's
-generated catalog schemas and are being brought up to specification quality;
-see the open issues before depending on `$defs` names.
+generated catalog schemas and are being brought up to specification quality.
+The `$defs` names are now settled; the normative prose is not — see the `TODO`
+sections in each `spec.md`, and the open issues.
 
 ## License
 

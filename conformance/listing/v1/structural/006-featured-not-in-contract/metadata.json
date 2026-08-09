@@ -1,0 +1,7 @@
+{
+  "id": "structural-006-featured-not-in-contract",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/listing/v1/spec.md#presentation",
+  "summary": "Featured-row placement is not authored on the listing document; spec.featured is rejected."
+}

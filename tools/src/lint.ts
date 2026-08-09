@@ -20,6 +20,7 @@ import {
 
 const DEFS_NAME = /^[A-Z][A-Za-z0-9]*$/
 const MODULE_NAME = /^[a-z][a-z0-9-]*\.schema\.json$/
+const SEEDED_AFFIX = /^Seed|Request$/
 
 function main(): void {
   const failures = new Failures()
@@ -69,6 +70,8 @@ function main(): void {
       checkRefs(doc, rel, failures)
       checkClosedObjects(doc, rel, failures)
       checkDefsNames(doc, rel, failures)
+      checkDefsPointers(doc, rel, failures)
+      checkTitlePlacement(doc, rel, failures)
       checkMetaValid(doc, rel, failures)
     }
   }
@@ -172,6 +175,56 @@ function checkDefsNames(doc: { [k: string]: Json }, rel: string, failures: Failu
     if (!DEFS_NAME.test(name)) {
       failures.add(`${rel}: $defs/${name} must be UpperCamelCase`)
     }
+    // The schemas were seeded from the platform's generated wire models, which
+    // named things after the pipeline that produced them. A published document
+    // contract has no authoring stage and no wire direction, so neither affix
+    // describes anything a reader of this repository can act on.
+    if (SEEDED_AFFIX.test(name)) {
+      failures.add(
+        `${rel}: $defs/${name} carries an implementation affix — "Seed" marks a ` +
+          'platform authoring concept and "Request" a wire direction; name the concept instead',
+      )
+    }
+  }
+}
+
+/**
+ * `$ref` is not the only thing that points into `$defs`. `discriminator.mapping`
+ * values are JSON Pointers too, and a rename that misses one leaves a mapping
+ * naming a definition that no longer exists — the document still compiles, and
+ * every check above still passes.
+ */
+function checkDefsPointers(doc: { [k: string]: Json }, rel: string, failures: Failures): void {
+  const defs = isObject(doc.$defs) ? doc.$defs : {}
+  for (const { node, pointer } of walkObjects(doc)) {
+    for (const [key, value] of Object.entries(node)) {
+      if (key === '$ref' || key === '$dynamicRef') continue // checkRefs owns these
+      if (typeof value !== 'string' || !value.startsWith('#/$defs/')) continue
+      const target = decodeURIComponent(value.slice('#/$defs/'.length))
+      if (!(target in defs)) {
+        failures.add(`${rel}: ${pointer}/${key} points at a missing $defs/${target}`)
+      }
+    }
+  }
+}
+
+/**
+ * `title` is authored, human-facing, and belongs only on a module root — that is
+ * the one an IDE schema picker and SchemaStore display.
+ *
+ * Below the root, every title this repository inherited was generator output: a
+ * camelCase property name re-capitalised (`Specversion`, `Builderimage`), or a
+ * `$defs` title echoing its own key. Editors render `title` *above*
+ * `description`, so a title that only restates the key displaces the sentence
+ * that carries the meaning. `spec.md` stays normative over both.
+ */
+function checkTitlePlacement(doc: { [k: string]: Json }, rel: string, failures: Failures): void {
+  for (const { node, pointer } of walkObjects(doc)) {
+    if (pointer === '' || typeof node.title !== 'string') continue
+    failures.add(
+      `${rel}: ${pointer} declares a "title" — only a module root may carry one; ` +
+        'below it, describe the field in "description"',
+    )
   }
 }
 

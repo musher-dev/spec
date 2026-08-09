@@ -50,7 +50,8 @@ Enforced by `tools/src/lint.ts` — do not work around them.
 | Version directory | `v<MAJOR>` | `v1` |
 | Source `$id` | `https://schemas.musher.dev/<family>/v<MAJOR>/<concept>` — extensionless, no trailing slash. Source modules are never served, so this is an identity, not a fetch URL. | `…/component/v1/component` |
 | Bundle `$id` | The real publication URL, set by the bundler. Do not write it by hand. | `…/component/v1/component.schema.json` |
-| `$defs` keys | UpperCamelCase | `ComponentWorkload` |
+| `$defs` keys | UpperCamelCase, naming the concept. No `Seed` prefix, no `Request` suffix — those describe a platform pipeline, not a document contract. | `ComponentWorkload` |
+| `title` | Module root only. Below the root, the key already names the field; use `description` to say what it means. | `Musher Component Document` |
 | Conformance case | `<phase>-<NNN>-<description>` | `structural-001-missing-kind` |
 
 ## Prose vs schema
@@ -77,7 +78,9 @@ an unscoped `feat:` releases nothing.
 ## Known debt
 
 The three schemas were seeded from the platform's Pydantic-generated catalog
-schemas. Their `$defs` names still carry implementation affixes (`Seed…`,
-`…Request`) and some auto-generated `title` values are mangled (`Specversion`).
-Cleaning these is tracked as a v1 pre-stable task — do not treat the current
-names as settled, and do not add new ones in that style.
+schemas. The naming and the generated titles have been cleaned and `lint.ts`
+now rejects both, but the seeding still shows in the prose: some `description`
+text uses platform vocabulary (`snapshot compute`, Compute Profile slugs) that
+a reader outside `musher-dev/platform` cannot resolve. The `TODO` sections in
+each `spec.md` are the larger remaining gap — they are what keeps v1
+pre-stable.

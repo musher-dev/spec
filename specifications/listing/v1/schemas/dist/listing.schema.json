@@ -3,24 +3,22 @@
   "$id": "https://schemas.musher.dev/listing/v1/listing.schema.json",
   "title": "Musher Listing Document",
   "description": "The catalog storefront entry for a blueprint or component.",
-  "$comment": "Seeded from the platform's generated catalog schema. Structural and type validation only — cross-document reference resolution, slug/directory agreement, and platform capability checks are separate validation layers. See spec.md.",
+  "$comment": "Structural and type validation only — cross-document reference resolution, slug/directory agreement, and platform capability checks are separate validation layers. See spec.md.",
   "additionalProperties": false,
   "properties": {
     "kind": {
-      "title": "Kind",
       "description": "Document kind discriminator. Must be LISTING.",
       "const": "LISTING",
       "type": "string"
     },
     "metadata": {
-      "$ref": "#/$defs/SeedItemMetadata"
+      "$ref": "#/$defs/ListingMetadata"
     },
     "spec": {
-      "$ref": "#/$defs/SeedListingSpec"
+      "$ref": "#/$defs/ListingSpec"
     },
     "specVersion": {
-      "title": "Specversion",
-      "description": "Version of the seed authoring document format.",
+      "description": "Version of the Musher specification this document is written against.",
       "enum": [
         "v1"
       ],
@@ -35,19 +33,16 @@
   ],
   "type": "object",
   "$defs": {
-    "SeedItemMetadata": {
-      "title": "SeedItemMetadata",
-      "description": "Identity block shared by the blueprint + listing documents.",
+    "ListingMetadata": {
+      "description": "Identity block of a listing document. The same shape carries on the sibling blueprint document, and the two must agree.",
       "additionalProperties": false,
       "properties": {
         "slug": {
-          "title": "Slug",
           "description": "Item slug — must equal the item's directory name.",
           "pattern": "^[a-z][a-z0-9-]{0,61}[a-z0-9]$",
           "type": "string"
         },
         "version": {
-          "title": "Version",
           "description": "Item version — must agree between blueprint.yaml and listing.yaml.",
           "minimum": 1,
           "type": "integer"
@@ -59,34 +54,11 @@
       ],
       "type": "object"
     },
-    "SeedListingFeatured": {
-      "title": "SeedListingFeatured",
-      "description": "Featured-flag declaration on a seeded listing.",
-      "additionalProperties": false,
-      "properties": {
-        "enabled": {
-          "title": "Enabled",
-          "description": "True to promote the listing on the featured storefront row.",
-          "default": false,
-          "type": "boolean"
-        },
-        "rank": {
-          "title": "Rank",
-          "description": "Ordering weight among featured listings; lower sorts first.",
-          "default": 0,
-          "minimum": 0,
-          "type": "integer"
-        }
-      },
-      "type": "object"
-    },
-    "SeedListingScreenshot": {
-      "title": "SeedListingScreenshot",
+    "ListingScreenshot": {
       "description": "One storefront screenshot declared as a relative media path.",
       "additionalProperties": false,
       "properties": {
         "caption": {
-          "title": "Caption",
           "description": "Accessible caption shown beneath the screenshot, or null when none.",
           "anyOf": [
             {
@@ -100,7 +72,6 @@
           "default": null
         },
         "file": {
-          "title": "File",
           "description": "Relative path of the screenshot asset under the item's media/ directory.",
           "maxLength": 512,
           "minLength": 1,
@@ -112,13 +83,11 @@
       ],
       "type": "object"
     },
-    "SeedListingSpec": {
-      "title": "SeedListingSpec",
-      "description": "The ``spec`` block of a listing document.\n\nMirrors the backstage ``CatalogListingDraftRequest`` field names minus\nserver-side identity (``slug``/``version`` live in ``metadata``;\n``blueprintId``/``blueprintVersion`` are derived; ``parentListingId`` is\nn/a). Deviations: ``icon`` + ``screenshots[].file`` are relative media\npaths (not Files-BC ids), and ``featured`` is seed-only. Drift-gated in\n``tests/unit/seeds/test_catalog_manifest_drift.py``.",
+    "ListingSpec": {
+      "description": "The ``spec`` block of a listing document — how the item is presented,\ncategorised, and discovered on the storefront.\n\nIdentity lives in ``metadata``, not here. ``icon`` and\n``screenshots[].file`` are paths relative to the listing document.",
       "additionalProperties": false,
       "properties": {
         "description": {
-          "title": "Description",
           "description": "Long-form Markdown storefront description, or null when none.",
           "anyOf": [
             {
@@ -132,7 +101,6 @@
           "default": null
         },
         "category": {
-          "title": "Category",
           "description": "Storefront category the listing is browsed under.",
           "enum": [
             "MEDIA",
@@ -150,18 +118,12 @@
           "type": "string"
         },
         "displayName": {
-          "title": "Displayname",
           "description": "Storefront title shown to prospective installers.",
           "maxLength": 200,
           "minLength": 1,
           "type": "string"
         },
-        "featured": {
-          "description": "Featured-row placement; defaults to not featured.",
-          "$ref": "#/$defs/SeedListingFeatured"
-        },
         "homepageUrl": {
-          "title": "Homepageurl",
           "description": "Project homepage URL, or null when none.",
           "anyOf": [
             {
@@ -175,7 +137,6 @@
           "default": null
         },
         "icon": {
-          "title": "Icon",
           "description": "Relative path of the listing's icon under the item's media/ directory (e.g. media/icon.png), or null for no icon.",
           "anyOf": [
             {
@@ -188,7 +149,6 @@
           "default": null
         },
         "license": {
-          "title": "License",
           "description": "License identifier for the listed software, or null when unspecified.",
           "anyOf": [
             {
@@ -202,7 +162,6 @@
           "default": null
         },
         "lifecycleStage": {
-          "title": "Lifecyclestage",
           "description": "Maturity stage shown on the storefront: STABLE, BETA, EXPERIMENTAL, or SUNSET.",
           "enum": [
             "STABLE",
@@ -213,8 +172,7 @@
           "type": "string"
         },
         "listingKind": {
-          "title": "Listingkind",
-          "description": "Storefront classification (ADR 0071, amended by ADR 0112): BLUEPRINT (curated composition) or COMPONENT (single building block).",
+          "description": "Storefront classification: BLUEPRINT (curated composition) or COMPONENT (single building block).",
           "enum": [
             "BLUEPRINT",
             "COMPONENT"
@@ -222,15 +180,13 @@
           "type": "string"
         },
         "screenshots": {
-          "title": "Screenshots",
           "description": "Storefront screenshots in display order, declared as media paths.",
           "items": {
-            "$ref": "#/$defs/SeedListingScreenshot"
+            "$ref": "#/$defs/ListingScreenshot"
           },
           "type": "array"
         },
         "sourceRepoUrl": {
-          "title": "Sourcerepourl",
           "description": "Source repository URL, or null when none.",
           "anyOf": [
             {
@@ -244,14 +200,12 @@
           "default": null
         },
         "summary": {
-          "title": "Summary",
           "description": "One-line storefront tagline summarising the listing.",
           "maxLength": 280,
           "minLength": 1,
           "type": "string"
         },
         "supportUrl": {
-          "title": "Supporturl",
           "description": "Support or documentation URL, or null when none.",
           "anyOf": [
             {
@@ -265,7 +219,6 @@
           "default": null
         },
         "tags": {
-          "title": "Tags",
           "description": "Free-form discovery tags applied to the listing.",
           "items": {
             "type": "string"

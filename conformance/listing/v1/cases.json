@@ -31,6 +31,11 @@
       "id": "structural-005-nested-unknown-field",
       "phase": "structural",
       "path": "structural/005-nested-unknown-field"
+    },
+    {
+      "id": "structural-006-featured-not-in-contract",
+      "phase": "structural",
+      "path": "structural/006-featured-not-in-contract"
     }
   ]
 }

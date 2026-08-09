@@ -3,27 +3,25 @@
   "$id": "https://schemas.musher.dev/component/v1/component",
   "title": "Musher Component Document",
   "description": "A reusable, versioned definition of one workload — its source, runtime shape, health probes, and configuration contract.",
-  "$comment": "Seeded from the platform's generated catalog schema. Structural and type validation only — cross-document reference resolution, slug/directory agreement, and platform capability checks are separate validation layers. See spec.md.",
+  "$comment": "Structural and type validation only — cross-document reference resolution, slug/directory agreement, and platform capability checks are separate validation layers. See spec.md.",
   "additionalProperties": false,
   "properties": {
     "kind": {
       "const": "COMPONENT",
       "description": "Document kind discriminator. Must be COMPONENT.",
-      "title": "Kind",
       "type": "string"
     },
     "metadata": {
-      "$ref": "#/$defs/SeedComponentMetadata"
+      "$ref": "#/$defs/ComponentMetadata"
     },
     "spec": {
-      "$ref": "#/$defs/ComponentSpecRequest"
+      "$ref": "#/$defs/ComponentSpec"
     },
     "specVersion": {
-      "description": "Version of the seed authoring document format.",
+      "description": "Version of the Musher specification this document is written against.",
       "enum": [
         "v1"
       ],
-      "title": "Specversion",
       "type": "string"
     }
   },
@@ -35,7 +33,7 @@
   ],
   "type": "object",
   "$defs": {
-    "ComponentBuildRequest": {
+    "ComponentBuild": {
       "additionalProperties": false,
       "properties": {
         "arguments": {
@@ -43,7 +41,6 @@
             "type": "string"
           },
           "description": "Build arguments keyed by argument name, injected into the image build context (Docker ARG). Build-time configuration only — runtime configuration rides on the workload's envVars.",
-          "title": "Arguments",
           "type": "object"
         },
         "builderImage": {
@@ -56,8 +53,7 @@
             }
           ],
           "default": null,
-          "description": "Buildpacks builder image, or null when not building with buildpacks.",
-          "title": "Builderimage"
+          "description": "Buildpacks builder image, or null when not building with buildpacks."
         },
         "dockerfilePath": {
           "anyOf": [
@@ -69,8 +65,7 @@
             }
           ],
           "default": null,
-          "description": "Path to the Dockerfile relative to the repo root, or null when not using a Dockerfile.",
-          "title": "Dockerfilepath"
+          "description": "Path to the Dockerfile relative to the repo root, or null when not using a Dockerfile."
         },
         "strategy": {
           "description": "How the git source becomes an image: DOCKERFILE or BUILDPACKS.",
@@ -78,17 +73,15 @@
             "DOCKERFILE",
             "BUILDPACKS"
           ],
-          "title": "Strategy",
           "type": "string"
         }
       },
       "required": [
         "strategy"
       ],
-      "title": "ComponentBuildRequest",
       "type": "object"
     },
-    "ComponentConfigRefEnvVarValueRequest": {
+    "ComponentConfigRefEnvVarValue": {
       "additionalProperties": false,
       "properties": {
         "configKey": {
@@ -96,13 +89,11 @@
           "maxLength": 255,
           "minLength": 1,
           "pattern": "^[A-Z_][A-Z0-9_]*$",
-          "title": "Configkey",
           "type": "string"
         },
         "type": {
           "const": "CONFIG_REF",
           "description": "Discriminator marking an identity-only configuration reference.",
-          "title": "Type",
           "type": "string"
         }
       },
@@ -110,38 +101,33 @@
         "type",
         "configKey"
       ],
-      "title": "ComponentConfigRefEnvVarValueRequest",
       "type": "object"
     },
-    "ComponentContractRequest": {
+    "ComponentContract": {
       "additionalProperties": false,
       "properties": {
         "inputs": {
           "additionalProperties": {
-            "$ref": "#/$defs/ComponentInputRequest"
+            "$ref": "#/$defs/ComponentInput"
           },
-          "description": "Typed input declarations keyed by input name (ADR 0038).",
-          "title": "Inputs",
+          "description": "Typed input declarations keyed by input name.",
           "type": "object"
         },
         "outputs": {
           "additionalProperties": {
-            "$ref": "#/$defs/ComponentOutputRequest"
+            "$ref": "#/$defs/ComponentOutput"
           },
-          "description": "Typed output declarations keyed by output name (ADR 0038).",
-          "title": "Outputs",
+          "description": "Typed output declarations keyed by output name.",
           "type": "object"
         }
       },
-      "title": "ComponentContractRequest",
       "type": "object"
     },
-    "ComponentEndpointRequest": {
+    "ComponentEndpoint": {
       "additionalProperties": false,
       "properties": {
         "containerPort": {
           "description": "Port the workload listens on inside the container.",
-          "title": "Containerport",
           "type": "integer"
         },
         "protocol": {
@@ -154,7 +140,6 @@
             "TCP",
             "UDP"
           ],
-          "title": "Protocol",
           "type": "string"
         },
         "visibility": {
@@ -163,7 +148,6 @@
             "PUBLIC",
             "PRIVATE"
           ],
-          "title": "Visibility",
           "type": "string"
         }
       },
@@ -172,11 +156,10 @@
         "protocol",
         "visibility"
       ],
-      "title": "ComponentEndpointRequest",
       "type": "object",
       "x-additionalPropertiesName": "endpointName"
     },
-    "ComponentEnvVarRequest": {
+    "ComponentEnvVar": {
       "additionalProperties": false,
       "description": "One environment-variable entry (Kubernetes-style named entry).",
       "properties": {
@@ -185,42 +168,38 @@
           "maxLength": 128,
           "minLength": 1,
           "pattern": "^[A-Z_][A-Z0-9_]*$",
-          "title": "Key",
           "type": "string"
         },
         "value": {
           "description": "How the value resolves, discriminated on type: LITERAL (verbatim value) or CONFIG_REF (resolved at snapshot compute).",
           "discriminator": {
             "mapping": {
-              "CONFIG_REF": "#/$defs/ComponentConfigRefEnvVarValueRequest",
-              "LITERAL": "#/$defs/ComponentLiteralEnvVarValueRequest"
+              "CONFIG_REF": "#/$defs/ComponentConfigRefEnvVarValue",
+              "LITERAL": "#/$defs/ComponentLiteralEnvVarValue"
             },
             "propertyName": "type"
           },
           "oneOf": [
             {
-              "$ref": "#/$defs/ComponentLiteralEnvVarValueRequest"
+              "$ref": "#/$defs/ComponentLiteralEnvVarValue"
             },
             {
-              "$ref": "#/$defs/ComponentConfigRefEnvVarValueRequest"
+              "$ref": "#/$defs/ComponentConfigRefEnvVarValue"
             }
-          ],
-          "title": "Value"
+          ]
         }
       },
       "required": [
         "key",
         "value"
       ],
-      "title": "ComponentEnvVarRequest",
       "type": "object"
     },
-    "ComponentGitRefRequest": {
+    "ComponentGitRef": {
       "additionalProperties": false,
       "properties": {
         "name": {
           "description": "The branch name or commit SHA to build from.",
-          "title": "Name",
           "type": "string"
         },
         "type": {
@@ -229,7 +208,6 @@
             "BRANCH",
             "COMMIT"
           ],
-          "title": "Type",
           "type": "string"
         }
       },
@@ -237,16 +215,15 @@
         "type",
         "name"
       ],
-      "title": "ComponentGitRefRequest",
       "type": "object"
     },
-    "ComponentGitSourceRequest": {
+    "ComponentGitSource": {
       "additionalProperties": false,
       "properties": {
         "build": {
           "anyOf": [
             {
-              "$ref": "#/$defs/ComponentBuildRequest"
+              "$ref": "#/$defs/ComponentBuild"
             },
             {
               "type": "null"
@@ -258,7 +235,7 @@
         "ref": {
           "anyOf": [
             {
-              "$ref": "#/$defs/ComponentGitRefRequest"
+              "$ref": "#/$defs/ComponentGitRef"
             },
             {
               "type": "null"
@@ -269,13 +246,11 @@
         },
         "repositoryUrl": {
           "description": "Git repository URL the platform builds into an image.",
-          "title": "Repositoryurl",
           "type": "string"
         },
         "type": {
           "const": "GIT",
           "description": "Discriminator marking a git-repository source.",
-          "title": "Type",
           "type": "string"
         }
       },
@@ -283,17 +258,16 @@
         "type",
         "repositoryUrl"
       ],
-      "title": "ComponentGitSourceRequest",
       "type": "object"
     },
-    "ComponentHealthProbesRequest": {
+    "ComponentHealthProbes": {
       "additionalProperties": false,
-      "description": "Staged health probes (ADR 0093): startup, readiness, liveness.",
+      "description": "Staged health probes: startup, readiness, liveness.",
       "properties": {
         "liveness": {
           "anyOf": [
             {
-              "$ref": "#/$defs/ComponentProbeRequest"
+              "$ref": "#/$defs/ComponentProbe"
             },
             {
               "type": "null"
@@ -305,7 +279,7 @@
         "readiness": {
           "anyOf": [
             {
-              "$ref": "#/$defs/ComponentProbeRequest"
+              "$ref": "#/$defs/ComponentProbe"
             },
             {
               "type": "null"
@@ -317,7 +291,7 @@
         "startup": {
           "anyOf": [
             {
-              "$ref": "#/$defs/ComponentProbeRequest"
+              "$ref": "#/$defs/ComponentProbe"
             },
             {
               "type": "null"
@@ -327,21 +301,18 @@
           "description": "Initialization gate; failure means not-yet-started. Optional."
         }
       },
-      "title": "ComponentHealthProbesRequest",
       "type": "object"
     },
-    "ComponentImageSourceRequest": {
+    "ComponentImageSource": {
       "additionalProperties": false,
       "properties": {
         "ref": {
           "description": "OCI image reference the workload runs from.",
-          "title": "Ref",
           "type": "string"
         },
         "type": {
           "const": "IMAGE",
           "description": "Discriminator marking a pre-built OCI image source.",
-          "title": "Type",
           "type": "string"
         }
       },
@@ -349,10 +320,9 @@
         "type",
         "ref"
       ],
-      "title": "ComponentImageSourceRequest",
       "type": "object"
     },
-    "ComponentInputRequest": {
+    "ComponentInput": {
       "additionalProperties": false,
       "properties": {
         "description": {
@@ -365,13 +335,12 @@
             }
           ],
           "default": null,
-          "description": "Human-readable description of the input, or null when none is set.",
-          "title": "Description"
+          "description": "Human-readable description of the input, or null when none is set."
         },
         "generator": {
           "anyOf": [
             {
-              "$ref": "#/$defs/ComponentValueGeneratorRequest"
+              "$ref": "#/$defs/ComponentValueGenerator"
             },
             {
               "type": "null"
@@ -383,7 +352,6 @@
         "isRequired": {
           "default": true,
           "description": "True when the input must be satisfied before the component can be deployed.",
-          "title": "Isrequired",
           "type": "boolean"
         },
         "platformDefault": {
@@ -400,11 +368,10 @@
             }
           ],
           "default": null,
-          "description": "Platform-derived default bound into the target env var — PUBLIC_HOSTNAME injects the component's own public endpoint hostname, PUBLIC_URL the full https URL of that endpoint; null when the value is user-supplied, wired, or generated.",
-          "title": "Platformdefault"
+          "description": "Platform-derived default bound into the target env var — PUBLIC_HOSTNAME injects the component's own public endpoint hostname, PUBLIC_URL the full https URL of that endpoint; null when the value is user-supplied, wired, or generated."
         },
         "schema": {
-          "$ref": "#/$defs/ComponentValueSchemaRequest",
+          "$ref": "#/$defs/ComponentValueSchema",
           "description": "Data contract of the value: type, format, pattern, enum, default, sensitivity."
         },
         "suppliedBy": {
@@ -414,13 +381,12 @@
             "CONNECTION",
             "USER"
           ],
-          "title": "Suppliedby",
           "type": "string"
         },
         "target": {
           "anyOf": [
             {
-              "$ref": "#/$defs/ComponentInputTargetRequest"
+              "$ref": "#/$defs/ComponentInputTarget"
             },
             {
               "type": "null"
@@ -432,7 +398,7 @@
         "ui": {
           "anyOf": [
             {
-              "$ref": "#/$defs/ComponentInputUiRequest"
+              "$ref": "#/$defs/ComponentInputUi"
             },
             {
               "type": "null"
@@ -445,11 +411,10 @@
       "required": [
         "schema"
       ],
-      "title": "ComponentInputRequest",
       "type": "object",
       "x-additionalPropertiesName": "inputName"
     },
-    "ComponentInputTargetRequest": {
+    "ComponentInputTarget": {
       "additionalProperties": false,
       "properties": {
         "envVarKey": {
@@ -457,50 +422,43 @@
           "maxLength": 128,
           "minLength": 1,
           "pattern": "^[A-Z_][A-Z0-9_]*$",
-          "title": "Envvarkey",
           "type": "string"
         }
       },
       "required": [
         "envVarKey"
       ],
-      "title": "ComponentInputTargetRequest",
       "type": "object"
     },
-    "ComponentInputUiRequest": {
+    "ComponentInputUi": {
       "additionalProperties": false,
       "description": "Presentation metadata for a USER-supplied input.\n\nThe install-form control is derived from the input's schema (enum →\nselect, BOOLEAN → toggle, EMAIL format → email field, sensitive →\nmasked field) — only the label needs declaring.",
       "properties": {
         "label": {
           "description": "Human-readable label shown on the install form.",
-          "title": "Label",
           "type": "string"
         }
       },
       "required": [
         "label"
       ],
-      "title": "ComponentInputUiRequest",
       "type": "object"
     },
-    "ComponentLiteralEnvVarValueRequest": {
+    "ComponentLiteralEnvVarValue": {
       "additionalProperties": false,
       "properties": {
         "isSensitive": {
           "default": false,
           "description": "True when the value is secret material — masked in read surfaces and never echoed back.",
-          "title": "Issensitive",
           "type": "boolean"
         },
         "type": {
           "const": "LITERAL",
           "description": "Discriminator marking a verbatim literal value.",
-          "title": "Type",
           "type": "string"
         },
         "value": {
           "description": "Verbatim value injected into the workload. Empty string is allowed.",
-          "title": "Value",
           "type": "string"
         }
       },
@@ -508,10 +466,24 @@
         "type",
         "value"
       ],
-      "title": "ComponentLiteralEnvVarValueRequest",
       "type": "object"
     },
-    "ComponentOutputRequest": {
+    "ComponentMetadata": {
+      "additionalProperties": false,
+      "description": "Identity block of a component document — the name is the file stem.",
+      "properties": {
+        "version": {
+          "description": "Lineage version of this component. Required (never defaulted) so the component's content is a pure function of this file, and it is the version the item's blueprint nodes pin.",
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "version"
+      ],
+      "type": "object"
+    },
+    "ComponentOutput": {
       "additionalProperties": false,
       "properties": {
         "description": {
@@ -524,11 +496,10 @@
             }
           ],
           "default": null,
-          "description": "Human-readable description of the output, or null when none is set.",
-          "title": "Description"
+          "description": "Human-readable description of the output, or null when none is set."
         },
         "schema": {
-          "$ref": "#/$defs/ComponentValueSchemaRequest",
+          "$ref": "#/$defs/ComponentValueSchema",
           "description": "Data contract of the published value: type, format, sensitivity."
         },
         "value": {
@@ -541,8 +512,7 @@
             }
           ],
           "default": null,
-          "description": "Static value for DECLARED outputs, or null for DERIVED outputs resolved at runtime.",
-          "title": "Value"
+          "description": "Static value for DECLARED outputs, or null for DERIVED outputs resolved at runtime."
         },
         "valueFrom": {
           "description": "DERIVED outputs carry value=null and are platform-populated; DECLARED outputs carry a static value.",
@@ -550,7 +520,6 @@
             "DERIVED",
             "DECLARED"
           ],
-          "title": "Valuefrom",
           "type": "string"
         }
       },
@@ -558,11 +527,10 @@
         "schema",
         "valueFrom"
       ],
-      "title": "ComponentOutputRequest",
       "type": "object",
       "x-additionalPropertiesName": "outputName"
     },
-    "ComponentProbeRequest": {
+    "ComponentProbe": {
       "additionalProperties": false,
       "properties": {
         "endpoint": {
@@ -575,91 +543,79 @@
             }
           ],
           "default": null,
-          "description": "Name of the endpoint whose port the probe targets. Null selects the primary endpoint.",
-          "title": "Endpoint"
+          "description": "Name of the endpoint whose port the probe targets. Null selects the primary endpoint."
         },
         "failureThreshold": {
           "default": 3,
           "description": "Consecutive failures required to consider the probe failing.",
-          "title": "Failurethreshold",
           "type": "integer"
         },
         "initialDelaySeconds": {
           "default": 10,
           "description": "Seconds to wait after start before the first probe.",
-          "title": "Initialdelayseconds",
           "type": "integer"
         },
         "path": {
           "description": "HTTP path the platform polls for this probe.",
-          "title": "Path",
           "type": "string"
         },
         "periodSeconds": {
           "default": 10,
           "description": "Seconds between consecutive probe attempts.",
-          "title": "Periodseconds",
           "type": "integer"
         },
         "successThreshold": {
           "default": 1,
           "description": "Consecutive successes required to consider the probe passing.",
-          "title": "Successthreshold",
           "type": "integer"
         },
         "timeoutSeconds": {
           "default": 5,
           "description": "Seconds to wait for a probe response.",
-          "title": "Timeoutseconds",
           "type": "integer"
         }
       },
       "required": [
         "path"
       ],
-      "title": "ComponentProbeRequest",
       "type": "object"
     },
-    "ComponentScheduleRequest": {
+    "ComponentSchedule": {
       "additionalProperties": false,
       "properties": {
         "cron": {
           "description": "Cron expression on which a CRON workload runs.",
-          "title": "Cron",
           "type": "string"
         }
       },
       "required": [
         "cron"
       ],
-      "title": "ComponentScheduleRequest",
       "type": "object"
     },
-    "ComponentSpecRequest": {
+    "ComponentSpec": {
       "additionalProperties": false,
       "properties": {
         "contract": {
-          "$ref": "#/$defs/ComponentContractRequest",
+          "$ref": "#/$defs/ComponentContract",
           "description": "The composition contract: typed inputs the component needs and outputs it publishes."
         },
         "workload": {
-          "$ref": "#/$defs/ComponentWorkloadRequest",
+          "$ref": "#/$defs/ComponentWorkload",
           "description": "How the component runs: source, runtime shape, endpoints, and configuration."
         }
       },
       "required": [
         "workload"
       ],
-      "title": "ComponentSpecRequest",
       "type": "object"
     },
-    "ComponentValueGeneratorRequest": {
+    "ComponentValueGenerator": {
       "additionalProperties": false,
       "properties": {
         "byteLength": {
           "default": 32,
           "description": "Number of random bytes generated for the value.",
-          "title": "Bytelength",
           "type": "integer"
         },
         "charset": {
@@ -672,8 +628,7 @@
             }
           ],
           "default": null,
-          "description": "Explicit character set for the generated value, or null when the encoding default is used.",
-          "title": "Charset"
+          "description": "Explicit character set for the generated value, or null when the encoding default is used."
         },
         "encoding": {
           "default": "HEX",
@@ -684,14 +639,12 @@
             "BASE64URL",
             "ALPHANUMERIC"
           ],
-          "title": "Encoding",
           "type": "string"
         }
       },
-      "title": "ComponentValueGeneratorRequest",
       "type": "object"
     },
-    "ComponentValueSchemaRequest": {
+    "ComponentValueSchema": {
       "additionalProperties": false,
       "description": "Data contract of an input or output value (JSON-Schema subset).",
       "properties": {
@@ -705,15 +658,13 @@
             }
           ],
           "default": null,
-          "description": "Pre-filled value when none is supplied, or null when the value must be provided.",
-          "title": "Default"
+          "description": "Pre-filled value when none is supplied, or null when the value must be provided."
         },
         "enum": {
           "description": "Allowed values when the value is a closed enumeration; empty when unconstrained.",
           "items": {
             "type": "string"
           },
-          "title": "Enum",
           "type": "array"
         },
         "format": {
@@ -732,13 +683,11 @@
             }
           ],
           "default": null,
-          "description": "Semantic refinement of a STRING value: EMAIL, URI, ENDPOINT_URL, or CONNECTION_STRING; null when unrefined.",
-          "title": "Format"
+          "description": "Semantic refinement of a STRING value: EMAIL, URI, ENDPOINT_URL, or CONNECTION_STRING; null when unrefined."
         },
         "isSensitive": {
           "default": false,
           "description": "True when the value is secret material: handled as a secret reference, masked in UIs, never echoed back.",
-          "title": "Issensitive",
           "type": "boolean"
         },
         "pattern": {
@@ -751,8 +700,7 @@
             }
           ],
           "default": null,
-          "description": "Regular expression the value must match, or null when unconstrained.",
-          "title": "Pattern"
+          "description": "Regular expression the value must match, or null when unconstrained."
         },
         "semanticType": {
           "anyOf": [
@@ -773,8 +721,7 @@
             }
           ],
           "default": null,
-          "description": "Backing-service compatibility tag the Blueprint publish gate matches when wiring this value into a consumer input; null when the value is not specific to a backing service.",
-          "title": "Semantictype"
+          "description": "Backing-service compatibility tag the Blueprint publish gate matches when wiring this value into a consumer input; null when the value is not specific to a backing service."
         },
         "type": {
           "description": "Primitive shape of the value: STRING, INTEGER, or BOOLEAN.",
@@ -783,17 +730,15 @@
             "INTEGER",
             "BOOLEAN"
           ],
-          "title": "Type",
           "type": "string"
         }
       },
       "required": [
         "type"
       ],
-      "title": "ComponentValueSchemaRequest",
       "type": "object"
     },
-    "ComponentVolumeRequest": {
+    "ComponentVolume": {
       "additionalProperties": false,
       "properties": {
         "accessMode": {
@@ -803,23 +748,19 @@
             "READ_WRITE_ONCE",
             "READ_WRITE_MANY"
           ],
-          "title": "Accessmode",
           "type": "string"
         },
         "isReadOnly": {
           "default": false,
           "description": "True when the volume is mounted read-only.",
-          "title": "Isreadonly",
           "type": "boolean"
         },
         "mountPath": {
           "description": "Absolute path where the volume is mounted in the workload.",
-          "title": "Mountpath",
           "type": "string"
         },
         "sizeGib": {
           "description": "Default provisioned size of the volume in gibibytes.",
-          "title": "Sizegib",
           "type": "integer"
         }
       },
@@ -827,11 +768,10 @@
         "sizeGib",
         "mountPath"
       ],
-      "title": "ComponentVolumeRequest",
       "type": "object",
       "x-additionalPropertiesName": "volumeName"
     },
-    "ComponentWorkloadRequest": {
+    "ComponentWorkload": {
       "additionalProperties": false,
       "properties": {
         "command": {
@@ -844,29 +784,26 @@
             }
           ],
           "default": null,
-          "description": "Command run for JOB and CRON workloads, or null otherwise.",
-          "title": "Command"
+          "description": "Command run for JOB and CRON workloads, or null otherwise."
         },
         "endpoints": {
           "additionalProperties": {
-            "$ref": "#/$defs/ComponentEndpointRequest"
+            "$ref": "#/$defs/ComponentEndpoint"
           },
           "description": "Endpoints the workload exposes, keyed by endpoint name.",
-          "title": "Endpoints",
           "type": "object"
         },
         "envVars": {
           "description": "Environment variables injected into the running workload. Each entry pairs a key (e.g. DATABASE_URL) with a value discriminated on type: LITERAL (verbatim value) or CONFIG_REF (resolved at snapshot compute). Keys are unique. Build-time values belong in source.build.arguments instead.",
           "items": {
-            "$ref": "#/$defs/ComponentEnvVarRequest"
+            "$ref": "#/$defs/ComponentEnvVar"
           },
-          "title": "Envvars",
           "type": "array"
         },
         "health": {
           "anyOf": [
             {
-              "$ref": "#/$defs/ComponentHealthProbesRequest"
+              "$ref": "#/$defs/ComponentHealthProbes"
             },
             {
               "type": "null"
@@ -883,13 +820,12 @@
             "JOB",
             "CRON"
           ],
-          "title": "Kind",
           "type": "string"
         },
         "schedule": {
           "anyOf": [
             {
-              "$ref": "#/$defs/ComponentScheduleRequest"
+              "$ref": "#/$defs/ComponentSchedule"
             },
             {
               "type": "null"
@@ -902,27 +838,25 @@
           "description": "Discriminated image or git source the workload is built or run from.",
           "discriminator": {
             "mapping": {
-              "GIT": "#/$defs/ComponentGitSourceRequest",
-              "IMAGE": "#/$defs/ComponentImageSourceRequest"
+              "GIT": "#/$defs/ComponentGitSource",
+              "IMAGE": "#/$defs/ComponentImageSource"
             },
             "propertyName": "type"
           },
           "oneOf": [
             {
-              "$ref": "#/$defs/ComponentGitSourceRequest"
+              "$ref": "#/$defs/ComponentGitSource"
             },
             {
-              "$ref": "#/$defs/ComponentImageSourceRequest"
+              "$ref": "#/$defs/ComponentImageSource"
             }
-          ],
-          "title": "Source"
+          ]
         },
         "volumes": {
           "additionalProperties": {
-            "$ref": "#/$defs/ComponentVolumeRequest"
+            "$ref": "#/$defs/ComponentVolume"
           },
           "description": "Default volumes provisioned for deployments, keyed by volume name.",
-          "title": "Volumes",
           "type": "object"
         }
       },
@@ -930,24 +864,6 @@
         "kind",
         "source"
       ],
-      "title": "ComponentWorkloadRequest",
-      "type": "object"
-    },
-    "SeedComponentMetadata": {
-      "additionalProperties": false,
-      "description": "Identity block of a component document — the name is the file stem.",
-      "properties": {
-        "version": {
-          "description": "Lineage version of this component. Required (never defaulted) so the seeded row content is a pure function of this file, and it is the version the item's blueprint nodes pin.",
-          "minimum": 1,
-          "title": "Version",
-          "type": "integer"
-        }
-      },
-      "required": [
-        "version"
-      ],
-      "title": "SeedComponentMetadata",
       "type": "object"
     }
   }
