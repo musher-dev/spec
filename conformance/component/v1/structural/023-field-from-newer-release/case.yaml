@@ -1,0 +1,16 @@
+# A correctly spelled, plausible field that no v1.x.y release defines — the
+# shape a field from a newer schema release takes to a validator that does not
+# hold it. Indistinguishable from a misspelling, and rejected for the same
+# reason. The name is reserved for this fixture; a release that defines it
+# fails `task check:conformance`, and renaming the fixture is the fix.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    terminationGracePeriodSeconds: 30
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine

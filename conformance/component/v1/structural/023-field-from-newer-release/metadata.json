@@ -1,0 +1,7 @@
+{
+  "id": "structural-023-field-from-newer-release",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#compatibility",
+  "summary": "A correctly spelled field no held schema release defines is rejected, not ignored."
+}
