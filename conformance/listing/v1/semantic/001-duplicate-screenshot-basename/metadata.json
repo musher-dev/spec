@@ -1,0 +1,7 @@
+{
+  "id": "semantic-001-duplicate-screenshot-basename",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/listing/v1/spec.md#media",
+  "summary": "Two screenshots sharing a basename under different directories are rejected."
+}

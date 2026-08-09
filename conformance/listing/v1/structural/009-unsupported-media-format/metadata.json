@@ -1,0 +1,7 @@
+{
+  "id": "structural-009-unsupported-media-format",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/listing/v1/spec.md#media",
+  "summary": "A media path outside the permitted image formats is rejected."
+}

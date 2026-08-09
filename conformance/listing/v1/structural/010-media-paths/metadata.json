@@ -1,0 +1,7 @@
+{
+  "id": "structural-010-media-paths",
+  "phase": "structural",
+  "expected": "pass",
+  "clause": "specifications/listing/v1/spec.md#media",
+  "summary": "Media paths nest below media/ and match their extension in any case."
+}

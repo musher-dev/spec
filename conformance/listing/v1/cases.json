@@ -36,6 +36,31 @@
       "id": "structural-006-featured-not-in-contract",
       "phase": "structural",
       "path": "structural/006-featured-not-in-contract"
+    },
+    {
+      "id": "structural-007-icon-escaping-the-item",
+      "phase": "structural",
+      "path": "structural/007-icon-escaping-the-item"
+    },
+    {
+      "id": "structural-008-media-outside-the-media-directory",
+      "phase": "structural",
+      "path": "structural/008-media-outside-the-media-directory"
+    },
+    {
+      "id": "structural-009-unsupported-media-format",
+      "phase": "structural",
+      "path": "structural/009-unsupported-media-format"
+    },
+    {
+      "id": "structural-010-media-paths",
+      "phase": "structural",
+      "path": "structural/010-media-paths"
+    },
+    {
+      "id": "semantic-001-duplicate-screenshot-basename",
+      "phase": "semantic",
+      "path": "semantic/001-duplicate-screenshot-basename"
     }
   ]
 }
