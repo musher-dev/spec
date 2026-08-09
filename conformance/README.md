@@ -20,9 +20,13 @@ conformance/<family>/v<major>/
   cases.json                   index of every case
   <phase>/<case-id>/
     metadata.json              declared outcome
-    case.yaml                  the document under test
+    case.yaml                  the document under test, with no item root
+    tree/                      …or the item it sits inside
     diagnostics.json           required when expected == "fail"
 ```
+
+A case declares its subject as **exactly one** of `case.yaml` or `tree/`. See
+[Case trees](#case-trees).
 
 ## `cases.json`
 
@@ -58,6 +62,63 @@ directory without indexing it is a no-op — index entries are the contract.
 | `expected` | REQUIRED. `pass` or `fail`. |
 | `clause` | RECOMMENDED. Link to the normative clause the case exercises. Every case should trace to prose. |
 | `summary` | RECOMMENDED. One sentence, present tense. |
+| `document` | REQUIRED for a tree case, forbidden otherwise. Path of the document under test, relative to `tree/`. |
+| `symlinks` | OPTIONAL, tree cases only. Link path → link target, both verbatim. |
+
+## <a id="case-trees"></a>Case trees
+
+Some rules are about a document's *surroundings* rather than its contents: that
+its slug matches the directory holding it, that a reference resolves to a file,
+that a media path stays inside the item. A single `case.yaml` cannot state any
+of them, so a case may instead carry a `tree/`:
+
+```
+conformance/blueprint/v1/semantic/003-slug-disagrees-with-directory/
+  metadata.json      "document": "acme-wiki/blueprint.yaml"
+  diagnostics.json
+  tree/
+    acme-wiki/                  <- the item root
+      blueprint.yaml
+      listing.yaml
+      components/postgres.yaml
+```
+
+The **item root** is the directory containing `document`. `tree/` is its
+parent, not the item root itself — `ERR_SLUG_MISMATCH` tests the item
+directory's *name*, so the tree has to contain a directory that has one.
+
+**`case.yaml` is not the legacy form.** It asserts that the document has **no**
+item root, which [blueprint §3.1](../specifications/blueprint/v1/spec.md#item-directory)
+makes a real state: a document submitted over an API arrives without a
+directory, and an implementation in that position MUST NOT report any rule
+measured against one. An adapter that invents an item root for a `case.yaml` is
+wrong.
+
+**Symlinks are declared, not committed.** `ERR_PATH_ESCAPE` needs a link
+resolving outside the item, and a committed one does not survive a checkout
+without `core.symlinks`, is invisible in a diff, and would ship inside a release
+tarball pointing outside the archive. `metadata.symlinks` names them instead:
+
+```json
+{ "symlinks": { "acme-wiki/media/icon.png": "../../../secrets.png" } }
+```
+
+An adapter copies `tree/` somewhere writable, creates the links there, and runs
+against the copy. The target need not exist — a dangling link resolving outside
+the item root is still an escape, because containment is a property of the
+resolved location rather than of the string.
+
+**Media files in a tree are zero bytes.** The rules they exercise are existence
+and containment; nothing decodes them. A real image would make the fixture
+larger without making it say more, and would invite a reader to think the
+dimensions mattered — [listing §5](../specifications/listing/v1/spec.md#media)
+records that they do not.
+
+An adapter that cannot materialise a tree SKIPs those cases. It MUST NOT report
+them as passed.
+
+The contract is set by
+[ADR 0002](../docs/adr/0002-conformance-case-trees.md).
 
 ## `diagnostics.json`
 
@@ -91,7 +152,7 @@ identical corpus.
 
 | Phase | Enforces | Network |
 |---|---|---|
-| `parser` | Strict YAML 1.2 — duplicate keys and aliases rejected | Never |
+| `parser` | Strict YAML 1.2 — duplicate keys, anchors and aliases rejected | Never |
 | `structural` | The family's JSON Schema 2020-12 bundle | Never |
 | `semantic` | Reference resolution, path containment, dependency cycles | Never |
 | `capability` | Account, region, and quota checks | Server only |
@@ -101,48 +162,57 @@ later-phase diagnostic before the earlier phases pass.
 
 ## Coverage status
 
-`parser` and `structural` are covered. `semantic` is covered for every rule a
-single document can express — a floating image tag, a probe naming an endpoint
-that is not there, a connection naming a node that is not there, a cyclic
-graph, two screenshots sharing a basename. `capability` has no cases.
+`parser`, `structural` and `semantic` are covered. Every diagnostic code the
+three `spec.md` files declare is exercised by at least one case, with one
+exception:
 
-The gap is not which rules are written down; it is what a case can say. Every
-remaining `semantic` rule is about a document's surroundings rather than its
-contents:
-
-| Rule | Needs |
+| Code | Why it has no case |
 |---|---|
-| `ERR_SLUG_MISMATCH` | a directory with a name |
-| `ERR_VERSION_MISMATCH` | a sibling document |
-| `ERR_UNREFERENCED_COMPONENT` | the item's other files |
-| `ERR_COMPONENT_NOT_FOUND`, `ERR_REFERENCE_ESCAPE` | a resolvable target |
-| `ERR_UNKNOWN_OUTPUT` | the referenced component document |
-| `ERR_MEDIA_NOT_FOUND`, `ERR_PATH_ESCAPE` | a file on disk |
+| `ERR_UNKNOWN_COMPONENT` | `capability` — resolving a published reference needs the catalog, and no phase a client runs may reach the network |
 
-A case is one `case.yaml`, so none of those is expressible. Extending the
-fixture contract to a case tree is an ADR-gated change — GOVERNANCE.md lists
-"Changing the conformance fixture contract" among the changes needing one —
-and those cases land against that ADR rather than being approximated in the
-meantime.
+That table is not prose anyone has to remember to update.
+`task check:conformance` derives it: every `ERR_*` row in a family's own
+diagnostics table must be exercised by an indexed case or appear in the
+runner's `UNCOVERED` list with a reason. A code goes untested only by someone
+writing down why, in a diff a reviewer sees.
 
-An adapter encountering a phase it does not implement SHOULD skip the case and
-report it as skipped. It MUST NOT report it as passed.
+The check runs in both directions, and the second one is the reason for the
+first. Before it existed, ten codes reached `main` with no fixture and CI
+green — the corpus could only tell you that the cases it had were right, never
+that it had the cases it needed.
+
+An adapter encountering a phase it does not implement, or a case shape it does
+not support, SHOULD skip the case and report it as skipped. It MUST NOT report
+it as passed.
 
 ## Adding a case
 
 1. Pick the phase and the next free sequence number in that phase.
-2. Create `<phase>/<NNN>-<description>/` with `metadata.json` and `case.yaml`.
+2. Create `<phase>/<NNN>-<description>/` with `metadata.json`, and either a
+   `case.yaml` or a `tree/` plus a `document` naming the file inside it.
 3. For a failing case, add `diagnostics.json`.
-4. Add the entry to `cases.json`.
+4. Add the entry to `cases.json`. A directory that is not indexed runs nowhere,
+   and `task check:conformance` reports it rather than leaving it to be assumed
+   green.
 5. Run `task check:conformance`.
 
 A case that does not cite a `clause` will be questioned in review. Fixtures
 exist to pin down prose, not to freeze current implementation behaviour.
 
-`task check:conformance` checks two separate things, and only the first of them
-needs an implemented phase. Whether or not a case can be *executed* here, its
-metadata is validated: the `id` leads with its phase, `cases.json` and
-`metadata.json` agree on that phase, the `clause` resolves to an anchor that
-exists in the cited `spec.md`, and every declared `code` appears in a
-diagnostics table reachable from the family's own — at the phase that table
-assigns it. A `semantic` fixture is skipped for execution but not for this.
+`task check:conformance` checks three separate things, and only the first needs
+an implemented phase.
+
+**Executing** a case runs the document through the pipeline and compares the
+outcome. `tools/src/conformance.ts` implements `parser`, `structural` and
+`semantic`; a `capability` case is skipped.
+
+**Validating** a case runs whether or not its phase does: the `id` leads with
+its phase, `cases.json` and `metadata.json` agree on that phase, the case
+declares exactly one of `case.yaml` or `tree/`, the `clause` resolves to an
+anchor that exists in the cited `spec.md`, and every declared `code` appears in
+a diagnostics table reachable from the family's own — at the phase that table
+assigns it.
+
+**Auditing** the corpus asks the questions no individual case can: does every
+declared diagnostic code have a fixture, and does every case directory on disk
+appear in `cases.json`.

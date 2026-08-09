@@ -1,0 +1,8 @@
+{
+  "id": "semantic-009-conflicting-input-schema",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#merge",
+  "summary": "Two nodes declaring one input key with differing schemas are rejected.",
+  "document": "acme-wiki/blueprint.yaml"
+}

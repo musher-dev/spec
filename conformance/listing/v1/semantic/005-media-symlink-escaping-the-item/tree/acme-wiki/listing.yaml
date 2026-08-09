@@ -1,0 +1,20 @@
+# `media/icon.png` is a legal spelling — §5's grammar makes `..` unspellable,
+# so no path escapes by traversal any more. It escapes by symlink instead, which
+# is why ERR_PATH_ESCAPE outlives the grammar: containment is a property of the
+# resolved location, not of the string.
+#
+# The link is declared in metadata.json rather than committed. See ADR 0002 §3.
+specVersion: v1
+kind: LISTING
+metadata:
+  slug: acme-wiki
+  version: 1
+spec:
+  listingKind: BLUEPRINT
+  displayName: Acme Wiki
+  summary: A wiki backed by PostgreSQL
+  category: PRODUCTIVITY
+  lifecycleStage: STABLE
+  icon: media/icon.png
+  screenshots:
+    - file: media/overview.png

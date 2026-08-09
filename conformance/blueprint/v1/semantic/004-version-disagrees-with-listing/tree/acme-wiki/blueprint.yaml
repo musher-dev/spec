@@ -1,0 +1,15 @@
+# The graph has moved to version 2 and the storefront copy is still at 1.
+# Installed, this item would deploy one thing and describe another — which is
+# the whole reason the two halves are pinned to each other.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  version: 2
+spec:
+  components:
+    db:
+      component: ./components/postgres.yaml
+      size: general.standard.small
+      connections: {}
+  parameters: {}

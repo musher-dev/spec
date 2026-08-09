@@ -1,0 +1,11 @@
+{
+  "id": "semantic-005-media-symlink-escaping-the-item",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/listing/v1/spec.md#media",
+  "summary": "A media path resolving outside the item root through a symlink is rejected.",
+  "document": "acme-wiki/listing.yaml",
+  "symlinks": {
+    "acme-wiki/media/icon.png": "../../../secrets.png"
+  }
+}

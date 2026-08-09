@@ -1,0 +1,7 @@
+{
+  "id": "semantic-011-three-node-cycle-reporting",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#connections",
+  "summary": "A cycle is reported from the lexicographically smallest node, not the first declared."
+}

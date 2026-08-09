@@ -1,0 +1,10 @@
+[
+  {
+    "code": "ERR_COMPONENT_NOT_FOUND",
+    "path": "/spec/components/db/component"
+  },
+  {
+    "code": "ERR_UNREFERENCED_COMPONENT",
+    "path": "/spec/components"
+  }
+]

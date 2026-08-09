@@ -1,0 +1,8 @@
+{
+  "id": "semantic-006-well-formed-item",
+  "phase": "semantic",
+  "expected": "pass",
+  "clause": "specifications/listing/v1/spec.md#identity",
+  "summary": "A listing agreeing with its directory, its sibling and its media validates.",
+  "document": "acme-wiki/listing.yaml"
+}

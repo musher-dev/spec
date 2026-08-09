@@ -1,0 +1,16 @@
+# Listing §3 mirrors blueprint §3 and measures against the same item root. The
+# directory is `acme-wiki`; this document calls itself something else.
+specVersion: v1
+kind: LISTING
+metadata:
+  slug: acme-wiki-staging
+  version: 1
+spec:
+  listingKind: BLUEPRINT
+  displayName: Acme Wiki
+  summary: A wiki backed by PostgreSQL
+  category: PRODUCTIVITY
+  lifecycleStage: STABLE
+  icon: media/icon.png
+  screenshots:
+    - file: media/overview.png

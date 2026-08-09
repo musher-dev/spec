@@ -1,0 +1,8 @@
+{
+  "id": "semantic-008-connection-names-unknown-output",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#connections",
+  "summary": "A connection naming an output the producing component does not declare is rejected.",
+  "document": "acme-wiki/blueprint.yaml"
+}

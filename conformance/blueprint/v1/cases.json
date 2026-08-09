@@ -8,6 +8,21 @@
       "path": "parser/001-reject-duplicate-keys"
     },
     {
+      "id": "parser-002-reject-anchors-and-aliases",
+      "phase": "parser",
+      "path": "parser/002-reject-anchors-and-aliases"
+    },
+    {
+      "id": "parser-003-reject-lone-anchor",
+      "phase": "parser",
+      "path": "parser/003-reject-lone-anchor"
+    },
+    {
+      "id": "parser-004-malformed-yaml",
+      "phase": "parser",
+      "path": "parser/004-malformed-yaml"
+    },
+    {
       "id": "structural-001-minimal-valid",
       "phase": "structural",
       "path": "structural/001-minimal-valid"
@@ -76,6 +91,51 @@
       "id": "semantic-002-connection-cycle",
       "phase": "semantic",
       "path": "semantic/002-connection-cycle"
+    },
+    {
+      "id": "semantic-003-slug-disagrees-with-directory",
+      "phase": "semantic",
+      "path": "semantic/003-slug-disagrees-with-directory"
+    },
+    {
+      "id": "semantic-004-version-disagrees-with-listing",
+      "phase": "semantic",
+      "path": "semantic/004-version-disagrees-with-listing"
+    },
+    {
+      "id": "semantic-005-unreferenced-component-document",
+      "phase": "semantic",
+      "path": "semantic/005-unreferenced-component-document"
+    },
+    {
+      "id": "semantic-006-reference-names-no-document",
+      "phase": "semantic",
+      "path": "semantic/006-reference-names-no-document"
+    },
+    {
+      "id": "semantic-007-reference-escaping-the-item",
+      "phase": "semantic",
+      "path": "semantic/007-reference-escaping-the-item"
+    },
+    {
+      "id": "semantic-008-connection-names-unknown-output",
+      "phase": "semantic",
+      "path": "semantic/008-connection-names-unknown-output"
+    },
+    {
+      "id": "semantic-009-conflicting-input-schema",
+      "phase": "semantic",
+      "path": "semantic/009-conflicting-input-schema"
+    },
+    {
+      "id": "semantic-010-well-formed-item",
+      "phase": "semantic",
+      "path": "semantic/010-well-formed-item"
+    },
+    {
+      "id": "semantic-011-three-node-cycle-reporting",
+      "phase": "semantic",
+      "path": "semantic/011-three-node-cycle-reporting"
     }
   ]
 }

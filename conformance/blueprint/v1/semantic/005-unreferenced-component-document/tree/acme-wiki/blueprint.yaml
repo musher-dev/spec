@@ -1,0 +1,15 @@
+# `components/postgres-legacy.yaml` is last release's document, left beside the
+# one in use. Nothing in the directory says which is live, and a reader working
+# out what the item deploys has to read the graph to find out.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  version: 1
+spec:
+  components:
+    db:
+      component: ./components/postgres.yaml
+      size: general.standard.small
+      connections: {}
+  parameters: {}

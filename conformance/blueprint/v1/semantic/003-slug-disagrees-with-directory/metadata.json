@@ -1,0 +1,8 @@
+{
+  "id": "semantic-003-slug-disagrees-with-directory",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#identity",
+  "summary": "A blueprint whose slug is not its item directory name is rejected.",
+  "document": "acme-wiki/blueprint.yaml"
+}

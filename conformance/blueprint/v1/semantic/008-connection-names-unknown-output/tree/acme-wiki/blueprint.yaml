@@ -1,0 +1,22 @@
+# `db` publishes `connectionString`; `web` asks for `connectionUri`. Both node
+# names resolve, so ERR_UNKNOWN_ROLE does not fire — only reading the component
+# document `db` deploys settles it, which is what makes this rule item-scoped.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  version: 1
+spec:
+  components:
+    db:
+      component: ./components/postgres.yaml
+      size: general.standard.small
+      connections: {}
+    web:
+      component: ./components/web.yaml
+      size: general.standard.small
+      connections:
+        DATABASE_URL:
+          fromRole: db
+          fromOutput: connectionUri
+  parameters: {}

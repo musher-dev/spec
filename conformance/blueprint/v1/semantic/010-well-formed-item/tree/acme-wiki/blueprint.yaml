@@ -1,0 +1,27 @@
+# Every item-scoped rule satisfied at once, which is what makes this the
+# regression pin: a careless implementation of any one of them rejects a
+# well-formed item, and nothing else in the corpus would notice.
+#
+# The slug is the directory name, the version matches the listing, both
+# component documents are referenced, both references resolve inside the item,
+# the connection names an output `db` really publishes, and the two components
+# declare `adminPassword` identically — which §5.2 absorbs rather than reports.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  version: 1
+spec:
+  components:
+    db:
+      component: ./components/postgres.yaml
+      size: general.standard.small
+      connections: {}
+    web:
+      component: ./components/web.yaml
+      size: general.standard.small
+      connections:
+        DATABASE_URL:
+          fromRole: db
+          fromOutput: connectionString
+  parameters: {}

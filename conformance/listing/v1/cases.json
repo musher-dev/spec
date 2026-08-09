@@ -8,6 +8,21 @@
       "path": "parser/001-reject-duplicate-keys"
     },
     {
+      "id": "parser-002-reject-anchors-and-aliases",
+      "phase": "parser",
+      "path": "parser/002-reject-anchors-and-aliases"
+    },
+    {
+      "id": "parser-003-reject-lone-anchor",
+      "phase": "parser",
+      "path": "parser/003-reject-lone-anchor"
+    },
+    {
+      "id": "parser-004-malformed-yaml",
+      "phase": "parser",
+      "path": "parser/004-malformed-yaml"
+    },
+    {
       "id": "structural-001-minimal-valid",
       "phase": "structural",
       "path": "structural/001-minimal-valid"
@@ -61,6 +76,31 @@
       "id": "semantic-001-duplicate-screenshot-basename",
       "phase": "semantic",
       "path": "semantic/001-duplicate-screenshot-basename"
+    },
+    {
+      "id": "semantic-002-slug-disagrees-with-directory",
+      "phase": "semantic",
+      "path": "semantic/002-slug-disagrees-with-directory"
+    },
+    {
+      "id": "semantic-003-version-disagrees-with-blueprint",
+      "phase": "semantic",
+      "path": "semantic/003-version-disagrees-with-blueprint"
+    },
+    {
+      "id": "semantic-004-media-file-absent",
+      "phase": "semantic",
+      "path": "semantic/004-media-file-absent"
+    },
+    {
+      "id": "semantic-005-media-symlink-escaping-the-item",
+      "phase": "semantic",
+      "path": "semantic/005-media-symlink-escaping-the-item"
+    },
+    {
+      "id": "semantic-006-well-formed-item",
+      "phase": "semantic",
+      "path": "semantic/006-well-formed-item"
     }
   ]
 }
