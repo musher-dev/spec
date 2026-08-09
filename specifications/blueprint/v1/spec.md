@@ -45,7 +45,9 @@ spec: { components: {…}, parameters: {…} }
 ```
 
 `kind` MUST be `BLUEPRINT`. All envelope rules in
-[component §2](../../component/v1/spec.md#envelope) apply identically.
+[component §2](../../component/v1/spec.md#envelope), and the version
+compatibility rules in
+[component §3](../../component/v1/spec.md#compatibility), apply identically.
 
 ## <a id="identity"></a>3. Identity
 
