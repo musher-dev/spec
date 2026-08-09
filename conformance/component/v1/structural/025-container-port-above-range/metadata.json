@@ -1,0 +1,7 @@
+{
+  "id": "structural-025-container-port-above-range",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#endpoints",
+  "summary": "A containerPort above 65535 is rejected."
+}

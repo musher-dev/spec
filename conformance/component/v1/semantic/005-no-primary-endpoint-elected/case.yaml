@@ -1,0 +1,25 @@
+# Two PUBLIC endpoints, and the probe names neither. Section 5.2 elects no
+# primary here and the reference is rejected rather than resolved by sort
+# order, which would let a new endpoint silently re-point this probe.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+    endpoints:
+      api:
+        containerPort: 8080
+        protocol: HTTP
+        visibility: PUBLIC
+      console:
+        containerPort: 8081
+        protocol: HTTP
+        visibility: PUBLIC
+    health:
+      readiness:
+        path: /healthz

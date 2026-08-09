@@ -1,0 +1,7 @@
+{
+  "id": "structural-026-privileged-container-port",
+  "phase": "structural",
+  "expected": "pass",
+  "clause": "specifications/component/v1/spec.md#endpoints",
+  "summary": "A privileged containerPort is discouraged but validates."
+}

@@ -1,0 +1,7 @@
+{
+  "id": "structural-030-two-public-endpoints",
+  "phase": "structural",
+  "expected": "pass",
+  "clause": "specifications/component/v1/spec.md#endpoints",
+  "summary": "Two PUBLIC endpoints validate when each public address names one."
+}

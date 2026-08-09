@@ -1,0 +1,7 @@
+{
+  "id": "structural-027-public-tcp-endpoint",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#endpoints",
+  "summary": "A TCP endpoint may not be PUBLIC."
+}

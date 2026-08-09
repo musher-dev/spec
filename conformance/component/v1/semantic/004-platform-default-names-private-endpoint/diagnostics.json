@@ -1,0 +1,6 @@
+[
+  {
+    "code": "ERR_ENDPOINT_NOT_PUBLIC",
+    "path": "/spec/contract/inputs/selfUrl/platformDefault/endpoint"
+  }
+]

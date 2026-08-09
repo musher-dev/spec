@@ -1,0 +1,16 @@
+# 65535 is the last port there is; 65536 names one that cannot exist.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+    endpoints:
+      web:
+        containerPort: 65536
+        protocol: HTTP
+        visibility: PRIVATE

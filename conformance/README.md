@@ -163,12 +163,13 @@ later-phase diagnostic before the earlier phases pass.
 ## Coverage status
 
 `parser`, `structural` and `semantic` are covered. Every diagnostic code the
-three `spec.md` files declare is exercised by at least one case, with one
-exception:
+three `spec.md` files declare is exercised by at least one case, with two
+exceptions, both `capability`:
 
 | Code | Why it has no case |
 |---|---|
 | `ERR_UNKNOWN_COMPONENT` | `capability` — resolving a published reference needs the catalog, and no phase a client runs may reach the network |
+| `ERR_VERSION_NOT_MONOTONIC` | `capability` — comparing a version against the lineage it extends needs the catalog, and a fixture is one document with no previous release to be greater than |
 
 That table is not prose anyone has to remember to update.
 `task check:conformance` derives it: every `ERR_*` row in a family's own
