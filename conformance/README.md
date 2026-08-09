@@ -101,10 +101,29 @@ later-phase diagnostic before the earlier phases pass.
 
 ## Coverage status
 
-Cases exist today for the `parser` and `structural` phases only. `semantic` and
-`capability` cases land once the corresponding rules are written into `spec.md`
-— a fixture without a normative clause to cite is an assertion about an
-implementation, not about the specification.
+`parser` and `structural` are covered. `semantic` is covered for every rule a
+single document can express — a floating image tag, a probe naming an endpoint
+that is not there, a connection naming a node that is not there, a cyclic
+graph, two screenshots sharing a basename. `capability` has no cases.
+
+The gap is not which rules are written down; it is what a case can say. Every
+remaining `semantic` rule is about a document's surroundings rather than its
+contents:
+
+| Rule | Needs |
+|---|---|
+| `ERR_SLUG_MISMATCH` | a directory with a name |
+| `ERR_VERSION_MISMATCH` | a sibling document |
+| `ERR_UNREFERENCED_COMPONENT` | the item's other files |
+| `ERR_COMPONENT_NOT_FOUND`, `ERR_REFERENCE_ESCAPE` | a resolvable target |
+| `ERR_UNKNOWN_OUTPUT` | the referenced component document |
+| `ERR_MEDIA_NOT_FOUND`, `ERR_PATH_ESCAPE` | a file on disk |
+
+A case is one `case.yaml`, so none of those is expressible. Extending the
+fixture contract to a case tree is an ADR-gated change — GOVERNANCE.md lists
+"Changing the conformance fixture contract" among the changes needing one —
+and those cases land against that ADR rather than being approximated in the
+meantime.
 
 An adapter encountering a phase it does not implement SHOULD skip the case and
 report it as skipped. It MUST NOT report it as passed.
