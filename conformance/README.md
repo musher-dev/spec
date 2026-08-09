@@ -119,3 +119,11 @@ report it as skipped. It MUST NOT report it as passed.
 
 A case that does not cite a `clause` will be questioned in review. Fixtures
 exist to pin down prose, not to freeze current implementation behaviour.
+
+`task check:conformance` checks two separate things, and only the first of them
+needs an implemented phase. Whether or not a case can be *executed* here, its
+metadata is validated: the `id` leads with its phase, `cases.json` and
+`metadata.json` agree on that phase, the `clause` resolves to an anchor that
+exists in the cited `spec.md`, and every declared `code` appears in a
+diagnostics table reachable from the family's own — at the phase that table
+assigns it. A `semantic` fixture is skipped for execution but not for this.
