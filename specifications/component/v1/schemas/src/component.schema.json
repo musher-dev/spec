@@ -36,6 +36,7 @@
   "type": "object",
   "$defs": {
     "ComponentBuildRequest": {
+      "additionalProperties": false,
       "properties": {
         "arguments": {
           "additionalProperties": {
@@ -88,6 +89,7 @@
       "type": "object"
     },
     "ComponentConfigRefEnvVarValueRequest": {
+      "additionalProperties": false,
       "properties": {
         "configKey": {
           "description": "Key of the organization's saved configuration value, resolved server-side at snapshot compute. The component never holds plaintext; the entry's own key may alias it.",
@@ -112,6 +114,7 @@
       "type": "object"
     },
     "ComponentContractRequest": {
+      "additionalProperties": false,
       "properties": {
         "inputs": {
           "additionalProperties": {
@@ -134,6 +137,7 @@
       "type": "object"
     },
     "ComponentEndpointRequest": {
+      "additionalProperties": false,
       "properties": {
         "containerPort": {
           "description": "Port the workload listens on inside the container.",
@@ -173,6 +177,7 @@
       "x-additionalPropertiesName": "endpointName"
     },
     "ComponentEnvVarRequest": {
+      "additionalProperties": false,
       "description": "One environment-variable entry (Kubernetes-style named entry).",
       "properties": {
         "key": {
@@ -211,6 +216,7 @@
       "type": "object"
     },
     "ComponentGitRefRequest": {
+      "additionalProperties": false,
       "properties": {
         "name": {
           "description": "The branch name or commit SHA to build from.",
@@ -235,6 +241,7 @@
       "type": "object"
     },
     "ComponentGitSourceRequest": {
+      "additionalProperties": false,
       "properties": {
         "build": {
           "anyOf": [
@@ -280,6 +287,7 @@
       "type": "object"
     },
     "ComponentHealthProbesRequest": {
+      "additionalProperties": false,
       "description": "Staged health probes (ADR 0093): startup, readiness, liveness.",
       "properties": {
         "liveness": {
@@ -323,6 +331,7 @@
       "type": "object"
     },
     "ComponentImageSourceRequest": {
+      "additionalProperties": false,
       "properties": {
         "ref": {
           "description": "OCI image reference the workload runs from.",
@@ -344,6 +353,7 @@
       "type": "object"
     },
     "ComponentInputRequest": {
+      "additionalProperties": false,
       "properties": {
         "description": {
           "anyOf": [
@@ -440,6 +450,7 @@
       "x-additionalPropertiesName": "inputName"
     },
     "ComponentInputTargetRequest": {
+      "additionalProperties": false,
       "properties": {
         "envVarKey": {
           "description": "Environment variable the resolved value is bound into at runtime materialisation (e.g. ADMIN_EMAIL). Uppercase letters, digits, and underscores; must not start with a digit.",
@@ -457,6 +468,7 @@
       "type": "object"
     },
     "ComponentInputUiRequest": {
+      "additionalProperties": false,
       "description": "Presentation metadata for a USER-supplied input.\n\nThe install-form control is derived from the input's schema (enum →\nselect, BOOLEAN → toggle, EMAIL format → email field, sensitive →\nmasked field) — only the label needs declaring.",
       "properties": {
         "label": {
@@ -472,6 +484,7 @@
       "type": "object"
     },
     "ComponentLiteralEnvVarValueRequest": {
+      "additionalProperties": false,
       "properties": {
         "isSensitive": {
           "default": false,
@@ -499,6 +512,7 @@
       "type": "object"
     },
     "ComponentOutputRequest": {
+      "additionalProperties": false,
       "properties": {
         "description": {
           "anyOf": [
@@ -549,6 +563,7 @@
       "x-additionalPropertiesName": "outputName"
     },
     "ComponentProbeRequest": {
+      "additionalProperties": false,
       "properties": {
         "endpoint": {
           "anyOf": [
@@ -606,6 +621,7 @@
       "type": "object"
     },
     "ComponentScheduleRequest": {
+      "additionalProperties": false,
       "properties": {
         "cron": {
           "description": "Cron expression on which a CRON workload runs.",
@@ -620,6 +636,7 @@
       "type": "object"
     },
     "ComponentSpecRequest": {
+      "additionalProperties": false,
       "properties": {
         "contract": {
           "$ref": "#/$defs/ComponentContractRequest",
@@ -637,6 +654,7 @@
       "type": "object"
     },
     "ComponentValueGeneratorRequest": {
+      "additionalProperties": false,
       "properties": {
         "byteLength": {
           "default": 32,
@@ -674,6 +692,7 @@
       "type": "object"
     },
     "ComponentValueSchemaRequest": {
+      "additionalProperties": false,
       "description": "Data contract of an input or output value (JSON-Schema subset).",
       "properties": {
         "default": {
@@ -775,6 +794,7 @@
       "type": "object"
     },
     "ComponentVolumeRequest": {
+      "additionalProperties": false,
       "properties": {
         "accessMode": {
           "default": "READ_WRITE_ONCE",
@@ -812,6 +832,7 @@
       "x-additionalPropertiesName": "volumeName"
     },
     "ComponentWorkloadRequest": {
+      "additionalProperties": false,
       "properties": {
         "command": {
           "anyOf": [

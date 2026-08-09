@@ -26,6 +26,11 @@
       "id": "structural-004-unsupported-spec-version",
       "phase": "structural",
       "path": "structural/004-unsupported-spec-version"
+    },
+    {
+      "id": "structural-005-nested-unknown-field",
+      "phase": "structural",
+      "path": "structural/005-nested-unknown-field"
     }
   ]
 }

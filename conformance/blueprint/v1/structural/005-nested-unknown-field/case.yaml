@@ -1,0 +1,22 @@
+# A misspelled optional field below the envelope. `lable` is a typo for
+# `label`, three levels down inside a parameter's presentation block.
+# Rejection must not depend on how deeply the typo is nested.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: web-and-database
+  version: 1
+spec:
+  components:
+    db:
+      component: postgres
+      size: general.standard.small
+      connections: {}
+  parameters:
+    siteTitle:
+      schema:
+        type: STRING
+        default: My Application
+      isRequired: false
+      ui:
+        lable: Site title

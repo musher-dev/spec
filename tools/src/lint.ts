@@ -67,6 +67,7 @@ function main(): void {
       checkDialect(doc, rel, failures)
       checkId(doc, rel, family.name, family.major, seenIds, failures)
       checkRefs(doc, rel, failures)
+      checkClosedObjects(doc, rel, failures)
       checkDefsNames(doc, rel, failures)
       checkMetaValid(doc, rel, failures)
     }
@@ -122,7 +123,7 @@ function checkId(
  */
 function checkRefs(doc: { [k: string]: Json }, rel: string, failures: Failures): void {
   const defs = isObject(doc.$defs) ? doc.$defs : {}
-  for (const node of walkObjects(doc)) {
+  for (const { node } of walkObjects(doc)) {
     for (const keyword of ['$ref', '$dynamicRef'] as const) {
       const ref = node[keyword]
       if (typeof ref !== 'string') continue
@@ -140,6 +141,28 @@ function checkRefs(doc: { [k: string]: Json }, rel: string, failures: Failures):
         failures.add(`${rel}: ${keyword} ${ref} does not resolve — no $defs/${target}`)
       }
     }
+  }
+}
+
+/**
+ * Every object schema must close itself. `spec.md` §2 requires unknown
+ * properties to be rejected "at every level", and JSON Schema only does that
+ * where `additionalProperties: false` is written down — an omission validates a
+ * typo'd optional key clean and silently falls back to the default.
+ *
+ * Only schemas that declare `properties` are records. A schema using
+ * `additionalProperties` as a map value schema (`inputs`, `endpoints`,
+ * `arguments`) declares no `properties` and is deliberately open, because its
+ * keys are chosen by the document author.
+ */
+function checkClosedObjects(doc: { [k: string]: Json }, rel: string, failures: Failures): void {
+  for (const { node, pointer } of walkObjects(doc)) {
+    if (node.type !== 'object' || !isObject(node.properties)) continue
+    if (node.additionalProperties === false) continue
+    failures.add(
+      `${rel}: ${pointer || '<root>'} declares properties but not ` +
+        '"additionalProperties": false — unknown properties MUST be rejected at every level',
+    )
   }
 }
 

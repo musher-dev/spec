@@ -1,0 +1,17 @@
+# A misspelled optional field below the envelope. `captions` is a typo for
+# `caption`, inside an array element. Rejection must not depend on how deeply
+# the typo is nested, nor on whether it sits inside an array.
+specVersion: v1
+kind: LISTING
+metadata:
+  slug: postgres
+  version: 1
+spec:
+  listingKind: COMPONENT
+  displayName: PostgreSQL
+  summary: The open-source relational database
+  category: INFRASTRUCTURE
+  lifecycleStage: STABLE
+  screenshots:
+    - file: media/overview.png
+      captions: Connection details after deployment
