@@ -1,0 +1,8 @@
+{
+  "id": "semantic-007-reference-escaping-the-item",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#component-reference",
+  "summary": "A repo-local reference resolving outside the item root is rejected.",
+  "document": "acme-wiki/blueprint.yaml"
+}

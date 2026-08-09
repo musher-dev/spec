@@ -1,0 +1,23 @@
+# Both components declare `adminPassword`, and they disagree about what it is:
+# a STRING for `api`, an INTEGER for `db`. Silent first-wins would hand `db` a
+# value validated against `api`'s rules and fail at deploy time, a long way from
+# either document.
+#
+# `api` sorts before `db`, so `api`'s declaration is the one that stands and
+# `db`'s is the one reported.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  version: 1
+spec:
+  components:
+    api:
+      component: ./components/api.yaml
+      size: general.standard.small
+      connections: {}
+    db:
+      component: ./components/postgres.yaml
+      size: general.standard.small
+      connections: {}
+  parameters: {}

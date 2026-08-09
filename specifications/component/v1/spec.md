@@ -294,6 +294,26 @@ pass.
 A client MUST NOT require network access for the `parser`, `structural`, or
 `semantic` phases.
 
+**Why the `parser` phase rejects legal YAML.** A duplicate key, an anchor and
+an alias are all well-formed YAML 1.2, and all three are rejected here.
+
+A duplicate key has no defined winner: parsers disagree on whether the first or
+the last survives, so a document carrying one means two things. An alias means
+one thing, but only after expansion, and a document whose meaning depends on
+being expanded is not readable as the thing it declares — the same reason
+[§2](#envelope) rejects a misspelled optional field rather than ignoring it. An
+anchor with no alias is inert, and is rejected anyway: an author who writes one
+is reaching for a feature this contract does not have, and finding that out at
+authoring time is better than finding it out when the alias is added.
+
+The bound also matters. Alias expansion is where a small document becomes a
+large one — the billion-laughs shape — and a validator that must expand before
+it can measure has no way to refuse cheaply.
+
+`ERR_ANCHOR_OR_ALIAS` is separate from `ERR_INVALID_YAML` because the two say
+different things to an author. One means the document is malformed; the other
+means it is well-formed and uses something this contract withholds.
+
 ## <a id="diagnostics"></a>8. Diagnostics
 
 Diagnostic **codes** and the **phase** at which validation fails are normative.
@@ -302,7 +322,9 @@ different text and that is expected.
 
 | Code | Phase | Meaning |
 |---|---|---|
+| `ERR_INVALID_YAML` | `parser` | The document is not well-formed YAML 1.2. |
 | `ERR_DUPLICATE_KEY` | `parser` | The same mapping key appears twice. |
+| `ERR_ANCHOR_OR_ALIAS` | `parser` | The document declares a YAML anchor or an alias. |
 | `ERR_UNSUPPORTED_SPEC_VERSION` | `structural` | `specVersion` is not a supported value. |
 | `ERR_WRONG_KIND` | `structural` | `kind` does not match the family being validated. |
 | `ERR_UNKNOWN_FIELD` | `structural` | A property not defined by the schema is present. |
@@ -312,7 +334,7 @@ different text and that is expected.
 | `ERR_UNPINNED_IMAGE` | `semantic` | An image reference carries a floating tag. |
 | `ERR_UNKNOWN_ENDPOINT` | `semantic` | A probe names an endpoint the workload does not declare. |
 
-The rows above the `semantic` pair are the shared envelope registry: the
+The `parser` and `structural` rows are the shared envelope registry: the
 [blueprint](../../blueprint/v1/spec.md#diagnostics) and
 [listing](../../listing/v1/spec.md#diagnostics) families declare themselves
 additions to this table rather than restating it. The two `semantic` codes are

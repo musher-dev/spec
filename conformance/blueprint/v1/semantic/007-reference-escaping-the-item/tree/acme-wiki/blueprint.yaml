@@ -1,0 +1,15 @@
+# A leading `../` is legal spelling — it is how a blueprint reaches a sibling
+# directory — and this one reaches past the item root. The document it lands on
+# exists, so nothing but a containment check on the resolved path catches it.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  version: 1
+spec:
+  components:
+    db:
+      component: ../shared/postgres.yaml
+      size: general.standard.small
+      connections: {}
+  parameters: {}

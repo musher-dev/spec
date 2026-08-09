@@ -1,0 +1,13 @@
+# An anchor nothing refers to, on a document that is valid in every other
+# respect. A rule written against aliases alone lets it through.
+specVersion: v1
+kind: LISTING
+metadata:
+  slug: acme-wiki
+  version: 1
+spec:
+  listingKind: COMPONENT
+  displayName: Acme Wiki
+  summary: &tagline A wiki backed by PostgreSQL
+  category: PRODUCTIVITY
+  lifecycleStage: STABLE

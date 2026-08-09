@@ -1,0 +1,8 @@
+{
+  "id": "semantic-004-version-disagrees-with-listing",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#identity",
+  "summary": "A blueprint whose version differs from its sibling listing's is rejected.",
+  "document": "acme-wiki/blueprint.yaml"
+}

@@ -1,0 +1,17 @@
+# The storefront copy has been left behind: this release's graph, last
+# release's description. Read one and install the other and they are not the
+# same item.
+specVersion: v1
+kind: LISTING
+metadata:
+  slug: acme-wiki
+  version: 1
+spec:
+  listingKind: BLUEPRINT
+  displayName: Acme Wiki
+  summary: A wiki backed by PostgreSQL
+  category: PRODUCTIVITY
+  lifecycleStage: STABLE
+  icon: media/icon.png
+  screenshots:
+    - file: media/overview.png

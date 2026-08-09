@@ -8,6 +8,21 @@
       "path": "parser/001-reject-duplicate-keys"
     },
     {
+      "id": "parser-002-reject-anchors-and-aliases",
+      "phase": "parser",
+      "path": "parser/002-reject-anchors-and-aliases"
+    },
+    {
+      "id": "parser-003-reject-lone-anchor",
+      "phase": "parser",
+      "path": "parser/003-reject-lone-anchor"
+    },
+    {
+      "id": "parser-004-malformed-yaml",
+      "phase": "parser",
+      "path": "parser/004-malformed-yaml"
+    },
+    {
       "id": "structural-001-minimal-valid",
       "phase": "structural",
       "path": "structural/001-minimal-valid"

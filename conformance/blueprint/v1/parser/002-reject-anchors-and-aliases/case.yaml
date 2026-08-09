@@ -1,0 +1,19 @@
+# Expanded, this document is entirely valid: two nodes, neither wired to
+# anything. It is rejected anyway — the rule is about the spelling, not about
+# what the spelling produces.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  version: 1
+spec:
+  components:
+    db:
+      component: ./components/postgres.yaml
+      size: general.standard.small
+      connections: &unwired {}
+    web:
+      component: ./components/web.yaml
+      size: general.standard.small
+      connections: *unwired
+  parameters: {}

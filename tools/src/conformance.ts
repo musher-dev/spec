@@ -12,8 +12,19 @@
  * second kind runs for every case, including the ones the first kind skips,
  * because a `semantic` fixture would otherwise be checked by nothing at all.
  */
-import { existsSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+} from 'node:fs'
+import { tmpdir } from 'node:os'
+import { dirname, isAbsolute, join, normalize } from 'node:path'
 import {
   discoverFamilies,
   Failures,
@@ -38,6 +49,16 @@ interface CaseMetadata {
   readonly expected: 'pass' | 'fail'
   readonly clause?: string
   readonly summary?: string
+  /**
+   * Tree cases only (ADR 0002). Path of the document under test, relative to
+   * `tree/`. Its containing directory is the item root.
+   */
+  readonly document?: string
+  /**
+   * Tree cases only. Link path (relative to `tree/`) to link target, verbatim.
+   * Materialised at run time rather than committed — see ADR 0002 §3.
+   */
+  readonly symlinks?: Record<string, string>
 }
 
 interface DeclaredDiagnostic {
@@ -47,7 +68,13 @@ interface DeclaredDiagnostic {
 
 const PHASES: readonly Phase[] = ['parser', 'structural', 'semantic', 'capability']
 
-const IMPLEMENTED_PHASES = new Set<Phase>(['parser', 'structural'])
+/**
+ * `capability` is the one phase this repository cannot run: it needs an account,
+ * a region and a quota, which is a server. The other three are executed here —
+ * see ADR 0002 §5 for why running them is not this repository publishing a
+ * reference validator.
+ */
+const IMPLEMENTED_PHASES = new Set<Phase>(['parser', 'structural', 'semantic'])
 
 /**
  * The family whose diagnostics table the other families declare themselves
@@ -124,6 +151,93 @@ function loadIndex(family: Family, failures: Failures): CaseIndexEntry[] {
 }
 
 /**
+ * A path is safe to join onto a materialised tree when it is relative and stays
+ * inside it. Link *targets* are exempt — escaping is the thing some of them test
+ * — but the link's own location is not.
+ */
+function isContainedRelative(path: string): boolean {
+  return !isAbsolute(path) && !normalize(path).startsWith('..')
+}
+
+/**
+ * ADR 0002 — a case declares its subject as exactly one of `case.yaml` (a
+ * document with no item root) or `tree/` (a document inside one). Declaring both
+ * would leave it ambiguous which one the diagnostics describe; declaring neither
+ * leaves nothing to validate.
+ */
+function checkCaseSubject(
+  caseDir: string,
+  label: string,
+  metadata: CaseMetadata,
+  failures: Failures,
+): boolean {
+  const hasDocument = existsSync(join(caseDir, 'case.yaml'))
+  const hasTree = existsSync(join(caseDir, 'tree'))
+
+  if (hasDocument === hasTree) {
+    failures.add(
+      `${label}: a case declares exactly one of case.yaml or tree/, not ${hasTree ? 'both' : 'neither'}`,
+    )
+    return false
+  }
+
+  if (!hasTree) {
+    if (metadata.document !== undefined || metadata.symlinks !== undefined) {
+      failures.add(`${label}: "document" and "symlinks" belong to a tree case`)
+      return false
+    }
+    return true
+  }
+
+  let ok = true
+  if (metadata.document === undefined) {
+    failures.add(`${label}: a tree case must name its "document" relative to tree/`)
+    return false
+  }
+  if (!isContainedRelative(metadata.document)) {
+    failures.add(`${label}: "document" must be a relative path inside tree/`)
+    return false
+  }
+  if (!existsSync(join(caseDir, 'tree', metadata.document))) {
+    failures.add(`${label}: "document" names ${metadata.document}, which is not in tree/`)
+    ok = false
+  }
+  // tree/ is the *parent* of the item root, so that the item directory has a
+  // name a fixture can test ERR_SLUG_MISMATCH against (ADR 0002 §1).
+  if (dirname(metadata.document) === '.') {
+    failures.add(`${label}: "document" must sit inside an item directory under tree/`)
+    ok = false
+  }
+  for (const link of Object.keys(metadata.symlinks ?? {})) {
+    if (!isContainedRelative(link)) {
+      failures.add(`${label}: symlink "${link}" must be a relative path inside tree/`)
+      ok = false
+    }
+  }
+  return ok
+}
+
+/**
+ * Copy a case's `tree/` somewhere writable and create its declared symlinks.
+ * Returns the scratch root; the caller removes it.
+ *
+ * Links are made here rather than committed because a committed one does not
+ * survive a checkout without `core.symlinks`, is invisible in a diff, and would
+ * ship inside a release tarball pointing outside the archive (ADR 0002 §3).
+ */
+function materialiseTree(caseDir: string, metadata: CaseMetadata): string {
+  const scratch = mkdtempSync(join(tmpdir(), 'musher-conformance-'))
+  cpSync(join(caseDir, 'tree'), scratch, { recursive: true })
+  for (const [link, target] of Object.entries(metadata.symlinks ?? {})) {
+    const path = join(scratch, link)
+    mkdirSync(dirname(path), { recursive: true })
+    rmSync(path, { force: true })
+    symlinkSync(target, path)
+  }
+  return scratch
+}
+
+/**
  * Check the parts of a case that hold whether or not the phase runs here: the
  * declared outcome, the clause it traces to, and the codes it names.
  *
@@ -154,6 +268,7 @@ function checkCaseShape(
     failures.add(`${label}: id must follow <phase>-<NNN>-<description> and lead with the phase`)
     ok = false
   }
+  if (!checkCaseSubject(caseDir, label, metadata, failures)) ok = false
 
   // Every case should trace to prose — a fixture that cites nothing is an
   // assertion about an implementation, not about the specification.
@@ -209,21 +324,43 @@ function checkCaseShape(
   return ok ? diagnostics : null
 }
 
+/**
+ * Validate a case's subject, supplying an item root only when the case declares
+ * one. A `case.yaml` deliberately supplies none: blueprint §3.1 says a document
+ * arriving without a directory has no item root, and the rules measured against
+ * one MUST NOT be reported for it.
+ */
+function runValidation(family: Family, caseDir: string, metadata: CaseMetadata) {
+  if (metadata.document === undefined) {
+    return validateDocument(family, readFileSync(join(caseDir, 'case.yaml'), 'utf8'))
+  }
+
+  const scratch = materialiseTree(caseDir, metadata)
+  try {
+    const documentPath = join(scratch, metadata.document)
+    return validateDocument(family, readFileSync(documentPath, 'utf8'), {
+      itemRoot: dirname(documentPath),
+      documentPath,
+    })
+  } finally {
+    rmSync(scratch, { recursive: true, force: true })
+  }
+}
+
 function runCase(
   family: Family,
   entry: CaseIndexEntry,
   failures: Failures,
+  /** Collects every code the corpus declares, for the coverage check. */
+  exercised: Set<string>,
 ): 'ran' | 'skipped' | 'failed' {
   const caseDir = join(family.conformanceDir, entry.path)
   const label = `${family.name}/${family.major}/${entry.id}`
 
   const metadataPath = join(caseDir, 'metadata.json')
-  const documentPath = join(caseDir, 'case.yaml')
-  for (const required of [metadataPath, documentPath]) {
-    if (!existsSync(required)) {
-      failures.add(`${label}: missing ${relativeToRepo(required)}`)
-      return 'failed'
-    }
+  if (!existsSync(metadataPath)) {
+    failures.add(`${label}: missing ${relativeToRepo(metadataPath)}`)
+    return 'failed'
   }
 
   const metadata = readJson(metadataPath) as unknown as CaseMetadata
@@ -238,6 +375,7 @@ function runCase(
 
   const declared = checkCaseShape(family, entry, caseDir, label, metadata, failures)
   if (declared === null) return 'failed'
+  for (const item of declared) exercised.add(item.code)
 
   if (!IMPLEMENTED_PHASES.has(metadata.phase)) {
     console.log(`  · ${label}: ${metadata.phase} phase not implemented here — skipped`)
@@ -249,7 +387,7 @@ function runCase(
     return 'failed'
   }
 
-  const result = validateDocument(family, readFileSync(documentPath, 'utf8'))
+  const result = runValidation(family, caseDir, metadata)
 
   if (metadata.expected === 'pass') {
     if (result.ok) {
@@ -286,6 +424,62 @@ function runCase(
   return 'ran'
 }
 
+/**
+ * Diagnostic codes deliberately left without a fixture, and why. Every entry is
+ * a claim a reviewer can check; the list is short on purpose.
+ */
+const UNCOVERED: ReadonlyMap<string, string> = new Map([
+  [
+    'ERR_UNKNOWN_COMPONENT',
+    'capability — resolving a published reference needs the catalog, and no phase this repository runs may reach the network',
+  ],
+])
+
+/**
+ * The reverse of `checkCaseShape`'s registry check.
+ *
+ * That one asks whether every code a fixture *declares* is defined by the prose.
+ * This one asks whether every code the prose *defines* is exercised by a
+ * fixture — the direction nothing enforced, and the direction ten codes reached
+ * `main` untested in with CI green.
+ *
+ * A code goes uncovered only by someone adding it to `UNCOVERED` with a reason,
+ * in a diff a reviewer sees.
+ */
+function checkCoverage(family: Family, exercised: ReadonlySet<string>, failures: Failures): void {
+  // Only the family's own additions: a code inherited from component §8 is
+  // covered by component's corpus, and demanding a fixture per family would
+  // make every family restate the envelope suite.
+  const own = specIndex(family.specPath)?.codes ?? new Map()
+  for (const code of own.keys()) {
+    if (exercised.has(code) || UNCOVERED.has(code)) continue
+    failures.add(
+      `${family.name}/${family.major}: ${code} is declared in ${relativeToRepo(family.specPath)} ` +
+        'but no indexed case exercises it. Add a fixture, or record it in UNCOVERED with a reason.',
+    )
+  }
+}
+
+/**
+ * Case directories that no `cases.json` entry names. The index is the contract
+ * and the runner never walks the filesystem, so an unindexed directory is not a
+ * failing fixture — it is an invisible one, which is worse.
+ */
+function checkOrphans(family: Family, entries: CaseIndexEntry[], failures: Failures): void {
+  const indexed = new Set(entries.map((entry) => normalize(entry.path)))
+  for (const phase of PHASES) {
+    const phaseDir = join(family.conformanceDir, phase)
+    if (!existsSync(phaseDir)) continue
+    for (const name of readdirSync(phaseDir)) {
+      if (!statSync(join(phaseDir, name)).isDirectory()) continue
+      if (indexed.has(normalize(join(phase, name)))) continue
+      failures.add(
+        `${family.name}/${family.major}: ${phase}/${name} is not indexed in cases.json and runs nowhere`,
+      )
+    }
+  }
+}
+
 function main(): void {
   const failures = new Failures()
   let ran = 0
@@ -297,11 +491,16 @@ function main(): void {
       console.log(`  · ${family.name}/${family.major}: no conformance cases indexed`)
       continue
     }
+
+    const exercised = new Set<string>()
     for (const entry of entries) {
-      const outcome = runCase(family, entry, failures)
+      const outcome = runCase(family, entry, failures, exercised)
       if (outcome === 'ran') ran += 1
       if (outcome === 'skipped') skipped += 1
     }
+
+    checkCoverage(family, exercised, failures)
+    checkOrphans(family, entries, failures)
   }
 
   const suffix = skipped > 0 ? ` (${skipped} skipped)` : ''

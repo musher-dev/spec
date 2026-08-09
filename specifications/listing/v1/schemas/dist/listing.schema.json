@@ -86,7 +86,7 @@
       "type": "object"
     },
     "ListingSpec": {
-      "description": "The ``spec`` block of a listing document — how the item is presented,\ncategorised, and discovered on the storefront.\n\nIdentity lives in ``metadata``, not here. ``icon`` and\n``screenshots[].file`` are paths relative to the listing document.",
+      "description": "The ``spec`` block of a listing document — how the item is presented,\ncategorised, and discovered on the storefront.\n\nIdentity lives in ``metadata``, not here. ``icon`` and\n``screenshots[].file`` are media paths, resolved inside the item root and\nrequired to begin with ``media/``.",
       "additionalProperties": false,
       "properties": {
         "description": {

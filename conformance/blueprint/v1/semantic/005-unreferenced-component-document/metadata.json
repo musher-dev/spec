@@ -1,0 +1,8 @@
+{
+  "id": "semantic-005-unreferenced-component-document",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#identity",
+  "summary": "A component document in the item that no node references is rejected.",
+  "document": "acme-wiki/blueprint.yaml"
+}

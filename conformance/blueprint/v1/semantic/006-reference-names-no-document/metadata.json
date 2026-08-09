@@ -1,0 +1,8 @@
+{
+  "id": "semantic-006-reference-names-no-document",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#component-reference",
+  "summary": "A repo-local reference resolving to no document is rejected.",
+  "document": "acme-wiki/blueprint.yaml"
+}

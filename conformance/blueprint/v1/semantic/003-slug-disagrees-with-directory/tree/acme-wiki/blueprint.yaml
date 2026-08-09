@@ -1,0 +1,16 @@
+# The directory is `acme-wiki` and the document calls itself
+# `acme-wiki-staging`. Nothing inside the document is wrong; the disagreement
+# only exists once the document has a directory, which is what makes this a
+# tree case rather than a case.yaml.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki-staging
+  version: 1
+spec:
+  components:
+    db:
+      component: ./components/postgres.yaml
+      size: general.standard.small
+      connections: {}
+  parameters: {}

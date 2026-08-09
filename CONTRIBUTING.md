@@ -47,6 +47,15 @@ mkdir -p conformance/component/v1/structural/010-my-new-rule
 task check
 ```
 
+A fixture is a `case.yaml` when the rule is decided by reading one document,
+and a `tree/` when it is decided by reading the item the document sits in —
+a slug against its directory, a reference against a file. See
+[conformance/README.md](conformance/README.md#case-trees).
+
+Adding a diagnostic code to a `spec.md` obliges you to add a case for it.
+`check:conformance` fails otherwise, and the only way out is an entry in the
+runner's `UNCOVERED` list saying why the code cannot be exercised.
+
 `task check` runs, in order:
 
 | Step | What it enforces |
@@ -56,7 +65,7 @@ task check
 | `check:schema` | Every `src/` module is valid JSON Schema 2020-12; `$id`s are unique and canonical; no remote `$ref` |
 | `check:drift` | The committed `dist/` bundle matches a fresh compile of `src/` |
 | `check:examples` | Every file in `examples/` validates against its family's bundle |
-| `check:conformance` | Every conformance case produces its declared outcome |
+| `check:conformance` | Every conformance case produces its declared outcome; every declared diagnostic code has a case; every case directory is indexed |
 | `check:shell` | ShellCheck over `.devcontainer/scripts` |
 | `check:workflow` | actionlint over `.github/workflows` |
 

@@ -1,0 +1,6 @@
+[
+  {
+    "code": "ERR_CONFLICTING_INPUT_SCHEMA",
+    "path": "/spec/components/db/component"
+  }
+]
