@@ -1,0 +1,17 @@
+# A misspelled optional field below the envelope. `initialDelaySecond` is
+# singular; the defined property is `initialDelaySeconds`. Rejection must not
+# depend on how deeply the typo is nested.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+    health:
+      readiness:
+        path: /healthz
+        initialDelaySecond: 30
