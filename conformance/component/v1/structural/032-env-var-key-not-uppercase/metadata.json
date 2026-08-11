@@ -1,0 +1,7 @@
+{
+  "id": "structural-032-env-var-key-not-uppercase",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#env-vars",
+  "summary": "An environment-variable key outside the POSIX grammar is rejected."
+}

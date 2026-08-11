@@ -1,0 +1,28 @@
+# An input's target.envVarKey binds into the same namespace an envVars entry
+# writes to. Ranking the two would settle the ambiguity silently and surface
+# it as a wrong value inside the running workload, so the collision is an
+# error and there is no precedence rule to apply.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: postgres:17.10-alpine
+    envVars:
+      - key: DATABASE_URL
+        value:
+          type: LITERAL
+          value: postgres://localhost/app
+  contract:
+    inputs:
+      databaseUrl:
+        schema:
+          type: STRING
+        ui:
+          label: Database URL
+        target:
+          envVarKey: DATABASE_URL

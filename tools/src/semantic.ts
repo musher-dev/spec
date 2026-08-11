@@ -246,6 +246,58 @@ function checkEndpointReferences(document: Json, out: Diagnostic[]): void {
   }
 }
 
+/**
+ * Component §5.3 — every environment-variable key is declared exactly once,
+ * across both the places that declare one.
+ *
+ * `envVars` is a sequence rather than a mapping, so §5's "a repeated key is
+ * ERR_DUPLICATE_KEY in the parser phase" does not reach it: two entries of a
+ * sequence repeat nothing at the YAML level. An input's `target.envVarKey`
+ * binds into the same namespace, so it competes with them.
+ */
+function checkEnvVarKeys(document: Json, out: Diagnostic[]): void {
+  const spec = child(document, 'spec')
+  const envVars = child(child(spec, 'workload'), 'envVars')
+  const inputs = child(child(spec, 'contract'), 'inputs')
+
+  // First declaration wins the key, so the later one is what an author changes.
+  const declared = new Map<string, string>()
+
+  if (Array.isArray(envVars)) {
+    for (const [position, entry] of envVars.entries()) {
+      const key = asString(child(entry, 'key'))
+      if (key === undefined) continue
+      const earlier = declared.get(key)
+      if (earlier === undefined) {
+        declared.set(key, `envVars entry ${position}`)
+        continue
+      }
+      out.push({
+        code: 'ERR_DUPLICATE_ENV_KEY',
+        path: `/spec/workload/envVars/${position}/key`,
+        message: `environment variable "${key}" is already declared by ${earlier}`,
+      })
+    }
+  }
+
+  // Lexicographic input-name order, because §5.3 anchors the collision at the
+  // later of two inputs and a mapping supplies no order of its own.
+  for (const input of keysOf(inputs).sort()) {
+    const key = asString(child(child(child(inputs, input), 'target'), 'envVarKey'))
+    if (key === undefined) continue
+    const earlier = declared.get(key)
+    if (earlier === undefined) {
+      declared.set(key, `input "${input}"`)
+      continue
+    }
+    out.push({
+      code: 'ERR_CONFLICTING_ENV_KEY',
+      path: `/spec/contract/inputs/${token(input)}/target/envVarKey`,
+      message: `environment variable "${key}" is already claimed by ${earlier}`,
+    })
+  }
+}
+
 // ===========================================================================
 // blueprint
 // ===========================================================================
@@ -749,6 +801,7 @@ export function semanticDiagnostics(
   if (family.name === 'component') {
     checkImageRef(document, out)
     checkEndpointReferences(document, out)
+    checkEnvVarKeys(document, out)
   }
   if (family.name === 'blueprint') {
     checkConnectionRoles(document, out)

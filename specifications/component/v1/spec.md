@@ -375,8 +375,71 @@ this version declines to answer rather than one it overlooked.
 
 ### <a id="env-vars"></a>5.3 Environment variables
 
-> **TODO** — Key grammar, the precedence order between literal, config-reference,
-> and contract-supplied values, and the handling of sensitive values.
+`envVars` is a **sequence** of entries, each pairing a `key` with a `value`. It
+is the one collection in this document that is not a mapping, and that shape
+decides more than it looks like it should — [§5](#workload)'s argument that
+"input and output keys are unique within a component because `contract.inputs`
+and `contract.outputs` are mappings" does not reach here. A repeated env-var key
+is not `ERR_DUPLICATE_KEY` in the `parser` phase, because at the YAML level
+nothing is repeated: two entries of a sequence are two entries.
+
+**A key MUST match `^[A-Z_][A-Z0-9_]*$`** and be 1 to 128 characters. That is
+the POSIX shape, and it is REQUIRED rather than conventional: a name outside it
+is not portably settable by the thing that has to set it. The rule is
+`structural` and carries `ERR_INVALID_VALUE`.
+
+`value` is discriminated on `type`.
+
+| `type` | Carries | What the document holds |
+|---|---|---|
+| `LITERAL` | `value`, and OPTIONAL `isSensitive` | The value itself. An empty string is permitted. |
+| `CONFIG_REF` | `configKey` | A reference. The document never holds the value. |
+
+**A key is declared once.** Two entries sharing a key are rejected in the
+`semantic` phase with `ERR_DUPLICATE_ENV_KEY`, anchored at the **later** of the
+two — the first declaration is the one that stands, so the second is the one an
+author has to change. Without this rule the sequence shape would make a repeated
+key mean whatever an implementation's last write happened to be.
+
+**A key is claimed by one declaration.** An input's
+[`target.envVarKey`](#inputs) binds a resolved value into the environment, so it
+competes for the same namespace these entries do. Two declarations of one key
+are rejected in the `semantic` phase with `ERR_CONFLICTING_ENV_KEY`, in both
+shapes it can take:
+
+- an `envVars` entry whose `key` equals some input's `target.envVarKey`, and
+- two inputs declaring the same `target.envVarKey`.
+
+The diagnostic anchors at an input's `target/envVarKey` in both cases, and where
+two inputs collide it anchors at the later of the two in **lexicographic
+input-name order**. Anchors are normative ([§8](#diagnostics)), so the tiebreak
+is written down rather than left to whichever order an implementation iterates
+a mapping in.
+
+**There is no precedence order**, and there is nothing for one to resolve: a
+collision is an error, so no key is ever claimed twice. Ranking the two instead
+— letting a contract-supplied value quietly outrank a literal, or the reverse —
+would settle the ambiguity without telling anyone there was one, and the
+consequence would surface as a wrong value inside a running workload rather than
+as a diagnostic. [Blueprint §5.2](../../blueprint/v1/spec.md#merge) refused that
+same trade for input merging, and refused it on the same ground.
+
+**Sensitivity.** `isSensitive` on a `LITERAL` marks the value as secret
+material. An implementation MUST treat a marked value as
+[§6.1](#inputs) requires of a generated input: masked in read surfaces, and
+never echoed back into logs, diagnostics, or interfaces. It defaults to `false`,
+so an unmarked literal is handled as ordinary configuration.
+
+A `CONFIG_REF` carries no marking and needs none. It names a value resolved
+elsewhere and the document holds only the name, so there is nothing in this file
+to mask.
+
+A component SHOULD carry secret material as a `CONFIG_REF`, or as an input with
+a `generator` ([§6.1](#inputs)), rather than as a marked literal. `isSensitive`
+governs how a value is *handled*; it does not stop the value being bytes in a
+file that is read, reviewed, and committed. It is a SHOULD because a marked
+literal is still better than an unmarked one, and this document cannot see where
+the file lives.
 
 ### <a id="health"></a>5.4 Health probes
 
@@ -585,6 +648,8 @@ different text and that is expected.
 | `ERR_INVALID_TYPE` | `structural` | A value has the wrong type. |
 | `ERR_INVALID_VALUE` | `structural` | A value violates a pattern, enum, or bound. |
 | `ERR_UNPINNED_IMAGE` | `semantic` | An image reference carries a floating tag. |
+| `ERR_DUPLICATE_ENV_KEY` | `semantic` | Two `envVars` entries declare the same key. |
+| `ERR_CONFLICTING_ENV_KEY` | `semantic` | An environment-variable key is claimed by more than one declaration. |
 | `ERR_UNKNOWN_ENDPOINT` | `semantic` | A probe or a platform default names an endpoint the workload does not declare. |
 | `ERR_AMBIGUOUS_ENDPOINT` | `semantic` | A reference omits the endpoint, and the workload elects no primary. |
 | `ERR_ENDPOINT_NOT_PUBLIC` | `semantic` | A platform default deriving a public address names a `PRIVATE` endpoint. |

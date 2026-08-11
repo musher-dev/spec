@@ -1,0 +1,7 @@
+{
+  "id": "semantic-011-env-key-claimed-twice",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#env-vars",
+  "summary": "An envVars key also claimed by an input's target.envVarKey is rejected."
+}
