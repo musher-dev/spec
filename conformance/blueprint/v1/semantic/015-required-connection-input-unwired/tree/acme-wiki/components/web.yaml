@@ -7,25 +7,20 @@ spec:
     kind: SERVICE
     source:
       type: IMAGE
-      ref: postgres:17.10-alpine
+      ref: nginx:1.29.4-alpine
     endpoints:
-      primary:
-        containerPort: 5432
-        protocol: TCP
+      web:
+        containerPort: 8080
+        protocol: HTTP
         visibility: PRIVATE
   contract:
     inputs:
       DATABASE_URL:
         schema:
           type: STRING
+          format: CONNECTION_STRING
+          semanticType: POSTGRES
           isSensitive: true
         suppliedBy: CONNECTION
         ui: null
-      adminPassword:
-        schema:
-          type: STRING
-          isSensitive: true
-        suppliedBy: USER
-        ui:
-          label: Administrator password
     outputs: {}

@@ -14,18 +14,13 @@ spec:
         protocol: TCP
         visibility: PRIVATE
   contract:
-    inputs:
-      DATABASE_URL:
+    inputs: {}
+    outputs:
+      connectionString:
         schema:
           type: STRING
+          format: CONNECTION_STRING
+          semanticType: POSTGRES
           isSensitive: true
-        suppliedBy: CONNECTION
-        ui: null
-      adminPassword:
-        schema:
-          type: STRING
-          isSensitive: true
-        suppliedBy: USER
-        ui:
-          label: Administrator password
-    outputs: {}
+        valueFrom: DERIVED
+        value: null

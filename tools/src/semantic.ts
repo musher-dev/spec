@@ -683,6 +683,8 @@ function checkGraphAgainstItem(
 
   checkUnreferencedComponents(itemRoot, documentPath, referenced, out)
   checkConnectionOutputs(components, resolved, out)
+  checkConnectionInputs(components, resolved, out)
+  checkRequiredConnections(components, resolved, out)
   checkConnectionCompatibility(components, resolved, out)
   checkInputMerge(components, resolved, out)
 }
@@ -736,6 +738,72 @@ function checkConnectionOutputs(
           message: `"${output}" is not an output of the component "${role}" deploys`,
         })
       }
+    }
+  }
+}
+
+/** The inputs a node's component declares, keyed by input name. */
+function inputsOf(component: Json | undefined): Json | undefined {
+  return child(child(child(component, 'spec'), 'contract'), 'inputs')
+}
+
+/**
+ * Blueprint §4.2 — a connection's map key MUST name an input of the component
+ * the *consuming* node deploys. The mirror of `ERR_UNKNOWN_OUTPUT`: a wire whose
+ * two ends are each checked and whose consumer end is not can be misspelled at
+ * one end only.
+ */
+function checkConnectionInputs(
+  components: Json | undefined,
+  resolved: Map<string, Json>,
+  out: Diagnostic[],
+): void {
+  for (const node of keysOf(components)) {
+    const consumer = resolved.get(node)
+    // An unresolved consumer is already ERR_COMPONENT_NOT_FOUND, or is a
+    // published reference this phase may not resolve at all.
+    if (consumer === undefined) continue
+
+    const declared = keysOf(inputsOf(consumer))
+    for (const key of keysOf(child(child(components, node), 'connections'))) {
+      if (declared.includes(key)) continue
+      out.push({
+        code: 'ERR_UNKNOWN_INPUT',
+        path: `/spec/components/${token(node)}/connections/${token(key)}`,
+        message: `"${key}" is not an input of the component "${node}" deploys`,
+      })
+    }
+  }
+}
+
+/**
+ * Blueprint §4.2 — a required `CONNECTION` input MUST be wired.
+ *
+ * `isRequired` defaults to true, so an absent key is a required input. A
+ * `CONNECTION` input never reaches the install form, so a graph that leaves one
+ * unwired has no later chance to supply it.
+ */
+function checkRequiredConnections(
+  components: Json | undefined,
+  resolved: Map<string, Json>,
+  out: Diagnostic[],
+): void {
+  for (const node of keysOf(components)) {
+    const consumer = resolved.get(node)
+    if (consumer === undefined) continue
+
+    const wired = new Set(keysOf(child(child(components, node), 'connections')))
+    const inputs = inputsOf(consumer)
+    for (const key of keysOf(inputs)) {
+      const input = child(inputs, key)
+      if (child(input, 'suppliedBy') !== 'CONNECTION') continue
+      if (child(input, 'isRequired') === false) continue
+      if (wired.has(key)) continue
+      out.push({
+        code: 'ERR_UNWIRED_REQUIRED_INPUT',
+        path: `/spec/components/${token(node)}/connections`,
+        message: `required input "${key}" of node "${node}" is satisfied by no connection`,
+      })
     }
   }
 }

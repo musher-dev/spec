@@ -1,0 +1,11 @@
+# A blueprint is the unit of deployment, and §1 makes it a composition of one
+# or more component documents. An empty graph deploys nothing while claiming
+# to be that unit.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  version: 1
+spec:
+  components: {}
+  parameters: {}

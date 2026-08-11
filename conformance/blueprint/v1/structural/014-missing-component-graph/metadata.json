@@ -1,0 +1,7 @@
+{
+  "id": "structural-014-missing-component-graph",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#components",
+  "summary": "A blueprint omitting spec.components is rejected."
+}
