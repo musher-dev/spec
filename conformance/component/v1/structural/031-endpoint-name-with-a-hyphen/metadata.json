@@ -1,0 +1,7 @@
+{
+  "id": "structural-031-endpoint-name-with-a-hyphen",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#endpoints",
+  "summary": "An endpoint name carrying a hyphen is rejected."
+}

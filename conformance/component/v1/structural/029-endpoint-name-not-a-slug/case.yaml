@@ -1,5 +1,6 @@
-# An endpoint name is referenced by probes and by platform defaults, and
-# becomes a DNS label. A dot in one is a hazard rather than a matter of taste.
+# An endpoint name is referenced by probes and by platform defaults, and is
+# composed into a DNS label beside the names identifying the deployment. A dot
+# in one is a hazard rather than a matter of taste.
 specVersion: v1
 kind: COMPONENT
 metadata:

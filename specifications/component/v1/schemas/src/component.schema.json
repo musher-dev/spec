@@ -625,7 +625,7 @@
         "endpoint": {
           "anyOf": [
             {
-              "pattern": "^[a-z][a-z0-9-]{0,61}[a-z0-9]$",
+              "pattern": "^[a-z][a-z0-9]{0,19}$",
               "type": "string"
             },
             {
@@ -655,7 +655,7 @@
         "endpoint": {
           "anyOf": [
             {
-              "pattern": "^[a-z][a-z0-9-]{0,61}[a-z0-9]$",
+              "pattern": "^[a-z][a-z0-9]{0,19}$",
               "type": "string"
             },
             {
@@ -1052,8 +1052,8 @@
           },
           "description": "Endpoints the workload exposes, keyed by endpoint name. Only a SERVICE may declare one; on any other kind the mapping must be absent or empty.",
           "propertyNames": {
-            "$comment": "spec.md §5.2. An endpoint name is referenced by probes and by platform defaults, and becomes a DNS label, so it takes the slug grammar rather than an arbitrary key.",
-            "pattern": "^[a-z][a-z0-9-]{0,61}[a-z0-9]$"
+            "$comment": "spec.md §5.2. An endpoint name is referenced by probes and by platform defaults, and is composed into a DNS label beside other slugs rather than being one. Alphanumeric keeps any hyphen separator unambiguous; 20 characters leave room in the 63-character label for what it composes with.",
+            "pattern": "^[a-z][a-z0-9]{0,19}$"
           },
           "type": "object"
         },

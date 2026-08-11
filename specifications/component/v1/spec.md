@@ -267,13 +267,35 @@ missing any of them describes a port nothing can route to. Only a `SERVICE` may
 declare one; [§5](#workload) carries the rest of that rule.
 
 **An endpoint name is a reference.** A name MUST match
-`^[a-z][a-z0-9-]{0,61}[a-z0-9]$` — the grammar
-[blueprint §4.1](../../blueprint/v1/spec.md#component-reference) quotes for a
-slug — and one that does not is rejected in the `structural` phase with
+`^[a-z][a-z0-9]{0,19}$` — lowercase alphanumeric, one to twenty characters —
+and one that does not is rejected in the `structural` phase with
 `ERR_INVALID_VALUE`. The name is not decoration: [§5.4](#health) points a probe
 at one and [§6.1](#inputs) derives an address from one, so a dot or a space in
-a name is a hazard rather than a matter of taste. The 63-character bound is a
-DNS label, which is what the name becomes.
+a name is a hazard rather than a matter of taste.
+
+**The grammar is narrower than a slug, and deliberately.** A name does not
+become a DNS label; it is composed *into* one, beside the other names that
+identify the deployment. Two properties follow from that, and neither holds for
+the slug grammar [blueprint §4.1](../../blueprint/v1/spec.md#component-reference)
+uses:
+
+1. **A separator has to survive.** Whatever character an implementation joins
+   the parts with, a name drawn from the same alphabet as the parts it joins to
+   cannot be delimited — with `-`, endpoint `api` on a component named `web` and
+   a component named `api-web` compose to the same label. Doubling the separator
+   only helps if neither side may contain the doubled form, which a
+   hyphen-bearing grammar permits. Alphanumeric makes any hyphen separator
+   unambiguous by construction.
+2. **The label budget is shared.** A DNS label holds 63 characters, and the
+   endpoint name is one of several things inside it. A name permitted to reach
+   62 leaves nothing for the rest, which forces every implementation into a
+   truncation rule of its own — and truncation reintroduces exactly the
+   collisions the grammar was meant to prevent. Twenty characters leave at least
+   forty for everything else.
+
+Twenty characters also fit every name worth having — `web`, `api`, `grpc`,
+`metrics`, `console`, `admin`. A name that does not fit is describing something
+an endpoint name should not be describing.
 
 **`containerPort` is an integer from 1 to 65535.** Outside that range there is
 no port to bind. The bound is `structural` and carries `ERR_INVALID_VALUE`.

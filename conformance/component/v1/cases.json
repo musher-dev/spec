@@ -173,6 +173,11 @@
       "path": "structural/030-two-public-endpoints"
     },
     {
+      "id": "structural-031-endpoint-name-with-a-hyphen",
+      "phase": "structural",
+      "path": "structural/031-endpoint-name-with-a-hyphen"
+    },
+    {
       "id": "semantic-001-floating-tag-image-reference",
       "phase": "semantic",
       "path": "semantic/001-floating-tag-image-reference"
