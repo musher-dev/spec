@@ -1,0 +1,8 @@
+{
+  "id": "semantic-013-connection-semantic-type-mismatch",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#connections",
+  "summary": "A connection joining an output and an input whose semanticTypes disagree is rejected.",
+  "document": "acme-wiki/blueprint.yaml"
+}

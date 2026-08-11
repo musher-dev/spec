@@ -588,11 +588,12 @@ It is not, however, a licence for a cyclic graph.
 [Blueprint §4.2](../../blueprint/v1/spec.md#connections) requires the
 connection graph to be acyclic, for reasons of its own.
 
-> **TODO** — Type compatibility between an output and the input it feeds.
-> `schema.semanticType` is the tag a composition layer matches on, but the
-> matching rule is not yet stated. It belongs with
-> [blueprint §4.2](../../blueprint/v1/spec.md#connections), which resolves the
-> connection.
+**Where an output must fit the input it feeds.** An output's `schema` and the
+`schema` of the input it is wired to must agree on `type`, and on
+`semanticType` wherever the consuming input names one.
+[Blueprint §4.2](../../blueprint/v1/spec.md#connections) states the rule and
+carries the two diagnostics, because the connection is what joins the two ends
+and a component document sees only one of them.
 
 ## <a id="validation-layers"></a>7. Validation layers
 

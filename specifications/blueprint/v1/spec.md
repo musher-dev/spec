@@ -225,9 +225,52 @@ Both are `semantic`. The first needs only this document; the second needs the
 referenced component document, which a repo-local reference makes readable
 without a network.
 
-The consumer end needs no rule. The map key names the input being filled and
-the enclosing node names the consumer, so one input cannot take two wires —
-the mapping already makes that structural.
+The consumer end needs no rule of its own for uniqueness. The map key names the
+input being filled and the enclosing node names the consumer, so one input
+cannot take two wires — the mapping already makes that structural.
+
+**The two ends MUST fit.** Resolving both ends establishes only that they
+exist. A `STRING` output wired into an `INTEGER` input satisfies every rule
+above, and fails at deploy time inside the consuming workload — the failure
+shape [§5.2](#merge) rejected for input merging, on the grounds that it lands
+"a long way from the two documents that disagreed and with nothing pointing
+back at them". The argument is the same here, so the answer is.
+
+Both ends always carry a `schema`, and `type` is REQUIRED on one
+([component §6.1](../../component/v1/spec.md#inputs),
+[component §6.2](../../component/v1/spec.md#outputs)), so there is no
+unconstrained producer to make an exception for. Two axes are compared. Both
+are `semantic`, both need the referenced component documents, and both anchor
+at the connection's `fromOutput`.
+
+**`type` MUST be equal.** A mismatch is `ERR_INCOMPATIBLE_TYPE`. No widening is
+permitted, in either direction. An `INTEGER` output feeding a `STRING` input
+looks harmless — everything is a string by the time it reaches a container —
+but *which* string is a decision each language's formatter makes differently,
+and a contract that permitted the wire would be promising a value it cannot
+describe. An author who wants the conversion writes an output that already has
+the type the consumer asked for.
+
+**`semanticType` MUST agree where the consumer names one.** A consumer
+declaring `null` accepts any producer: it has said the value is not specific to
+a backing service, and nothing it receives can contradict that. A consumer
+declaring a tag requires a producer declaring the **same** tag — including
+rejecting a producer that declares `null`, because an unconstrained producer
+does not satisfy a constrained consumer. A mismatch is
+`ERR_INCOMPATIBLE_SEMANTIC_TYPE`.
+
+That is what `semanticType` is for, given `type` exists. `type` is the
+primitive shape; `semanticType` is the backing service the value addresses. A
+Postgres connection string and a MySQL one are both `STRING`, both plausibly
+`CONNECTION_STRING`-formatted, and wiring one into a consumer expecting the
+other is the mistake the tag exists to catch.
+
+**What v1 does not compare.** `format`, `enum`, `pattern`, `default` and
+`isSensitive` take no part in the decision. A producer whose `pattern` admits
+more than the consumer's does is accepted, and nothing checks that a
+non-sensitive output is not wired into a sensitive input. Those silences are
+gaps rather than considered permissions, recorded here so a reader can tell the
+two apart; closing any of them rejects compositions that validate today.
 
 **The connection graph MUST be acyclic.** A cycle is rejected in the
 `semantic` phase with `ERR_DEPENDENCY_CYCLE`.
@@ -255,12 +298,6 @@ implementations that find the same cycle then report the same walk, which is
 what makes the node names comparable across a conformance corpus instead of an
 artifact of whichever node the traversal happened to start from. The
 diagnostic anchors at `/spec/components/<first>/connections`.
-
-> **TODO** — Type compatibility between the output and the input it feeds.
-> `schema.semanticType` is the tag a composition layer matches on, but the
-> matching rule is not stated, and neither is what happens when a `STRING`
-> output feeds an `INTEGER` input. See
-> [component §6.2](../../component/v1/spec.md#outputs).
 
 ## <a id="parameters"></a>5. Parameters
 
@@ -362,6 +399,8 @@ family adds:
 | `ERR_UNKNOWN_COMPONENT` | `capability` | A published `component` reference names no component, or no such `componentVersion`. |
 | `ERR_UNKNOWN_ROLE` | `semantic` | A connection's `fromRole` names no node in this blueprint. |
 | `ERR_UNKNOWN_OUTPUT` | `semantic` | A connection's `fromOutput` names no output of the referenced component. |
+| `ERR_INCOMPATIBLE_TYPE` | `semantic` | A connection joins an output and an input whose `schema.type`s differ. |
+| `ERR_INCOMPATIBLE_SEMANTIC_TYPE` | `semantic` | A connection joins an output and an input whose `schema.semanticType`s disagree. |
 | `ERR_DEPENDENCY_CYCLE` | `semantic` | The connection graph contains a cycle. |
 | `ERR_SLUG_MISMATCH` | `semantic` | `metadata.slug` disagrees with the item directory name. |
 | `ERR_VERSION_MISMATCH` | `semantic` | `metadata.version` disagrees with the sibling listing document. |

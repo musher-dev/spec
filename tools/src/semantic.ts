@@ -683,6 +683,7 @@ function checkGraphAgainstItem(
 
   checkUnreferencedComponents(itemRoot, documentPath, referenced, out)
   checkConnectionOutputs(components, resolved, out)
+  checkConnectionCompatibility(components, resolved, out)
   checkInputMerge(components, resolved, out)
 }
 
@@ -733,6 +734,69 @@ function checkConnectionOutputs(
           code: 'ERR_UNKNOWN_OUTPUT',
           path: `/spec/components/${token(node)}/connections/${token(key)}/fromOutput`,
           message: `"${output}" is not an output of the component "${role}" deploys`,
+        })
+      }
+    }
+  }
+}
+
+/**
+ * Blueprint §4.2 — the two ends of a connection MUST fit.
+ *
+ * `type` is compared for equality with no widening in either direction; a
+ * `semanticType` the consumer names must be matched exactly by the producer,
+ * while a consumer naming none accepts anything. Both ends always carry a
+ * `schema` with a required `type`, so there is no unconstrained producer case.
+ */
+function checkConnectionCompatibility(
+  components: Json | undefined,
+  resolved: Map<string, Json>,
+  out: Diagnostic[],
+): void {
+  for (const node of keysOf(components)) {
+    const connections = child(child(components, node), 'connections')
+    const consumer = resolved.get(node)
+    if (consumer === undefined) continue
+
+    for (const key of keysOf(connections)) {
+      const connection = child(connections, key)
+      const role = asString(child(connection, 'fromRole'))
+      const output = asString(child(connection, 'fromOutput'))
+      if (role === undefined || output === undefined) continue
+
+      const producer = resolved.get(role)
+      if (producer === undefined) continue
+
+      // A dangling end is already ERR_UNKNOWN_OUTPUT or ERR_UNKNOWN_INPUT; do
+      // not pile a compatibility verdict on a pair that does not both exist.
+      const outputs = child(child(child(producer, 'spec'), 'contract'), 'outputs')
+      const inputs = child(child(child(consumer, 'spec'), 'contract'), 'inputs')
+      const from = child(child(outputs, output), 'schema')
+      const to = child(child(inputs, key), 'schema')
+      if (from === undefined || to === undefined) continue
+
+      const path = `/spec/components/${token(node)}/connections/${token(key)}/fromOutput`
+      const fromType = child(from, 'type')
+      const toType = child(to, 'type')
+      if (fromType !== toType) {
+        out.push({
+          code: 'ERR_INCOMPATIBLE_TYPE',
+          path,
+          message: `output "${output}" is ${String(fromType)}, and input "${key}" takes ${String(toType)}`,
+        })
+        continue
+      }
+
+      // A consumer naming no semanticType has said the value is not specific to
+      // a backing service, so nothing it receives can contradict that.
+      const toSemantic = asString(child(to, 'semanticType'))
+      if (toSemantic === undefined) continue
+      const fromSemantic = asString(child(from, 'semanticType'))
+      if (fromSemantic !== toSemantic) {
+        out.push({
+          code: 'ERR_INCOMPATIBLE_SEMANTIC_TYPE',
+          path,
+          message: `input "${key}" requires ${toSemantic}, and output "${output}" declares ${fromSemantic ?? 'none'}`,
         })
       }
     }

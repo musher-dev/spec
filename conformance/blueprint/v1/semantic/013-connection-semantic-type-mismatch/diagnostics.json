@@ -1,0 +1,6 @@
+[
+  {
+    "code": "ERR_INCOMPATIBLE_SEMANTIC_TYPE",
+    "path": "/spec/components/web/connections/DATABASE_URL/fromOutput"
+  }
+]

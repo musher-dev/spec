@@ -136,6 +136,16 @@
       "id": "semantic-011-three-node-cycle-reporting",
       "phase": "semantic",
       "path": "semantic/011-three-node-cycle-reporting"
+    },
+    {
+      "id": "semantic-012-connection-type-mismatch",
+      "phase": "semantic",
+      "path": "semantic/012-connection-type-mismatch"
+    },
+    {
+      "id": "semantic-013-connection-semantic-type-mismatch",
+      "phase": "semantic",
+      "path": "semantic/013-connection-semantic-type-mismatch"
     }
   ]
 }
