@@ -677,8 +677,15 @@ that is declared to fail is a conformance failure.
 This schema was seeded from the platform's Pydantic-generated catalog schema.
 The naming that arrived with it — `$defs` keys carrying `Seed…`/`…Request`
 affixes, and generated `title` values like `Specversion` — has been cleaned,
-and `tools/src/lint.ts` now rejects both. The remaining debt MUST be resolved
-before v1 is declared stable:
+and `tools/src/lint.ts` now rejects both. No section of this document is marked
+TODO any longer: every rule it states is stated in prose, and the schema
+implements the prose rather than standing in for it.
 
-1. Every section above marked TODO is currently defined only by the schema's
-   structure, which is not a substitute for prose.
+One debt remains, and it MUST be resolved before v1 is declared stable. Some
+schema `description` fields still speak the platform's vocabulary rather than
+this contract's — "resolved server-side at snapshot compute" names a pipeline
+stage a reader outside `musher-dev/platform` cannot look up, and `size` values
+like `general.standard.small` name a Compute Profile vocabulary this repository
+does not publish. Descriptions are explanatory rather than normative, so nothing
+in this document turns on them; a reader who cannot resolve the words is still
+being told to go somewhere they cannot reach.
