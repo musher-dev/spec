@@ -1,0 +1,17 @@
+# The POSIX shape is required rather than conventional: a name outside it is
+# not portably settable by the thing that has to set it.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+    envVars:
+      - key: database-url
+        value:
+          type: LITERAL
+          value: postgres://localhost/app

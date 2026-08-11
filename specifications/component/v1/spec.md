@@ -267,13 +267,35 @@ missing any of them describes a port nothing can route to. Only a `SERVICE` may
 declare one; [§5](#workload) carries the rest of that rule.
 
 **An endpoint name is a reference.** A name MUST match
-`^[a-z][a-z0-9-]{0,61}[a-z0-9]$` — the grammar
-[blueprint §4.1](../../blueprint/v1/spec.md#component-reference) quotes for a
-slug — and one that does not is rejected in the `structural` phase with
+`^[a-z][a-z0-9]{0,19}$` — lowercase alphanumeric, one to twenty characters —
+and one that does not is rejected in the `structural` phase with
 `ERR_INVALID_VALUE`. The name is not decoration: [§5.4](#health) points a probe
 at one and [§6.1](#inputs) derives an address from one, so a dot or a space in
-a name is a hazard rather than a matter of taste. The 63-character bound is a
-DNS label, which is what the name becomes.
+a name is a hazard rather than a matter of taste.
+
+**The grammar is narrower than a slug, and deliberately.** A name does not
+become a DNS label; it is composed *into* one, beside the other names that
+identify the deployment. Two properties follow from that, and neither holds for
+the slug grammar [blueprint §4.1](../../blueprint/v1/spec.md#component-reference)
+uses:
+
+1. **A separator has to survive.** Whatever character an implementation joins
+   the parts with, a name drawn from the same alphabet as the parts it joins to
+   cannot be delimited — with `-`, endpoint `api` on a component named `web` and
+   a component named `api-web` compose to the same label. Doubling the separator
+   only helps if neither side may contain the doubled form, which a
+   hyphen-bearing grammar permits. Alphanumeric makes any hyphen separator
+   unambiguous by construction.
+2. **The label budget is shared.** A DNS label holds 63 characters, and the
+   endpoint name is one of several things inside it. A name permitted to reach
+   62 leaves nothing for the rest, which forces every implementation into a
+   truncation rule of its own — and truncation reintroduces exactly the
+   collisions the grammar was meant to prevent. Twenty characters leave at least
+   forty for everything else.
+
+Twenty characters also fit every name worth having — `web`, `api`, `grpc`,
+`metrics`, `console`, `admin`. A name that does not fit is describing something
+an endpoint name should not be describing.
 
 **`containerPort` is an integer from 1 to 65535.** Outside that range there is
 no port to bind. The bound is `structural` and carries `ERR_INVALID_VALUE`.
@@ -286,20 +308,27 @@ document cannot see, and a rule that rejects on a fact it cannot check is
 guessing. Making it a MUST later rejects documents v1 accepts, and is therefore
 breaking.
 
-**A `PUBLIC` endpoint is reached over HTTP.** `visibility: PUBLIC` publishes the
-endpoint at an externally reachable URL, and what publishes it speaks the HTTP
-family. `protocol` on a `PUBLIC` endpoint MUST therefore be one of `HTTP`,
-`HTTPS`, `WS` or `GRPC`; a `TCP` or `UDP` endpoint MUST be `PRIVATE`. The rule
-is `structural` and carries `ERR_INVALID_VALUE`.
+**Every protocol may be `PUBLIC`, and the address form is what differs.**
+`visibility: PUBLIC` publishes the endpoint at an externally reachable address.
+Which kind of address depends on the protocol, and the distinction is what the
+two rules below turn on:
 
-[§5.4](#health) is the second argument for it. A probe polls an HTTP path, and
-`readiness` is REQUIRED for a `SERVICE` exposing a `PUBLIC` endpoint — so a
-`PUBLIC` `TCP` endpoint would compel a probe it has no way to express.
+| `protocol` | What a `PUBLIC` endpoint publishes |
+|---|---|
+| `HTTP`, `HTTPS`, `WS`, `GRPC` | A **URL**, on a hostname derived from the endpoint name. |
+| `TCP`, `UDP` | A **`host:port` address**, on a port allocated from the edge. |
+
+Nothing here is `structural`: a `PUBLIC` `TCP` endpoint is a database, a game
+server, an MQTT broker or an SMTP relay exposed to the internet, and rejecting
+it would make a working capability inexpressible. What the split does decide is
+which references may name such an endpoint — [§5.4](#health) for a probe and
+[§6.1](#inputs) for a platform default, both of which derive something only a
+URL-published endpoint has.
 
 **A component MAY declare more than one `PUBLIC` endpoint**, and each one
-publishes its own URL. A component fronting an API on one port and a console on
-another is one component rather than two, and nothing about routing the second
-is harder than routing the first.
+publishes its own address. A component fronting an API on one port and a console
+on another is one component rather than two, and nothing about routing the
+second is harder than routing the first.
 
 The consequence is a rule and not a caveat: **anything naming a public address
 MUST name the endpoint it means.** Where two exist there is no such thing as
@@ -338,10 +367,79 @@ should believe. That silence is a gap rather than a considered permission, and
 is recorded here so a reader can tell the two apart. Closing it rejects
 documents that validate today.
 
+Nor does v1 give the contract any way to read the edge address of a `PUBLIC`
+`TCP` or `UDP` endpoint. [§6.1](#inputs)'s two sources both derive from a URL,
+and no third source is defined. That is a decision rather than a gap: the
+address form exists, and whether the contract should expose it is a question
+this version declines to answer rather than one it overlooked.
+
 ### <a id="env-vars"></a>5.3 Environment variables
 
-> **TODO** — Key grammar, the precedence order between literal, config-reference,
-> and contract-supplied values, and the handling of sensitive values.
+`envVars` is a **sequence** of entries, each pairing a `key` with a `value`. It
+is the one collection in this document that is not a mapping, and that shape
+decides more than it looks like it should — [§5](#workload)'s argument that
+"input and output keys are unique within a component because `contract.inputs`
+and `contract.outputs` are mappings" does not reach here. A repeated env-var key
+is not `ERR_DUPLICATE_KEY` in the `parser` phase, because at the YAML level
+nothing is repeated: two entries of a sequence are two entries.
+
+**A key MUST match `^[A-Z_][A-Z0-9_]*$`** and be 1 to 128 characters. That is
+the POSIX shape, and it is REQUIRED rather than conventional: a name outside it
+is not portably settable by the thing that has to set it. The rule is
+`structural` and carries `ERR_INVALID_VALUE`.
+
+`value` is discriminated on `type`.
+
+| `type` | Carries | What the document holds |
+|---|---|---|
+| `LITERAL` | `value`, and OPTIONAL `isSensitive` | The value itself. An empty string is permitted. |
+| `CONFIG_REF` | `configKey` | A reference. The document never holds the value. |
+
+**A key is declared once.** Two entries sharing a key are rejected in the
+`semantic` phase with `ERR_DUPLICATE_ENV_KEY`, anchored at the **later** of the
+two — the first declaration is the one that stands, so the second is the one an
+author has to change. Without this rule the sequence shape would make a repeated
+key mean whatever an implementation's last write happened to be.
+
+**A key is claimed by one declaration.** An input's
+[`target.envVarKey`](#inputs) binds a resolved value into the environment, so it
+competes for the same namespace these entries do. Two declarations of one key
+are rejected in the `semantic` phase with `ERR_CONFLICTING_ENV_KEY`, in both
+shapes it can take:
+
+- an `envVars` entry whose `key` equals some input's `target.envVarKey`, and
+- two inputs declaring the same `target.envVarKey`.
+
+The diagnostic anchors at an input's `target/envVarKey` in both cases, and where
+two inputs collide it anchors at the later of the two in **lexicographic
+input-name order**. Anchors are normative ([§8](#diagnostics)), so the tiebreak
+is written down rather than left to whichever order an implementation iterates
+a mapping in.
+
+**There is no precedence order**, and there is nothing for one to resolve: a
+collision is an error, so no key is ever claimed twice. Ranking the two instead
+— letting a contract-supplied value quietly outrank a literal, or the reverse —
+would settle the ambiguity without telling anyone there was one, and the
+consequence would surface as a wrong value inside a running workload rather than
+as a diagnostic. [Blueprint §5.2](../../blueprint/v1/spec.md#merge) refused that
+same trade for input merging, and refused it on the same ground.
+
+**Sensitivity.** `isSensitive` on a `LITERAL` marks the value as secret
+material. An implementation MUST treat a marked value as
+[§6.1](#inputs) requires of a generated input: masked in read surfaces, and
+never echoed back into logs, diagnostics, or interfaces. It defaults to `false`,
+so an unmarked literal is handled as ordinary configuration.
+
+A `CONFIG_REF` carries no marking and needs none. It names a value resolved
+elsewhere and the document holds only the name, so there is nothing in this file
+to mask.
+
+A component SHOULD carry secret material as a `CONFIG_REF`, or as an input with
+a `generator` ([§6.1](#inputs)), rather than as a marked literal. `isSensitive`
+governs how a value is *handled*; it does not stop the value being bytes in a
+file that is read, reviewed, and committed. It is a SHOULD because a marked
+literal is still better than an unmarked one, and this document cannot see where
+the file lives.
 
 ### <a id="health"></a>5.4 Health probes
 
@@ -366,12 +464,26 @@ Both are `semantic`, and the schema can express neither — the endpoint names a
 mapping keys elsewhere in the document, and JSON Schema cannot constrain a value
 against a sibling's keys.
 
+**A probe MUST name an endpoint in the HTTP family.** Every probe polls an HTTP
+path, so an endpoint whose `protocol` is `TCP` or `UDP` has nothing for one to
+poll. A probe resolving to such an endpoint — by naming it, or by having the
+primary election select it — is rejected in the `semantic` phase with
+`ERR_ENDPOINT_NOT_HTTP`. The rule is `semantic` for the same reason as the two
+above it.
+
 **`readiness` is REQUIRED for a `SERVICE` exposing at least one `PUBLIC`
-endpoint**, and OPTIONAL everywhere else, including on a `SERVICE` whose
-endpoints are all `PRIVATE`. The rule is narrow on purpose. Without a readiness
-gate a public URL routes to a replica that is running but not yet serving, and
-the first request a user makes is the one that fails. A private consumer inside
-the mesh retries; a browser does not.
+endpoint whose `protocol` is `HTTP`, `HTTPS`, `WS` or `GRPC`**, and OPTIONAL
+everywhere else — including on a `SERVICE` whose endpoints are all `PRIVATE`,
+and on one whose only `PUBLIC` endpoint is `TCP` or `UDP`. The rule is narrow on
+purpose. Without a readiness gate a public URL routes to a replica that is
+running but not yet serving, and the first request a user makes is the one that
+fails. A private consumer inside the mesh retries; a browser does not.
+
+The `TCP`/`UDP` exemption is that same argument, not a second one. What
+[§5.2](#endpoints) publishes for those protocols is a `host:port` address, and
+an L4 consumer connecting to one retries exactly as a private consumer does.
+Compelling a probe there would also compel an HTTP path against a port that
+speaks no HTTP — a rule the document has no way to satisfy.
 
 ### <a id="volumes"></a>5.5 Volumes
 
@@ -438,11 +550,17 @@ which endpoint it is derived from.
 endpoints, one that does MUST name the endpoint here: null elects nothing there
 and is rejected with `ERR_AMBIGUOUS_ENDPOINT`.
 
-Two further rules follow the name, both `semantic`. An endpoint the workload
+Three further rules follow the name, all `semantic`. An endpoint the workload
 does not declare is `ERR_UNKNOWN_ENDPOINT` — the same code and the same reason
 as a probe's. An endpoint that is declared but `PRIVATE` is
 `ERR_ENDPOINT_NOT_PUBLIC`: both sources derive an externally reachable address,
 and a `PRIVATE` endpoint has none to give.
+
+The third follows from [§5.2](#endpoints)'s two address forms. Both sources
+derive from a **URL** — `PUBLIC_URL` is one, `PUBLIC_HOSTNAME` is the host part
+of one — and a `PUBLIC` `TCP` or `UDP` endpoint publishes a `host:port` address
+instead, which has no URL to take either from. Naming one is
+`ERR_ENDPOINT_NOT_HTTP`, the same code a probe on such an endpoint carries.
 
 **A platform default is not a `CONNECTION`.** The value comes from the
 component's own workload, never from an upstream node, which is the same line
@@ -470,11 +588,12 @@ It is not, however, a licence for a cyclic graph.
 [Blueprint §4.2](../../blueprint/v1/spec.md#connections) requires the
 connection graph to be acyclic, for reasons of its own.
 
-> **TODO** — Type compatibility between an output and the input it feeds.
-> `schema.semanticType` is the tag a composition layer matches on, but the
-> matching rule is not yet stated. It belongs with
-> [blueprint §4.2](../../blueprint/v1/spec.md#connections), which resolves the
-> connection.
+**Where an output must fit the input it feeds.** An output's `schema` and the
+`schema` of the input it is wired to must agree on `type`, and on
+`semanticType` wherever the consuming input names one.
+[Blueprint §4.2](../../blueprint/v1/spec.md#connections) states the rule and
+carries the two diagnostics, because the connection is what joins the two ends
+and a component document sees only one of them.
 
 ## <a id="validation-layers"></a>7. Validation layers
 
@@ -530,9 +649,12 @@ different text and that is expected.
 | `ERR_INVALID_TYPE` | `structural` | A value has the wrong type. |
 | `ERR_INVALID_VALUE` | `structural` | A value violates a pattern, enum, or bound. |
 | `ERR_UNPINNED_IMAGE` | `semantic` | An image reference carries a floating tag. |
+| `ERR_DUPLICATE_ENV_KEY` | `semantic` | Two `envVars` entries declare the same key. |
+| `ERR_CONFLICTING_ENV_KEY` | `semantic` | An environment-variable key is claimed by more than one declaration. |
 | `ERR_UNKNOWN_ENDPOINT` | `semantic` | A probe or a platform default names an endpoint the workload does not declare. |
 | `ERR_AMBIGUOUS_ENDPOINT` | `semantic` | A reference omits the endpoint, and the workload elects no primary. |
 | `ERR_ENDPOINT_NOT_PUBLIC` | `semantic` | A platform default deriving a public address names a `PRIVATE` endpoint. |
+| `ERR_ENDPOINT_NOT_HTTP` | `semantic` | A probe or a platform default resolves to an endpoint whose protocol is not in the HTTP family. |
 | `ERR_VERSION_NOT_MONOTONIC` | `capability` | A published component version is not greater than the lineage's current version. |
 
 The `parser` and `structural` rows are the shared envelope registry: the
@@ -555,8 +677,15 @@ that is declared to fail is a conformance failure.
 This schema was seeded from the platform's Pydantic-generated catalog schema.
 The naming that arrived with it — `$defs` keys carrying `Seed…`/`…Request`
 affixes, and generated `title` values like `Specversion` — has been cleaned,
-and `tools/src/lint.ts` now rejects both. The remaining debt MUST be resolved
-before v1 is declared stable:
+and `tools/src/lint.ts` now rejects both. No section of this document is marked
+TODO any longer: every rule it states is stated in prose, and the schema
+implements the prose rather than standing in for it.
 
-1. Every section above marked TODO is currently defined only by the schema's
-   structure, which is not a substitute for prose.
+One debt remains, and it MUST be resolved before v1 is declared stable. Some
+schema `description` fields still speak the platform's vocabulary rather than
+this contract's — "resolved server-side at snapshot compute" names a pipeline
+stage a reader outside `musher-dev/platform` cannot look up, and `size` values
+like `general.standard.small` name a Compute Profile vocabulary this repository
+does not publish. Descriptions are explanatory rather than normative, so nothing
+in this document turns on them; a reader who cannot resolve the words is still
+being told to go somewhere they cannot reach.

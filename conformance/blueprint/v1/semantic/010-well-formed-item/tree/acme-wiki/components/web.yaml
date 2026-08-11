@@ -15,6 +15,12 @@ spec:
         visibility: PRIVATE
   contract:
     inputs:
+      DATABASE_URL:
+        schema:
+          type: STRING
+          isSensitive: true
+        suppliedBy: CONNECTION
+        ui: null
       adminPassword:
         schema:
           type: STRING

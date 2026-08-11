@@ -1,0 +1,19 @@
+# `web` requires DATABASE_URL over a connection, and declares none. A
+# CONNECTION input never reaches the install form, so nothing downstream can
+# supply it — the composition is already unsatisfiable here.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  version: 1
+spec:
+  components:
+    db:
+      component: ./components/postgres.yaml
+      size: general.standard.small
+      connections: {}
+    web:
+      component: ./components/web.yaml
+      size: general.standard.small
+      connections: {}
+  parameters: {}

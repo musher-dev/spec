@@ -1,0 +1,22 @@
+# envVars is a sequence, so two entries sharing a key repeat nothing at the
+# YAML level and the parser phase sees no duplicate. The rule that catches it
+# is §5.3's, and it anchors at the later entry — the first declaration stands.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+    envVars:
+      - key: LOG_LEVEL
+        value:
+          type: LITERAL
+          value: info
+      - key: LOG_LEVEL
+        value:
+          type: LITERAL
+          value: debug

@@ -1,0 +1,6 @@
+[
+  {
+    "code": "ERR_CONFLICTING_ENV_KEY",
+    "path": "/spec/contract/inputs/databaseUrl/target/envVarKey"
+  }
+]

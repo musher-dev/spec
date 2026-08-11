@@ -1,0 +1,27 @@
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+    endpoints:
+      web:
+        containerPort: 8080
+        protocol: HTTP
+        visibility: PRIVATE
+  contract:
+    inputs:
+      DATABASE_URL:
+        schema:
+          type: STRING
+          format: CONNECTION_STRING
+          semanticType: POSTGRES
+          isSensitive: true
+        suppliedBy: CONNECTION
+        isRequired: false
+        ui: null
+    outputs: {}

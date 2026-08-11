@@ -437,6 +437,10 @@ const UNCOVERED: ReadonlyMap<string, string> = new Map([
     'ERR_VERSION_NOT_MONOTONIC',
     'capability — comparing a version against the lineage it extends needs the catalog, and a fixture is one document with no previous release to be greater than',
   ],
+  [
+    'ERR_COMPONENT_NOT_PUBLISHED',
+    'capability — only the registry holds publication state, so deciding it needs the catalog, and a fixture is a tree of files none of which has one',
+  ],
 ])
 
 /**

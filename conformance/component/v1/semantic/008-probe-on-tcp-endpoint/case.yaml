@@ -1,0 +1,22 @@
+# Every probe polls an HTTP path, so an endpoint serving TCP has nothing for
+# one to poll. The endpoint resolves and is PUBLIC — only its protocol makes
+# the probe unsatisfiable.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: postgres:17.10-alpine
+    endpoints:
+      db:
+        containerPort: 5432
+        protocol: TCP
+        visibility: PUBLIC
+    health:
+      readiness:
+        path: /healthz
+        endpoint: db

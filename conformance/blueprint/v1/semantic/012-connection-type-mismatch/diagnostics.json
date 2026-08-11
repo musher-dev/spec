@@ -1,0 +1,6 @@
+[
+  {
+    "code": "ERR_INCOMPATIBLE_TYPE",
+    "path": "/spec/components/web/connections/DATABASE_PORT/fromOutput"
+  }
+]

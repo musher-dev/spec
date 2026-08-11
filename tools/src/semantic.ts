@@ -81,6 +81,14 @@ const FLOATING_TAGS = new Set([
 ])
 
 /**
+ * Component §5.2 — the protocols whose `PUBLIC` form publishes a URL. A `TCP` or
+ * `UDP` endpoint publishes a `host:port` address instead, which is why §5.4's
+ * probes and §6.1's platform defaults may not resolve to one: a probe polls an
+ * HTTP path, and both platform-default sources take their value from a URL.
+ */
+const HTTP_FAMILY = new Set(['HTTP', 'HTTPS', 'WS', 'GRPC'])
+
+/**
  * The tag of an image reference, or `undefined` when it carries none.
  *
  * The tag colon is the one after the final slash. Without that rule
@@ -156,23 +164,38 @@ function checkEndpointReference(
   const named = asString(reference.value)
 
   // Absent or null both select the primary, which §5.2 may elect to be nothing.
-  if (named === undefined) {
-    if (primaryEndpoint(endpoints) === undefined) {
-      out.push({
-        code: 'ERR_AMBIGUOUS_ENDPOINT',
-        path: reference.path,
-        message: `${reference.subject} names no endpoint, and the workload elects no primary`,
-      })
-    }
+  // Every rule below is measured against whichever endpoint the reference
+  // resolves to, named or elected — §5.2 makes the primary what null *selects*,
+  // so a rule about the endpoint a reference names reaches it equally.
+  const selected = named ?? primaryEndpoint(endpoints)
+  if (selected === undefined) {
+    out.push({
+      code: 'ERR_AMBIGUOUS_ENDPOINT',
+      path: reference.path,
+      message: `${reference.subject} names no endpoint, and the workload elects no primary`,
+    })
     return
   }
 
-  const declared = child(endpoints, named)
+  const declared = child(endpoints, selected)
   if (declared === undefined) {
     out.push({
       code: 'ERR_UNKNOWN_ENDPOINT',
       path: reference.path,
-      message: `${reference.subject} targets endpoint "${named}", which the workload does not declare`,
+      message: `${reference.subject} targets endpoint "${selected}", which the workload does not declare`,
+    })
+    return
+  }
+
+  // §5.4 and §6.1 — a probe polls an HTTP path and both platform-default
+  // sources derive from a URL. A TCP or UDP endpoint publishes a host:port
+  // address instead, and has neither to give.
+  const protocol = asString(child(declared, 'protocol'))
+  if (protocol !== undefined && !HTTP_FAMILY.has(protocol)) {
+    out.push({
+      code: 'ERR_ENDPOINT_NOT_HTTP',
+      path: reference.path,
+      message: `${reference.subject} resolves to endpoint "${selected}", which serves ${protocol}`,
     })
     return
   }
@@ -181,7 +204,7 @@ function checkEndpointReference(
     out.push({
       code: 'ERR_ENDPOINT_NOT_PUBLIC',
       path: reference.path,
-      message: `${reference.subject} derives a public address from endpoint "${named}", which is PRIVATE`,
+      message: `${reference.subject} derives a public address from endpoint "${selected}", which is PRIVATE`,
     })
   }
 }
@@ -220,6 +243,58 @@ function checkEndpointReferences(document: Json, out: Diagnostic[]): void {
   const endpoints = child(child(child(document, 'spec'), 'workload'), 'endpoints')
   for (const reference of endpointReferences(document)) {
     checkEndpointReference(reference, endpoints, out)
+  }
+}
+
+/**
+ * Component §5.3 — every environment-variable key is declared exactly once,
+ * across both the places that declare one.
+ *
+ * `envVars` is a sequence rather than a mapping, so §5's "a repeated key is
+ * ERR_DUPLICATE_KEY in the parser phase" does not reach it: two entries of a
+ * sequence repeat nothing at the YAML level. An input's `target.envVarKey`
+ * binds into the same namespace, so it competes with them.
+ */
+function checkEnvVarKeys(document: Json, out: Diagnostic[]): void {
+  const spec = child(document, 'spec')
+  const envVars = child(child(spec, 'workload'), 'envVars')
+  const inputs = child(child(spec, 'contract'), 'inputs')
+
+  // First declaration wins the key, so the later one is what an author changes.
+  const declared = new Map<string, string>()
+
+  if (Array.isArray(envVars)) {
+    for (const [position, entry] of envVars.entries()) {
+      const key = asString(child(entry, 'key'))
+      if (key === undefined) continue
+      const earlier = declared.get(key)
+      if (earlier === undefined) {
+        declared.set(key, `envVars entry ${position}`)
+        continue
+      }
+      out.push({
+        code: 'ERR_DUPLICATE_ENV_KEY',
+        path: `/spec/workload/envVars/${position}/key`,
+        message: `environment variable "${key}" is already declared by ${earlier}`,
+      })
+    }
+  }
+
+  // Lexicographic input-name order, because §5.3 anchors the collision at the
+  // later of two inputs and a mapping supplies no order of its own.
+  for (const input of keysOf(inputs).sort()) {
+    const key = asString(child(child(child(inputs, input), 'target'), 'envVarKey'))
+    if (key === undefined) continue
+    const earlier = declared.get(key)
+    if (earlier === undefined) {
+      declared.set(key, `input "${input}"`)
+      continue
+    }
+    out.push({
+      code: 'ERR_CONFLICTING_ENV_KEY',
+      path: `/spec/contract/inputs/${token(input)}/target/envVarKey`,
+      message: `environment variable "${key}" is already claimed by ${earlier}`,
+    })
   }
 }
 
@@ -608,6 +683,9 @@ function checkGraphAgainstItem(
 
   checkUnreferencedComponents(itemRoot, documentPath, referenced, out)
   checkConnectionOutputs(components, resolved, out)
+  checkConnectionInputs(components, resolved, out)
+  checkRequiredConnections(components, resolved, out)
+  checkConnectionCompatibility(components, resolved, out)
   checkInputMerge(components, resolved, out)
 }
 
@@ -658,6 +736,135 @@ function checkConnectionOutputs(
           code: 'ERR_UNKNOWN_OUTPUT',
           path: `/spec/components/${token(node)}/connections/${token(key)}/fromOutput`,
           message: `"${output}" is not an output of the component "${role}" deploys`,
+        })
+      }
+    }
+  }
+}
+
+/** The inputs a node's component declares, keyed by input name. */
+function inputsOf(component: Json | undefined): Json | undefined {
+  return child(child(child(component, 'spec'), 'contract'), 'inputs')
+}
+
+/**
+ * Blueprint §4.2 — a connection's map key MUST name an input of the component
+ * the *consuming* node deploys. The mirror of `ERR_UNKNOWN_OUTPUT`: a wire whose
+ * two ends are each checked and whose consumer end is not can be misspelled at
+ * one end only.
+ */
+function checkConnectionInputs(
+  components: Json | undefined,
+  resolved: Map<string, Json>,
+  out: Diagnostic[],
+): void {
+  for (const node of keysOf(components)) {
+    const consumer = resolved.get(node)
+    // An unresolved consumer is already ERR_COMPONENT_NOT_FOUND, or is a
+    // published reference this phase may not resolve at all.
+    if (consumer === undefined) continue
+
+    const declared = keysOf(inputsOf(consumer))
+    for (const key of keysOf(child(child(components, node), 'connections'))) {
+      if (declared.includes(key)) continue
+      out.push({
+        code: 'ERR_UNKNOWN_INPUT',
+        path: `/spec/components/${token(node)}/connections/${token(key)}`,
+        message: `"${key}" is not an input of the component "${node}" deploys`,
+      })
+    }
+  }
+}
+
+/**
+ * Blueprint §4.2 — a required `CONNECTION` input MUST be wired.
+ *
+ * `isRequired` defaults to true, so an absent key is a required input. A
+ * `CONNECTION` input never reaches the install form, so a graph that leaves one
+ * unwired has no later chance to supply it.
+ */
+function checkRequiredConnections(
+  components: Json | undefined,
+  resolved: Map<string, Json>,
+  out: Diagnostic[],
+): void {
+  for (const node of keysOf(components)) {
+    const consumer = resolved.get(node)
+    if (consumer === undefined) continue
+
+    const wired = new Set(keysOf(child(child(components, node), 'connections')))
+    const inputs = inputsOf(consumer)
+    for (const key of keysOf(inputs)) {
+      const input = child(inputs, key)
+      if (child(input, 'suppliedBy') !== 'CONNECTION') continue
+      if (child(input, 'isRequired') === false) continue
+      if (wired.has(key)) continue
+      out.push({
+        code: 'ERR_UNWIRED_REQUIRED_INPUT',
+        path: `/spec/components/${token(node)}/connections`,
+        message: `required input "${key}" of node "${node}" is satisfied by no connection`,
+      })
+    }
+  }
+}
+
+/**
+ * Blueprint §4.2 — the two ends of a connection MUST fit.
+ *
+ * `type` is compared for equality with no widening in either direction; a
+ * `semanticType` the consumer names must be matched exactly by the producer,
+ * while a consumer naming none accepts anything. Both ends always carry a
+ * `schema` with a required `type`, so there is no unconstrained producer case.
+ */
+function checkConnectionCompatibility(
+  components: Json | undefined,
+  resolved: Map<string, Json>,
+  out: Diagnostic[],
+): void {
+  for (const node of keysOf(components)) {
+    const connections = child(child(components, node), 'connections')
+    const consumer = resolved.get(node)
+    if (consumer === undefined) continue
+
+    for (const key of keysOf(connections)) {
+      const connection = child(connections, key)
+      const role = asString(child(connection, 'fromRole'))
+      const output = asString(child(connection, 'fromOutput'))
+      if (role === undefined || output === undefined) continue
+
+      const producer = resolved.get(role)
+      if (producer === undefined) continue
+
+      // A dangling end is already ERR_UNKNOWN_OUTPUT or ERR_UNKNOWN_INPUT; do
+      // not pile a compatibility verdict on a pair that does not both exist.
+      const outputs = child(child(child(producer, 'spec'), 'contract'), 'outputs')
+      const inputs = child(child(child(consumer, 'spec'), 'contract'), 'inputs')
+      const from = child(child(outputs, output), 'schema')
+      const to = child(child(inputs, key), 'schema')
+      if (from === undefined || to === undefined) continue
+
+      const path = `/spec/components/${token(node)}/connections/${token(key)}/fromOutput`
+      const fromType = child(from, 'type')
+      const toType = child(to, 'type')
+      if (fromType !== toType) {
+        out.push({
+          code: 'ERR_INCOMPATIBLE_TYPE',
+          path,
+          message: `output "${output}" is ${String(fromType)}, and input "${key}" takes ${String(toType)}`,
+        })
+        continue
+      }
+
+      // A consumer naming no semanticType has said the value is not specific to
+      // a backing service, so nothing it receives can contradict that.
+      const toSemantic = asString(child(to, 'semanticType'))
+      if (toSemantic === undefined) continue
+      const fromSemantic = asString(child(from, 'semanticType'))
+      if (fromSemantic !== toSemantic) {
+        out.push({
+          code: 'ERR_INCOMPATIBLE_SEMANTIC_TYPE',
+          path,
+          message: `input "${key}" requires ${toSemantic}, and output "${output}" declares ${fromSemantic ?? 'none'}`,
         })
       }
     }
@@ -726,6 +933,7 @@ export function semanticDiagnostics(
   if (family.name === 'component') {
     checkImageRef(document, out)
     checkEndpointReferences(document, out)
+    checkEnvVarKeys(document, out)
   }
   if (family.name === 'blueprint') {
     checkConnectionRoles(document, out)

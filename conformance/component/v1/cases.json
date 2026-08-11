@@ -173,6 +173,16 @@
       "path": "structural/030-two-public-endpoints"
     },
     {
+      "id": "structural-031-endpoint-name-with-a-hyphen",
+      "phase": "structural",
+      "path": "structural/031-endpoint-name-with-a-hyphen"
+    },
+    {
+      "id": "structural-032-env-var-key-not-uppercase",
+      "phase": "structural",
+      "path": "structural/032-env-var-key-not-uppercase"
+    },
+    {
       "id": "semantic-001-floating-tag-image-reference",
       "phase": "semantic",
       "path": "semantic/001-floating-tag-image-reference"
@@ -206,6 +216,26 @@
       "id": "semantic-007-probe-on-endpointless-workload",
       "phase": "semantic",
       "path": "semantic/007-probe-on-endpointless-workload"
+    },
+    {
+      "id": "semantic-008-probe-on-tcp-endpoint",
+      "phase": "semantic",
+      "path": "semantic/008-probe-on-tcp-endpoint"
+    },
+    {
+      "id": "semantic-009-platform-default-on-tcp-endpoint",
+      "phase": "semantic",
+      "path": "semantic/009-platform-default-on-tcp-endpoint"
+    },
+    {
+      "id": "semantic-010-duplicate-env-var-key",
+      "phase": "semantic",
+      "path": "semantic/010-duplicate-env-var-key"
+    },
+    {
+      "id": "semantic-011-env-key-claimed-twice",
+      "phase": "semantic",
+      "path": "semantic/011-env-key-claimed-twice"
     }
   ]
 }

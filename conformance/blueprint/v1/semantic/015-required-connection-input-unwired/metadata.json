@@ -1,0 +1,8 @@
+{
+  "id": "semantic-015-required-connection-input-unwired",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#connections",
+  "summary": "A required CONNECTION input that no connection satisfies is rejected.",
+  "document": "acme-wiki/blueprint.yaml"
+}

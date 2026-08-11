@@ -3,5 +3,5 @@
   "phase": "structural",
   "expected": "fail",
   "clause": "specifications/component/v1/spec.md#endpoints",
-  "summary": "An endpoint name outside the slug grammar is rejected."
+  "summary": "An endpoint name carrying a dot is rejected."
 }

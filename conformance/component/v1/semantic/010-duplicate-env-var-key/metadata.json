@@ -1,0 +1,7 @@
+{
+  "id": "semantic-010-duplicate-env-var-key",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#env-vars",
+  "summary": "Two envVars entries declaring the same key are rejected."
+}

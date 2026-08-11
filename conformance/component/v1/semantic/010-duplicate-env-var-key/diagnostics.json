@@ -1,0 +1,6 @@
+[
+  {
+    "code": "ERR_DUPLICATE_ENV_KEY",
+    "path": "/spec/workload/envVars/1/key"
+  }
+]

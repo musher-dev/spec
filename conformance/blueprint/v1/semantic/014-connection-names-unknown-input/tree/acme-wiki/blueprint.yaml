@@ -1,0 +1,23 @@
+# `db` publishes `connectionString` and `web` declares an input called
+# `DATABASE_URL`, but the wire is keyed `DATABASE_URI`. The producer end
+# resolves, so ERR_UNKNOWN_OUTPUT does not fire — only the consumer end is
+# misspelled, which is the half nothing checked before.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  version: 1
+spec:
+  components:
+    db:
+      component: ./components/postgres.yaml
+      size: general.standard.small
+      connections: {}
+    web:
+      component: ./components/web.yaml
+      size: general.standard.small
+      connections:
+        DATABASE_URI:
+          fromRole: db
+          fromOutput: connectionString
+  parameters: {}

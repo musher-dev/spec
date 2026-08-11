@@ -434,7 +434,8 @@
           "additionalProperties": {
             "$ref": "#/$defs/BlueprintNode"
           },
-          "description": "Component references composing the graph, keyed by graph-local node name. The name is what a connection's fromRole refers to and what the parameter merge orders the graph by; it means nothing outside this document.",
+          "description": "Component references composing the graph, keyed by graph-local node name. The name is what a connection's fromRole refers to and what the parameter merge orders the graph by; it means nothing outside this document. At least one node is required — spec.md §1 makes a blueprint a composition of one or more components, and an empty graph deploys nothing.",
+          "minProperties": 1,
           "propertyNames": {
             "pattern": "^[a-z][a-z0-9-]{0,61}[a-z0-9]$"
           },
@@ -448,6 +449,9 @@
           "type": "object"
         }
       },
+      "required": [
+        "components"
+      ],
       "type": "object"
     }
   }

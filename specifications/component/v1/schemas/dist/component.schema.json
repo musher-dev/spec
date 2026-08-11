@@ -124,34 +124,8 @@
       "type": "object"
     },
     "ComponentEndpoint": {
+      "$comment": "spec.md §5.2. Every protocol may be PUBLIC. The two published address forms differ — an HTTP-family endpoint publishes a URL, a TCP or UDP endpoint an edge `host:port` address — and that difference is carried by the rules in §5.4 and §6.1 rather than by a constraint here.",
       "additionalProperties": false,
-      "allOf": [
-        {
-          "$comment": "spec.md §5.2. A PUBLIC endpoint is published at a URL by something that speaks the HTTP family, so TCP and UDP have no URL to publish. A bare conditional carrying no `type` declares no properties of its own, so lint.ts checkClosedObjects correctly skips it.",
-          "if": {
-            "properties": {
-              "visibility": {
-                "const": "PUBLIC"
-              }
-            },
-            "required": [
-              "visibility"
-            ]
-          },
-          "then": {
-            "properties": {
-              "protocol": {
-                "enum": [
-                  "HTTP",
-                  "HTTPS",
-                  "WS",
-                  "GRPC"
-                ]
-              }
-            }
-          }
-        }
-      ],
       "properties": {
         "containerPort": {
           "description": "Port the workload listens on inside the container. Below 1024 needs a capability the runtime grants, so spec.md §5.2 discourages it without rejecting it.",
@@ -652,7 +626,7 @@
           "description": "Name of the PUBLIC endpoint the value is derived from. Null selects the primary endpoint spec.md §5.2 elects.",
           "anyOf": [
             {
-              "pattern": "^[a-z][a-z0-9-]{0,61}[a-z0-9]$",
+              "pattern": "^[a-z][a-z0-9]{0,19}$",
               "type": "string"
             },
             {
@@ -682,7 +656,7 @@
           "description": "Name of the endpoint whose port the probe targets. Null selects the primary endpoint spec.md §5.2 elects.",
           "anyOf": [
             {
-              "pattern": "^[a-z][a-z0-9-]{0,61}[a-z0-9]$",
+              "pattern": "^[a-z][a-z0-9]{0,19}$",
               "type": "string"
             },
             {
@@ -1002,18 +976,30 @@
           }
         },
         {
-          "$comment": "spec.md §5.4: readiness is required for a SERVICE exposing at least one PUBLIC endpoint. Endpoints are a mapping, and no keyword asserts `some member matches` over one, so the condition is spelled as the negation of `every member fails to match`.",
+          "$comment": "spec.md §5.4: readiness is required for a SERVICE exposing at least one PUBLIC endpoint whose protocol is in the HTTP family. Endpoints are a mapping, and no keyword asserts `some member matches` over one, so the condition is spelled as the negation of `every member fails to match`. A PUBLIC TCP or UDP endpoint publishes a host:port address rather than a URL, and an L4 consumer retries where a browser does not, so it compels no probe.",
           "if": {
             "properties": {
               "endpoints": {
                 "not": {
                   "additionalProperties": {
-                    "properties": {
-                      "visibility": {
-                        "not": {
+                    "not": {
+                      "properties": {
+                        "protocol": {
+                          "enum": [
+                            "HTTP",
+                            "HTTPS",
+                            "WS",
+                            "GRPC"
+                          ]
+                        },
+                        "visibility": {
                           "const": "PUBLIC"
                         }
-                      }
+                      },
+                      "required": [
+                        "protocol",
+                        "visibility"
+                      ]
                     }
                   }
                 }
@@ -1066,8 +1052,8 @@
             "$ref": "#/$defs/ComponentEndpoint"
           },
           "propertyNames": {
-            "$comment": "spec.md §5.2. An endpoint name is referenced by probes and by platform defaults, and becomes a DNS label, so it takes the slug grammar rather than an arbitrary key.",
-            "pattern": "^[a-z][a-z0-9-]{0,61}[a-z0-9]$"
+            "$comment": "spec.md §5.2. An endpoint name is referenced by probes and by platform defaults, and is composed into a DNS label beside other slugs rather than being one. Alphanumeric keeps any hyphen separator unambiguous; 20 characters leave room in the 63-character label for what it composes with.",
+            "pattern": "^[a-z][a-z0-9]{0,19}$"
           },
           "type": "object"
         },

@@ -111,6 +111,12 @@ for the same reason.
 reference. The node name is the identifier used by connections; it is local to
 this blueprint and carries no meaning outside it.
 
+`spec.components` is REQUIRED and MUST declare at least one node. [§1](#scope)
+makes a blueprint a composition of one or more component documents, and an
+empty graph deploys nothing while claiming to be the unit of deployment. Both
+halves are `structural`: an absent mapping is `ERR_MISSING_FIELD` and an empty
+one `ERR_INVALID_VALUE`.
+
 A node name MUST match `^[a-z][a-z0-9-]{0,61}[a-z0-9]$`, the same grammar
 `metadata.slug` uses. Uniqueness needs no rule of its own: `spec.components`
 is a mapping, so a repeated node name is `ERR_DUPLICATE_KEY` in the `parser`
@@ -186,6 +192,14 @@ unresolvable; it has not been given the means to check. A published reference
 naming no component, or naming one without the requested `componentVersion`,
 MUST be rejected with `ERR_UNKNOWN_COMPONENT`.
 
+Resolving is not the whole of it. A component the catalog holds but has not
+published is not deployable, and a reference to one MUST be rejected with
+`ERR_COMPONENT_NOT_PUBLISHED`. What counts as published is the registry's to
+define — this contract says only that the two failures read differently to an
+author, since a component that exists and is not yet released is a wait rather
+than a typo. Both are `capability`, for the reason above, so neither can carry
+a fixture.
+
 A context holding no filesystem location for the document — a document
 submitted over an API, for example — has no base directory to resolve against.
 It MUST reject a repo-local reference with `ERR_COMPONENT_NOT_FOUND` rather
@@ -225,9 +239,74 @@ Both are `semantic`. The first needs only this document; the second needs the
 referenced component document, which a repo-local reference makes readable
 without a network.
 
-The consumer end needs no rule. The map key names the input being filled and
-the enclosing node names the consumer, so one input cannot take two wires —
-the mapping already makes that structural.
+**The consumer end MUST resolve too**, and it is named rather than written: the
+map key is the input being filled, and the enclosing node is the consumer. A
+key naming no input of the component that node deploys is `ERR_UNKNOWN_INPUT`
+— the mirror of `ERR_UNKNOWN_OUTPUT`, needing the same referenced document and
+carrying the same argument. A wire whose two ends are each checked and whose
+consumer end is not is a wire that can be misspelled at one end only.
+
+Uniqueness needs no rule. One input cannot take two wires, because the map key
+is what names it — a second wire to the same input is a repeated mapping key
+and therefore `ERR_DUPLICATE_KEY` in the `parser` phase. That is a property of
+how a connection is spelled, not an omission from this section.
+
+**A required `CONNECTION` input MUST be wired.** An input declaring
+`suppliedBy: CONNECTION` is satisfied by a wire and by nothing else
+([component §6.1](../../component/v1/spec.md#inputs)) — it never reaches the
+install form, so a graph that leaves one unwired has no later chance to supply
+it. Where such an input is also `isRequired` — which is its default — and no
+connection on that node names it, the blueprint is rejected with
+`ERR_UNWIRED_REQUIRED_INPUT`, anchored at the node's `connections`. An optional
+`CONNECTION` input MAY be left unwired.
+
+**What v1 does not constrain.** Nothing stops a connection filling an input
+whose `suppliedBy` is `USER`. A wire and the install form would then both claim
+the value, with nothing saying which arrives. That silence is a gap rather than
+a considered permission; closing it rejects compositions that validate today.
+
+**The two ends MUST fit.** Resolving both ends establishes only that they
+exist. A `STRING` output wired into an `INTEGER` input satisfies every rule
+above, and fails at deploy time inside the consuming workload — the failure
+shape [§5.2](#merge) rejected for input merging, on the grounds that it lands
+"a long way from the two documents that disagreed and with nothing pointing
+back at them". The argument is the same here, so the answer is.
+
+Both ends always carry a `schema`, and `type` is REQUIRED on one
+([component §6.1](../../component/v1/spec.md#inputs),
+[component §6.2](../../component/v1/spec.md#outputs)), so there is no
+unconstrained producer to make an exception for. Two axes are compared. Both
+are `semantic`, both need the referenced component documents, and both anchor
+at the connection's `fromOutput`.
+
+**`type` MUST be equal.** A mismatch is `ERR_INCOMPATIBLE_TYPE`. No widening is
+permitted, in either direction. An `INTEGER` output feeding a `STRING` input
+looks harmless — everything is a string by the time it reaches a container —
+but *which* string is a decision each language's formatter makes differently,
+and a contract that permitted the wire would be promising a value it cannot
+describe. An author who wants the conversion writes an output that already has
+the type the consumer asked for.
+
+**`semanticType` MUST agree where the consumer names one.** A consumer
+declaring `null` accepts any producer: it has said the value is not specific to
+a backing service, and nothing it receives can contradict that. A consumer
+declaring a tag requires a producer declaring the **same** tag — including
+rejecting a producer that declares `null`, because an unconstrained producer
+does not satisfy a constrained consumer. A mismatch is
+`ERR_INCOMPATIBLE_SEMANTIC_TYPE`.
+
+That is what `semanticType` is for, given `type` exists. `type` is the
+primitive shape; `semanticType` is the backing service the value addresses. A
+Postgres connection string and a MySQL one are both `STRING`, both plausibly
+`CONNECTION_STRING`-formatted, and wiring one into a consumer expecting the
+other is the mistake the tag exists to catch.
+
+**What v1 does not compare.** `format`, `enum`, `pattern`, `default` and
+`isSensitive` take no part in the decision. A producer whose `pattern` admits
+more than the consumer's does is accepted, and nothing checks that a
+non-sensitive output is not wired into a sensitive input. Those silences are
+gaps rather than considered permissions, recorded here so a reader can tell the
+two apart; closing any of them rejects compositions that validate today.
 
 **The connection graph MUST be acyclic.** A cycle is rejected in the
 `semantic` phase with `ERR_DEPENDENCY_CYCLE`.
@@ -255,12 +334,6 @@ implementations that find the same cycle then report the same walk, which is
 what makes the node names comparable across a conformance corpus instead of an
 artifact of whichever node the traversal happened to start from. The
 diagnostic anchors at `/spec/components/<first>/connections`.
-
-> **TODO** — Type compatibility between the output and the input it feeds.
-> `schema.semanticType` is the tag a composition layer matches on, but the
-> matching rule is not stated, and neither is what happens when a `STRING`
-> output feeds an `INTEGER` input. See
-> [component §6.2](../../component/v1/spec.md#outputs).
 
 ## <a id="parameters"></a>5. Parameters
 
@@ -362,6 +435,11 @@ family adds:
 | `ERR_UNKNOWN_COMPONENT` | `capability` | A published `component` reference names no component, or no such `componentVersion`. |
 | `ERR_UNKNOWN_ROLE` | `semantic` | A connection's `fromRole` names no node in this blueprint. |
 | `ERR_UNKNOWN_OUTPUT` | `semantic` | A connection's `fromOutput` names no output of the referenced component. |
+| `ERR_UNKNOWN_INPUT` | `semantic` | A connection's map key names no input of the consuming node's component. |
+| `ERR_UNWIRED_REQUIRED_INPUT` | `semantic` | A node's required `CONNECTION` input is satisfied by no connection. |
+| `ERR_COMPONENT_NOT_PUBLISHED` | `capability` | A published `component` reference resolves to a component that is not in a published state. |
+| `ERR_INCOMPATIBLE_TYPE` | `semantic` | A connection joins an output and an input whose `schema.type`s differ. |
+| `ERR_INCOMPATIBLE_SEMANTIC_TYPE` | `semantic` | A connection joins an output and an input whose `schema.semanticType`s disagree. |
 | `ERR_DEPENDENCY_CYCLE` | `semantic` | The connection graph contains a cycle. |
 | `ERR_SLUG_MISMATCH` | `semantic` | `metadata.slug` disagrees with the item directory name. |
 | `ERR_VERSION_MISMATCH` | `semantic` | `metadata.version` disagrees with the sibling listing document. |

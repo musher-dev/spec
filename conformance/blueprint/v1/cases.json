@@ -83,6 +83,16 @@
       "path": "structural/012-invalid-node-name"
     },
     {
+      "id": "structural-013-empty-component-graph",
+      "phase": "structural",
+      "path": "structural/013-empty-component-graph"
+    },
+    {
+      "id": "structural-014-missing-component-graph",
+      "phase": "structural",
+      "path": "structural/014-missing-component-graph"
+    },
+    {
       "id": "semantic-001-connection-names-unknown-role",
       "phase": "semantic",
       "path": "semantic/001-connection-names-unknown-role"
@@ -136,6 +146,26 @@
       "id": "semantic-011-three-node-cycle-reporting",
       "phase": "semantic",
       "path": "semantic/011-three-node-cycle-reporting"
+    },
+    {
+      "id": "semantic-012-connection-type-mismatch",
+      "phase": "semantic",
+      "path": "semantic/012-connection-type-mismatch"
+    },
+    {
+      "id": "semantic-013-connection-semantic-type-mismatch",
+      "phase": "semantic",
+      "path": "semantic/013-connection-semantic-type-mismatch"
+    },
+    {
+      "id": "semantic-014-connection-names-unknown-input",
+      "phase": "semantic",
+      "path": "semantic/014-connection-names-unknown-input"
+    },
+    {
+      "id": "semantic-015-required-connection-input-unwired",
+      "phase": "semantic",
+      "path": "semantic/015-required-connection-input-unwired"
     }
   ]
 }

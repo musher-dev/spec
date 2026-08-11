@@ -4,8 +4,11 @@
 #
 # The slug is the directory name, the version matches the listing, both
 # component documents are referenced, both references resolve inside the item,
-# the connection names an output `db` really publishes, and the two components
-# declare `adminPassword` identically — which §5.2 absorbs rather than reports.
+# the connection names an output `db` really publishes and an input `web`
+# really declares, the two ends of that wire agree on type and semanticType,
+# `web` has no other required CONNECTION input left unwired, and the two
+# components declare `adminPassword` identically — which §5.2 absorbs rather
+# than reports.
 specVersion: v1
 kind: BLUEPRINT
 metadata:

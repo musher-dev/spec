@@ -1,0 +1,8 @@
+{
+  "id": "semantic-014-connection-names-unknown-input",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#connections",
+  "summary": "A connection whose key names no input of the consuming component is rejected.",
+  "document": "acme-wiki/blueprint.yaml"
+}

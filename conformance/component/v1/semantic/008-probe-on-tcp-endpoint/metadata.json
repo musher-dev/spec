@@ -1,0 +1,7 @@
+{
+  "id": "semantic-008-probe-on-tcp-endpoint",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#health",
+  "summary": "A probe naming an endpoint outside the HTTP family is rejected."
+}

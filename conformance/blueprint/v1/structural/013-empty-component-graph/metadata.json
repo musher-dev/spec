@@ -1,0 +1,7 @@
+{
+  "id": "structural-013-empty-component-graph",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#components",
+  "summary": "A blueprint declaring no node is rejected."
+}
