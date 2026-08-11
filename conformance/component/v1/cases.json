@@ -206,6 +206,16 @@
       "id": "semantic-007-probe-on-endpointless-workload",
       "phase": "semantic",
       "path": "semantic/007-probe-on-endpointless-workload"
+    },
+    {
+      "id": "semantic-008-probe-on-tcp-endpoint",
+      "phase": "semantic",
+      "path": "semantic/008-probe-on-tcp-endpoint"
+    },
+    {
+      "id": "semantic-009-platform-default-on-tcp-endpoint",
+      "phase": "semantic",
+      "path": "semantic/009-platform-default-on-tcp-endpoint"
     }
   ]
 }

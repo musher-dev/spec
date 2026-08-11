@@ -1,0 +1,6 @@
+[
+  {
+    "code": "ERR_ENDPOINT_NOT_HTTP",
+    "path": "/spec/workload/health/readiness/endpoint"
+  }
+]

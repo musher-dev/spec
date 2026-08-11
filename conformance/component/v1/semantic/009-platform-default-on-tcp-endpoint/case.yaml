@@ -1,0 +1,29 @@
+# PUBLIC_URL takes its value from a URL, and PUBLIC_HOSTNAME from the host part
+# of one. A PUBLIC TCP endpoint publishes a host:port edge address instead, so
+# it has neither to give — the endpoint is declared and PUBLIC, and still
+# cannot answer.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: postgres:17.10-alpine
+    endpoints:
+      db:
+        containerPort: 5432
+        protocol: TCP
+        visibility: PUBLIC
+  contract:
+    inputs:
+      databaseUrl:
+        schema:
+          type: STRING
+        ui:
+          label: Database URL
+        platformDefault:
+          source: PUBLIC_URL
+          endpoint: db

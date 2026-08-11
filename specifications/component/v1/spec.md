@@ -286,20 +286,27 @@ document cannot see, and a rule that rejects on a fact it cannot check is
 guessing. Making it a MUST later rejects documents v1 accepts, and is therefore
 breaking.
 
-**A `PUBLIC` endpoint is reached over HTTP.** `visibility: PUBLIC` publishes the
-endpoint at an externally reachable URL, and what publishes it speaks the HTTP
-family. `protocol` on a `PUBLIC` endpoint MUST therefore be one of `HTTP`,
-`HTTPS`, `WS` or `GRPC`; a `TCP` or `UDP` endpoint MUST be `PRIVATE`. The rule
-is `structural` and carries `ERR_INVALID_VALUE`.
+**Every protocol may be `PUBLIC`, and the address form is what differs.**
+`visibility: PUBLIC` publishes the endpoint at an externally reachable address.
+Which kind of address depends on the protocol, and the distinction is what the
+two rules below turn on:
 
-[§5.4](#health) is the second argument for it. A probe polls an HTTP path, and
-`readiness` is REQUIRED for a `SERVICE` exposing a `PUBLIC` endpoint — so a
-`PUBLIC` `TCP` endpoint would compel a probe it has no way to express.
+| `protocol` | What a `PUBLIC` endpoint publishes |
+|---|---|
+| `HTTP`, `HTTPS`, `WS`, `GRPC` | A **URL**, on a hostname derived from the endpoint name. |
+| `TCP`, `UDP` | A **`host:port` address**, on a port allocated from the edge. |
+
+Nothing here is `structural`: a `PUBLIC` `TCP` endpoint is a database, a game
+server, an MQTT broker or an SMTP relay exposed to the internet, and rejecting
+it would make a working capability inexpressible. What the split does decide is
+which references may name such an endpoint — [§5.4](#health) for a probe and
+[§6.1](#inputs) for a platform default, both of which derive something only a
+URL-published endpoint has.
 
 **A component MAY declare more than one `PUBLIC` endpoint**, and each one
-publishes its own URL. A component fronting an API on one port and a console on
-another is one component rather than two, and nothing about routing the second
-is harder than routing the first.
+publishes its own address. A component fronting an API on one port and a console
+on another is one component rather than two, and nothing about routing the
+second is harder than routing the first.
 
 The consequence is a rule and not a caveat: **anything naming a public address
 MUST name the endpoint it means.** Where two exist there is no such thing as
@@ -338,6 +345,12 @@ should believe. That silence is a gap rather than a considered permission, and
 is recorded here so a reader can tell the two apart. Closing it rejects
 documents that validate today.
 
+Nor does v1 give the contract any way to read the edge address of a `PUBLIC`
+`TCP` or `UDP` endpoint. [§6.1](#inputs)'s two sources both derive from a URL,
+and no third source is defined. That is a decision rather than a gap: the
+address form exists, and whether the contract should expose it is a question
+this version declines to answer rather than one it overlooked.
+
 ### <a id="env-vars"></a>5.3 Environment variables
 
 > **TODO** — Key grammar, the precedence order between literal, config-reference,
@@ -366,12 +379,26 @@ Both are `semantic`, and the schema can express neither — the endpoint names a
 mapping keys elsewhere in the document, and JSON Schema cannot constrain a value
 against a sibling's keys.
 
+**A probe MUST name an endpoint in the HTTP family.** Every probe polls an HTTP
+path, so an endpoint whose `protocol` is `TCP` or `UDP` has nothing for one to
+poll. A probe resolving to such an endpoint — by naming it, or by having the
+primary election select it — is rejected in the `semantic` phase with
+`ERR_ENDPOINT_NOT_HTTP`. The rule is `semantic` for the same reason as the two
+above it.
+
 **`readiness` is REQUIRED for a `SERVICE` exposing at least one `PUBLIC`
-endpoint**, and OPTIONAL everywhere else, including on a `SERVICE` whose
-endpoints are all `PRIVATE`. The rule is narrow on purpose. Without a readiness
-gate a public URL routes to a replica that is running but not yet serving, and
-the first request a user makes is the one that fails. A private consumer inside
-the mesh retries; a browser does not.
+endpoint whose `protocol` is `HTTP`, `HTTPS`, `WS` or `GRPC`**, and OPTIONAL
+everywhere else — including on a `SERVICE` whose endpoints are all `PRIVATE`,
+and on one whose only `PUBLIC` endpoint is `TCP` or `UDP`. The rule is narrow on
+purpose. Without a readiness gate a public URL routes to a replica that is
+running but not yet serving, and the first request a user makes is the one that
+fails. A private consumer inside the mesh retries; a browser does not.
+
+The `TCP`/`UDP` exemption is that same argument, not a second one. What
+[§5.2](#endpoints) publishes for those protocols is a `host:port` address, and
+an L4 consumer connecting to one retries exactly as a private consumer does.
+Compelling a probe there would also compel an HTTP path against a port that
+speaks no HTTP — a rule the document has no way to satisfy.
 
 ### <a id="volumes"></a>5.5 Volumes
 
@@ -438,11 +465,17 @@ which endpoint it is derived from.
 endpoints, one that does MUST name the endpoint here: null elects nothing there
 and is rejected with `ERR_AMBIGUOUS_ENDPOINT`.
 
-Two further rules follow the name, both `semantic`. An endpoint the workload
+Three further rules follow the name, all `semantic`. An endpoint the workload
 does not declare is `ERR_UNKNOWN_ENDPOINT` — the same code and the same reason
 as a probe's. An endpoint that is declared but `PRIVATE` is
 `ERR_ENDPOINT_NOT_PUBLIC`: both sources derive an externally reachable address,
 and a `PRIVATE` endpoint has none to give.
+
+The third follows from [§5.2](#endpoints)'s two address forms. Both sources
+derive from a **URL** — `PUBLIC_URL` is one, `PUBLIC_HOSTNAME` is the host part
+of one — and a `PUBLIC` `TCP` or `UDP` endpoint publishes a `host:port` address
+instead, which has no URL to take either from. Naming one is
+`ERR_ENDPOINT_NOT_HTTP`, the same code a probe on such an endpoint carries.
 
 **A platform default is not a `CONNECTION`.** The value comes from the
 component's own workload, never from an upstream node, which is the same line
@@ -533,6 +566,7 @@ different text and that is expected.
 | `ERR_UNKNOWN_ENDPOINT` | `semantic` | A probe or a platform default names an endpoint the workload does not declare. |
 | `ERR_AMBIGUOUS_ENDPOINT` | `semantic` | A reference omits the endpoint, and the workload elects no primary. |
 | `ERR_ENDPOINT_NOT_PUBLIC` | `semantic` | A platform default deriving a public address names a `PRIVATE` endpoint. |
+| `ERR_ENDPOINT_NOT_HTTP` | `semantic` | A probe or a platform default resolves to an endpoint whose protocol is not in the HTTP family. |
 | `ERR_VERSION_NOT_MONOTONIC` | `capability` | A published component version is not greater than the lineage's current version. |
 
 The `parser` and `structural` rows are the shared envelope registry: the

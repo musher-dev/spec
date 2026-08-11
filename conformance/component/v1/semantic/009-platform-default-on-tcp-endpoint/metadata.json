@@ -1,0 +1,7 @@
+{
+  "id": "semantic-009-platform-default-on-tcp-endpoint",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#inputs",
+  "summary": "A platform default naming an endpoint outside the HTTP family is rejected."
+}

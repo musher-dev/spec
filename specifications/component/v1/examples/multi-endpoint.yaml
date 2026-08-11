@@ -1,8 +1,11 @@
 # yaml-language-server: $schema=https://schemas.musher.dev/component/v1/component.schema.json
 #
-# A service fronting two public URLs and one private port. Because more than
-# one endpoint is PUBLIC, nothing here may say "the component's URL" — the
-# readiness probe and the platform default each name the endpoint they mean.
+# A service fronting two public URLs, one public TCP port, and one private
+# port. Because more than one endpoint is PUBLIC, nothing here may say "the
+# component's URL" — the readiness probe and the platform default each name the
+# endpoint they mean, and both name one in the HTTP family. `wire` is the other
+# address form: a PUBLIC TCP endpoint published at a host:port edge address,
+# which compels no probe and which no platform default may derive from.
 specVersion: v1
 kind: COMPONENT
 metadata:
@@ -21,6 +24,10 @@ spec:
       console:
         containerPort: 8081
         protocol: HTTP
+        visibility: PUBLIC
+      wire:
+        containerPort: 5671
+        protocol: TCP
         visibility: PUBLIC
       metrics:
         containerPort: 9090

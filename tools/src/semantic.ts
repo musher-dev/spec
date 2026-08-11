@@ -81,6 +81,14 @@ const FLOATING_TAGS = new Set([
 ])
 
 /**
+ * Component §5.2 — the protocols whose `PUBLIC` form publishes a URL. A `TCP` or
+ * `UDP` endpoint publishes a `host:port` address instead, which is why §5.4's
+ * probes and §6.1's platform defaults may not resolve to one: a probe polls an
+ * HTTP path, and both platform-default sources take their value from a URL.
+ */
+const HTTP_FAMILY = new Set(['HTTP', 'HTTPS', 'WS', 'GRPC'])
+
+/**
  * The tag of an image reference, or `undefined` when it carries none.
  *
  * The tag colon is the one after the final slash. Without that rule
@@ -156,23 +164,38 @@ function checkEndpointReference(
   const named = asString(reference.value)
 
   // Absent or null both select the primary, which §5.2 may elect to be nothing.
-  if (named === undefined) {
-    if (primaryEndpoint(endpoints) === undefined) {
-      out.push({
-        code: 'ERR_AMBIGUOUS_ENDPOINT',
-        path: reference.path,
-        message: `${reference.subject} names no endpoint, and the workload elects no primary`,
-      })
-    }
+  // Every rule below is measured against whichever endpoint the reference
+  // resolves to, named or elected — §5.2 makes the primary what null *selects*,
+  // so a rule about the endpoint a reference names reaches it equally.
+  const selected = named ?? primaryEndpoint(endpoints)
+  if (selected === undefined) {
+    out.push({
+      code: 'ERR_AMBIGUOUS_ENDPOINT',
+      path: reference.path,
+      message: `${reference.subject} names no endpoint, and the workload elects no primary`,
+    })
     return
   }
 
-  const declared = child(endpoints, named)
+  const declared = child(endpoints, selected)
   if (declared === undefined) {
     out.push({
       code: 'ERR_UNKNOWN_ENDPOINT',
       path: reference.path,
-      message: `${reference.subject} targets endpoint "${named}", which the workload does not declare`,
+      message: `${reference.subject} targets endpoint "${selected}", which the workload does not declare`,
+    })
+    return
+  }
+
+  // §5.4 and §6.1 — a probe polls an HTTP path and both platform-default
+  // sources derive from a URL. A TCP or UDP endpoint publishes a host:port
+  // address instead, and has neither to give.
+  const protocol = asString(child(declared, 'protocol'))
+  if (protocol !== undefined && !HTTP_FAMILY.has(protocol)) {
+    out.push({
+      code: 'ERR_ENDPOINT_NOT_HTTP',
+      path: reference.path,
+      message: `${reference.subject} resolves to endpoint "${selected}", which serves ${protocol}`,
     })
     return
   }
@@ -181,7 +204,7 @@ function checkEndpointReference(
     out.push({
       code: 'ERR_ENDPOINT_NOT_PUBLIC',
       path: reference.path,
-      message: `${reference.subject} derives a public address from endpoint "${named}", which is PRIVATE`,
+      message: `${reference.subject} derives a public address from endpoint "${selected}", which is PRIVATE`,
     })
   }
 }
