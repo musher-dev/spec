@@ -1,0 +1,19 @@
+# The other half of structural-011. The scheme set is three terms, not one, and
+# each is here for a reason worth pinning: `mailto:` because a support address
+# is a plausible value for supportUrl, and `http` because rejecting it would
+# reject projects whose homepage is not yet served over TLS — a judgement about
+# someone else's infrastructure rather than about this document.
+specVersion: v1
+kind: LISTING
+metadata:
+  slug: postgres
+  version: 1
+spec:
+  listingKind: COMPONENT
+  displayName: PostgreSQL
+  summary: The open-source relational database
+  category: INFRASTRUCTURE
+  lifecycleStage: STABLE
+  homepageUrl: https://www.postgresql.org
+  sourceRepoUrl: http://git.postgresql.org/git/postgresql.git
+  supportUrl: mailto:support@example.com

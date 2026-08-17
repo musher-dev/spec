@@ -1,0 +1,7 @@
+{
+  "id": "structural-011-url-field-disallowed-scheme",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/listing/v1/spec.md#presentation",
+  "summary": "A scalar URL field using a scheme outside the permitted set is rejected."
+}

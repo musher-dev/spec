@@ -1,0 +1,36 @@
+# The regression pin for §4.1's "a code fence is not raw HTML".
+#
+# A listing for anything embeddable documents the snippet its users have to
+# paste, and that snippet is HTML. CommonMark tokenises a code span and a fenced
+# code block as their own constructs — never `html_block` or `html_inline` — so
+# the rule is written in CommonMark's terms rather than as a search for angle
+# brackets. A lexical rule would reject this document, and the authors it
+# rejected would be the ones writing honest documentation.
+#
+# The same `<script>` outside the fence is semantic-008.
+specVersion: v1
+kind: LISTING
+metadata:
+  slug: postgres
+  version: 1
+spec:
+  listingKind: COMPONENT
+  displayName: PostgreSQL
+  summary: The open-source relational database
+  category: INFRASTRUCTURE
+  lifecycleStage: STABLE
+  homepageUrl: https://www.postgresql.org
+  supportUrl: mailto:support@example.com
+  description: |
+    ## Embedding the status widget
+
+    Paste this into your page:
+
+    ```html
+    <script src="https://cdn.example.com/status.js"></script>
+    <div id="pg-status"></div>
+    ```
+
+    Set `<meta name="pg-endpoint">` to your instance, then see the
+    [configuration guide](https://www.postgresql.org/docs/) or jump to
+    [#defaults](#defaults) below.

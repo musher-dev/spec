@@ -1,0 +1,7 @@
+{
+  "id": "semantic-008-description-raw-html",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/listing/v1/spec.md#description-markdown",
+  "summary": "A description containing raw HTML is rejected."
+}
