@@ -1,0 +1,7 @@
+{
+  "id": "structural-016-unknown-compute-profile-family",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#node-compute",
+  "summary": "A slug whose family segment is outside the closed set is rejected."
+}

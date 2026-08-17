@@ -6,6 +6,10 @@
 #
 # The two nodes show that a repo-local reference does not mandate a directory
 # layout — `db` names a document under `components/`, `web` a flat sibling.
+#
+# They also size independently. Compute is chosen per node rather than baked
+# into the component, so the database gets more of it than the web server
+# without either document changing.
 specVersion: v1
 kind: BLUEPRINT
 metadata:
@@ -15,7 +19,12 @@ spec:
   components:
     db:
       component: ./components/postgres.yaml
-      size: general.standard.small
+      size: general.standard.medium
+      # Optional pins narrowing which host may run this node. They never change
+      # the compute `size` names — this asks for the profile's vCPU on a host
+      # that dedicates it, not for more of it.
+      advanced:
+        cpuDedication: dedicated
       connections: {}
     web:
       component: ./component-web-server.yaml

@@ -684,8 +684,14 @@ implements the prose rather than standing in for it.
 One debt remains, and it MUST be resolved before v1 is declared stable. Some
 schema `description` fields still speak the platform's vocabulary rather than
 this contract's — "resolved server-side at snapshot compute" names a pipeline
-stage a reader outside `musher-dev/platform` cannot look up, and `size` values
-like `general.standard.small` name a Compute Profile vocabulary this repository
-does not publish. Descriptions are explanatory rather than normative, so nothing
-in this document turns on them; a reader who cannot resolve the words is still
-being told to go somewhere they cannot reach.
+stage a reader outside `musher-dev/platform` cannot look up. Descriptions are
+explanatory rather than normative, so nothing in this document turns on them; a
+reader who cannot resolve the words is still being told to go somewhere they
+cannot reach.
+
+The Compute Profile half of that debt is closed.
+[Blueprint §4.3](../../blueprint/v1/spec.md#node-compute) now carries the slug
+grammar and names where the offered profiles are published, so a slug like
+`general.standard.small` resolves for a reader outside the platform.
+[ADR 0003](../../../docs/adr/0003-controlled-vocabulary-placement.md) records
+the rule that decided it.

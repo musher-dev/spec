@@ -1,0 +1,17 @@
+# This contract does not say which storage classes exist, but it does say what
+# one looks like. A display string is not a term, and two documents spelling the
+# same class differently could not be compared.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: postgres
+  version: 1
+spec:
+  components:
+    db:
+      component: ./components/postgres.yaml
+      size: storage.standard.large
+      advanced:
+        storageClass: Local NVMe
+      connections: {}
+  parameters: {}

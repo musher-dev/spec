@@ -1,0 +1,15 @@
+# Three segments, correct shape, invented family. The grammar is closed on all
+# three segments, so this fails offline rather than travelling to the catalog to
+# be told the same thing.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: postgres
+  version: 1
+spec:
+  components:
+    db:
+      component: ./components/postgres.yaml
+      size: tiny.standard.small
+      connections: {}
+  parameters: {}

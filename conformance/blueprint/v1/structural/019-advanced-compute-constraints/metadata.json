@@ -1,0 +1,7 @@
+{
+  "id": "structural-019-advanced-compute-constraints",
+  "phase": "structural",
+  "expected": "pass",
+  "clause": "specifications/blueprint/v1/spec.md#advanced-constraints",
+  "summary": "A node carrying every advanced compute pin validates."
+}

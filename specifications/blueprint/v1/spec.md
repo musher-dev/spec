@@ -127,11 +127,9 @@ document. Two blueprints MAY each declare a node called `db` and neither is
 the other's. Its one job is to be what [§4.2](#connections) `fromRole` names,
 and what [§5.2](#merge) orders the graph by.
 
-> **TODO** — `size` MUST name a Compute Profile in `family.tier.size` form.
-> State whether an unknown profile is a `semantic` or a `capability` failure.
-> The profile vocabulary itself is not defined in this repository and a reader
-> outside the platform cannot resolve a slug like `general.standard.small`;
-> naming where it is published is part of closing this.
+A node carries three things: the component it deploys ([§4.1](#component-reference)),
+the wires feeding it ([§4.2](#connections)), and the compute it runs on
+([§4.3](#node-compute)).
 
 ### <a id="component-reference"></a>4.1 Component reference
 
@@ -335,6 +333,123 @@ what makes the node names comparable across a conformance corpus instead of an
 artifact of whichever node the traversal happened to start from. The
 diagnostic anchors at `/spec/components/<first>/connections`.
 
+### <a id="node-compute"></a>4.3 Node compute
+
+`size` is REQUIRED on every node and names the **Compute Profile** it runs on —
+a provider-neutral machine tier, not a raw resource request. A component
+document carries no compute of its own
+([component §5](../../component/v1/spec.md#workload)), so the node is the only
+place it can be said, and two blueprints MAY run the same component version at
+different sizes without forking it.
+
+```yaml
+db:
+  component: ./components/postgres.yaml
+  size: general.standard.medium
+  connections: {}
+```
+
+**A profile slug has three segments, `family.tier.size`.** Two layers enforce
+it, and the split between them is deliberate.
+
+The three segments are drawn from closed sets. A value outside them is rejected
+in the `structural` phase with `ERR_INVALID_VALUE`.
+
+| Segment | Members |
+|---|---|
+| family | `general`, `compute`, `memory`, `storage`, `gpu`, `accelerator` |
+| tier | `economy`, `standard`, `performance`, `premium` |
+| size | `nano`, `small`, `medium`, `large`, `xlarge` |
+
+That is a grammar, so the schema carries it. The last segment shares the field's
+name and is not the field: `size` holds the whole slug, and `small` is one third
+of one.
+
+A tier names a capability band rather than a workload — for the `gpu` and
+`accelerator` families, `economy` through `premium` run entry inference to
+frontier training. The exact accelerator is not encoded in the slug; it is
+pinned, if at all, by [§4.4](#advanced-constraints).
+
+**A grammatical slug is not necessarily an offered one.** Which profiles are
+actually available is not a property of this document, and a node naming one
+that is not is rejected with `ERR_UNKNOWN_COMPUTE_PROFILE` in the `capability`
+phase. Deciding it needs the catalog, which needs the network, which
+[§6](#validation-layers) forbids the earlier phases from reaching — so an
+offline implementation MUST NOT report it, on the same grounds
+[§4.1](#component-reference) gives for a published component reference. It has
+not been given the means to check.
+
+**Where the vocabulary is published.** The profiles on offer are served,
+unauthenticated, at
+`https://api.musher.dev/v1/reference/compute-profiles`, and rendered for a
+reader at <https://docs.musher.dev/reference/compute-profiles>. The endpoint
+lists what can be deployed now; a slug the grammar admits and the endpoint does
+not name is reserved rather than available.
+
+**Why the vocabulary is not an `enum`.** The grammar is settled and the
+membership is not: a profile becomes available when the platform has hardware
+to back it, which is not an event this specification can observe and not one a
+release of it coincides with. A schema that enumerated the offering would be
+wrong in both directions between releases — naming tiers that cannot yet be
+deployed, and rejecting ones that can. Growing the *grammar* is safe by
+contrast, because an allowlist admitting more is a relaxation and ships in a
+minor release ([component §3](../../component/v1/spec.md#compatibility));
+narrowing one would be major. That is the mirror of
+[component §5.1](../../component/v1/spec.md#source), where the floating-tag
+blocklist stays out of the schema precisely because growing a *blocklist* is a
+narrowing.
+
+**A bare slug, and never a versioned one.** A profile is versioned where it is
+published, and a slug carrying that version is not a value this field takes —
+the grammar has three segments and rejects a fourth. A node names the profile
+and gets the current version of it, which means the vCPU and memory behind a
+slug MAY differ between two deployments of an unchanged document. That is the
+point of naming a tier rather than a machine: a name like `4vcpu-16gb` fixes
+numbers it cannot keep, promising identical silicon across hardware generations
+that do not deliver it.
+
+### <a id="advanced-constraints"></a>4.4 Advanced constraints
+
+`advanced` is OPTIONAL and narrows the hosts a node may be placed on. Absent,
+`null`, and a block whose every pin is unset all mean the same thing: no
+constraints. A pin whose value is an array means "any" when the array is empty,
+and MUST NOT repeat a term.
+
+| Pin | Narrows |
+|---|---|
+| `cpuArchitecture` | Permitted CPU architectures |
+| `cpuDedication` | `shared` or `dedicated` |
+| `acceleratorMinVramGb` | Accelerator VRAM floor |
+| `acceleratorRuntime` | Required accelerator runtimes |
+| `acceleratorInterconnect` | Required accelerator interconnect |
+| `acceleratorSkuClass` | Exact accelerator SKU class |
+| `storageClass` | Required storage class |
+| `storageMinIops` | Provisioned IOPS floor |
+| `networkClass` | Required network class |
+
+**A pin narrows placement and nothing else.** `size` remains what the node runs
+as; a pin only reduces the set of hosts that may run it. A node pinning
+`cpuDedication: dedicated` gets the vCPU and memory its profile names, on a host
+that dedicates them — never more compute than it asked for, and never a
+substitute profile.
+
+**A pin term is a lowercase token**, `^[a-z0-9][a-z0-9_-]*$`, which admits
+`x86_64`, `arm64`, `local-nvme`, `nvlink` and `cuda`. Numeric pins are positive
+integers. Both are grammar, both are `structural`, and a violation is
+`ERR_INVALID_VALUE`. `cpuDedication` is the one pin whose vocabulary this
+contract closes, because `shared` and `dedicated` are the whole of the concept
+and a third value would be a different one.
+
+**What v1 does not constrain.** No vocabulary is published for the other eight
+pins — not by this repository and not, today, by the platform. `local-nvme` is
+an example rather than a member, and nothing here says what the permitted
+storage classes are. Nor does anything say what happens when no host satisfies a
+pin: it is not decidable offline, and it carries no diagnostic in v1. Those are
+gaps rather than considered permissions, recorded here so a reader can tell the
+two apart. Naming a code for them would claim an implementation reports
+something none does; closing them properly means publishing the terms first, at
+which point they take the same shape `size` has above.
+
 ## <a id="parameters"></a>5. Parameters
 
 `spec.parameters` is the install form: what a deploying user is asked for once,
@@ -438,6 +553,7 @@ family adds:
 | `ERR_UNKNOWN_INPUT` | `semantic` | A connection's map key names no input of the consuming node's component. |
 | `ERR_UNWIRED_REQUIRED_INPUT` | `semantic` | A node's required `CONNECTION` input is satisfied by no connection. |
 | `ERR_COMPONENT_NOT_PUBLISHED` | `capability` | A published `component` reference resolves to a component that is not in a published state. |
+| `ERR_UNKNOWN_COMPUTE_PROFILE` | `capability` | A node's `size` names a Compute Profile the catalog does not offer. |
 | `ERR_INCOMPATIBLE_TYPE` | `semantic` | A connection joins an output and an input whose `schema.type`s differ. |
 | `ERR_INCOMPATIBLE_SEMANTIC_TYPE` | `semantic` | A connection joins an output and an input whose `schema.semanticType`s disagree. |
 | `ERR_DEPENDENCY_CYCLE` | `semantic` | The connection graph contains a cycle. |
@@ -454,5 +570,11 @@ fixture in [`conformance/blueprint/v1/`](../../../conformance/blueprint/v1/).
 ## <a id="known-debt"></a>9. Known debt
 
 Seeded from the platform's generated schema. The naming that arrived with it
-has been cleaned; the sections above marked TODO have not. See
+has been cleaned, and [§4.3](#node-compute) now names where the Compute Profile
+vocabulary is published rather than assuming a reader can already resolve it.
+
+One TODO remains, in [§5.2](#merge): how an authored parameter binds to the
+component inputs it satisfies. [§4.4](#advanced-constraints) is not marked TODO
+but carries the nearest thing to one — a pin vocabulary nothing publishes yet,
+recorded there as a gap. See also
 [component §10](../../component/v1/spec.md#known-debt).

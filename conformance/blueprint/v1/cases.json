@@ -93,6 +93,41 @@
       "path": "structural/014-missing-component-graph"
     },
     {
+      "id": "structural-015-legacy-compute-size-slug",
+      "phase": "structural",
+      "path": "structural/015-legacy-compute-size-slug"
+    },
+    {
+      "id": "structural-016-unknown-compute-profile-family",
+      "phase": "structural",
+      "path": "structural/016-unknown-compute-profile-family"
+    },
+    {
+      "id": "structural-017-versioned-compute-profile-slug",
+      "phase": "structural",
+      "path": "structural/017-versioned-compute-profile-slug"
+    },
+    {
+      "id": "structural-018-reserved-compute-profile-slug",
+      "phase": "structural",
+      "path": "structural/018-reserved-compute-profile-slug"
+    },
+    {
+      "id": "structural-019-advanced-compute-constraints",
+      "phase": "structural",
+      "path": "structural/019-advanced-compute-constraints"
+    },
+    {
+      "id": "structural-020-constraint-term-not-a-token",
+      "phase": "structural",
+      "path": "structural/020-constraint-term-not-a-token"
+    },
+    {
+      "id": "structural-021-unknown-cpu-dedication",
+      "phase": "structural",
+      "path": "structural/021-unknown-cpu-dedication"
+    },
+    {
       "id": "semantic-001-connection-names-unknown-role",
       "phase": "semantic",
       "path": "semantic/001-connection-names-unknown-role"

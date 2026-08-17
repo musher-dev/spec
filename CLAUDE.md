@@ -80,7 +80,8 @@ an unscoped `feat:` releases nothing.
 The three schemas were seeded from the platform's Pydantic-generated catalog
 schemas. The naming and the generated titles have been cleaned and `lint.ts`
 now rejects both, but the seeding still shows in the prose: some `description`
-text uses platform vocabulary (`snapshot compute`, Compute Profile slugs) that
-a reader outside `musher-dev/platform` cannot resolve. The `TODO` sections in
-each `spec.md` are the larger remaining gap — they are what keeps v1
-pre-stable.
+text uses platform vocabulary (`snapshot compute`) that a reader outside
+`musher-dev/platform` cannot resolve. Compute Profile slugs used to be on that
+list; blueprint §4.3 now carries the grammar and names where the vocabulary is
+published, per docs/adr/0003. The `TODO` sections remaining in `blueprint` and
+`listing` `spec.md` are the larger gap — they are what keeps v1 pre-stable.

@@ -1,0 +1,17 @@
+# This is the case that pins the split. The slug is grammatical, so the
+# structural phase accepts it; whether the profile can actually be deployed is
+# a capability question, and an offline validator has not been given the means
+# to answer it. A schema that enumerated the offering would reject this
+# document today and accept it next quarter, having changed nothing.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: inference
+  version: 1
+spec:
+  components:
+    api:
+      component: ./components/api.yaml
+      size: gpu.premium.xlarge
+      connections: {}
+  parameters: {}
