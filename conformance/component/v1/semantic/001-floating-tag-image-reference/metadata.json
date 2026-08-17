@@ -3,5 +3,8 @@
   "phase": "semantic",
   "expected": "fail",
   "clause": "specifications/component/v1/spec.md#source",
+  "requirements": [
+    "COMP-SRC-001"
+  ],
   "summary": "An image reference whose tag is in the floating set is rejected."
 }

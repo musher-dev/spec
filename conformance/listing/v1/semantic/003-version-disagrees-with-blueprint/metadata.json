@@ -3,6 +3,9 @@
   "phase": "semantic",
   "expected": "fail",
   "clause": "specifications/listing/v1/spec.md#identity",
+  "requirements": [
+    "LIST-ID-002"
+  ],
   "summary": "A listing whose version differs from its sibling blueprint's is rejected.",
   "document": "acme-wiki/listing.yaml"
 }

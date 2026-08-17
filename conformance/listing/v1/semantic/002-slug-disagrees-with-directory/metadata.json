@@ -3,6 +3,9 @@
   "phase": "semantic",
   "expected": "fail",
   "clause": "specifications/listing/v1/spec.md#identity",
+  "requirements": [
+    "LIST-ID-001"
+  ],
   "summary": "A listing whose slug is not its item directory name is rejected.",
   "document": "acme-wiki/listing.yaml"
 }

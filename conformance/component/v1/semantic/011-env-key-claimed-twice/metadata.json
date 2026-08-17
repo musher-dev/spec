@@ -3,5 +3,8 @@
   "phase": "semantic",
   "expected": "fail",
   "clause": "specifications/component/v1/spec.md#env-vars",
+  "requirements": [
+    "COMP-ENVVAR-002"
+  ],
   "summary": "An envVars key also claimed by an input's target.envVarKey is rejected."
 }

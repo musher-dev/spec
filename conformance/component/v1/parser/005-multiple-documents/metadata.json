@@ -1,0 +1,10 @@
+{
+  "id": "parser-005-multiple-documents",
+  "phase": "parser",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#yaml-profile",
+  "requirements": [
+    "COMP-YAML-004"
+  ],
+  "summary": "A file carrying two YAML documents is rejected rather than silently reduced to the first."
+}

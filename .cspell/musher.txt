@@ -1,0 +1,51 @@
+# Musher domain vocabulary and the tooling this repository uses.
+#
+# A word belongs here when it is a term of art this repository uses
+# deliberately, not when a spell checker merely has not heard of it. Prefer
+# rewording over adding an entry: the list is a record of vocabulary the
+# specification has committed to.
+
+# --- Musher domain -----------------------------------------------------------
+storefront
+storefronts
+endpointless
+undeployable
+
+# --- Specification craft -----------------------------------------------------
+acyclicity
+basename
+basenames
+extensionless
+fixtured
+modeline
+negotiables
+tiebreak
+tightenings
+vendoring
+
+# --- British spellings the base dictionary lacks ------------------------------
+deserialisation
+
+# --- Names and acronyms ------------------------------------------------------
+bluemonday
+Pydantic
+SLSA
+
+# --- Hardware and format vocabulary the schemas name --------------------------
+buildpacks
+cuda
+nvlink
+nvme
+webp
+xlarge
+
+# --- Tooling and JSON Schema terms -------------------------------------------
+commonmark
+gpgsign
+metaschema
+nojekyll
+subschema
+subschemas
+unindexed
+unioned
+vendored

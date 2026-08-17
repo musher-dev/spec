@@ -1,0 +1,72 @@
+name: DCO
+
+# CONTRIBUTING.md, GOVERNANCE.md, and the pull request template all require a
+# Developer Certificate of Origin sign-off on every commit. Until this workflow
+# existed, nothing checked it — the requirement lived entirely in prose, which
+# is the same as not having it.
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Signed off
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Every commit carries a Signed-off-by trailer
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          failed=0
+
+          # --no-merges: a merge commit is not authored content, and requiring a
+          # trailer on one would fail every branch that has been brought up to
+          # date rather than rebased.
+          commits="$(git rev-list --no-merges "${BASE_SHA}..${HEAD_SHA}")"
+          if [ -z "$commits" ]; then
+            echo "No non-merge commits to check."
+            exit 0
+          fi
+
+          for sha in $commits; do
+            author="$(git show -s --format='%an <%ae>' "$sha")"
+            subject="$(git show -s --format='%s' "$sha")"
+
+            # Trailers only — a "Signed-off-by" written into the body is not a
+            # sign-off, and %(trailers) is what git itself considers one.
+            if git show -s --format='%(trailers:key=Signed-off-by,valueonly)' "$sha" \
+                 | grep -qxF "$author"; then
+              echo "  ✓ ${sha:0:8} ${subject}"
+            else
+              echo "::error::${sha:0:8} (${subject}) has no Signed-off-by matching its author ${author}"
+              failed=1
+            fi
+          done
+
+          if [ "$failed" -ne 0 ]; then
+            cat >&2 <<'MSG'
+
+          Every commit must carry a Developer Certificate of Origin sign-off
+          whose name and email match the commit author:
+
+              git commit -s
+
+          To fix commits already pushed:
+
+              git rebase --signoff origin/main && git push --force-with-lease
+
+          See CONTRIBUTING.md → Sign your work.
+          MSG
+            exit 1
+          fi

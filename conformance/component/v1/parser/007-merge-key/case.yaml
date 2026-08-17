@@ -1,0 +1,15 @@
+# A merge key is an alias by another name. It is reported as `ERR_MERGE_KEY`
+# rather than `ERR_ANCHOR_OR_ALIAS` because `<<` reads as a key: an author who
+# writes one is not reaching for anchors, and telling them about anchors would
+# not describe what they wrote.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      <<:
+        type: IMAGE
+      ref: nginx:1.29.4-alpine

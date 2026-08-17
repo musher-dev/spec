@@ -4,6 +4,14 @@ A language-neutral corpus of test vectors. An implementation conforms to a
 Musher specification family when it produces the declared outcome for every
 case in that family's tree.
 
+**Where this sits.** A family's `spec.md` defines its complete behaviour. This
+corpus is that prose's executable form for observable outcomes, as the JSON
+Schema bundle is its executable form for structural validity; all three are
+normative, and none is permitted to disagree with the others. A fixture that
+contradicts the prose is a defect in this repository — it blocks a release, and
+is never a licence to implement the fixture. What within a case is normative and
+what is not is set out in [What is normative](#what-is-normative) below.
+
 There is deliberately **no normative runner**. A reference implementation
 becomes the de facto standard, hides normative behaviour inside compiled code,
 and biases the specification toward one language's standard library. Each
@@ -61,9 +69,37 @@ directory without indexing it is a no-op — index entries are the contract.
 | `phase` | REQUIRED. One of `parser`, `structural`, `semantic`, `capability`. |
 | `expected` | REQUIRED. `pass` or `fail`. |
 | `clause` | RECOMMENDED. Link to the normative clause the case exercises. Every case should trace to prose. |
+| `requirements` | RECOMMENDED. Stable requirement IDs this case pins, e.g. `["COMP-ENV-002"]`. Each MUST resolve to an anchor in a `spec.md`. |
 | `summary` | RECOMMENDED. One sentence, present tense. |
 | `document` | REQUIRED for a tree case, forbidden otherwise. Path of the document under test, relative to `tree/`. |
 | `symlinks` | OPTIONAL, tree cases only. Link path → link target, both verbatim. |
+
+### <a id="requirements"></a>Requirement IDs
+
+`clause` names a section; a section states several rules. Twenty-seven cases
+cite `#envelope`, which covers `specVersion`, `kind`, unknown fields, and an
+unsupported version — so the citation says where to look and not what is being
+pinned. `requirements` says which rule.
+
+```json
+{ "clause": "specifications/component/v1/spec.md#envelope",
+  "requirements": ["COMP-ENV-002"] }
+```
+
+An ID is `<FAMILY>-<SECTION>-<NNN>`, is declared beside the rule it names, and
+is stable: renaming a heading moves the anchor a `clause` points at, and leaves
+the ID alone.
+
+**An ID names a rule a document can violate.** That is what makes the coverage
+gate meaningful — every declared ID must be pinned by a case or recorded in the
+runner's `UNPINNED` list with a reason, exactly as diagnostic codes are. Rules
+about what an *implementation* does rather than what a document contains — that
+a validator MUST NOT reach the network, MUST NOT echo a value in a diagnostic —
+are normative prose and carry no ID, because an identifier whose permanent
+state is "excused" documents nothing.
+
+[`docs/traceability.md`](../docs/traceability.md) is generated from these and
+shows every requirement against the clause stating it and the cases pinning it.
 
 ## <a id="case-trees"></a>Case trees
 
@@ -135,7 +171,7 @@ declared phase** and produces **at least** the declared diagnostics. Producing
 additional diagnostics is permitted — a validator reporting every problem at
 once is more useful than one that stops at the first.
 
-## What is normative
+## <a id="what-is-normative"></a>What is normative
 
 | Normative | Not normative |
 |---|---|
@@ -152,13 +188,68 @@ identical corpus.
 
 | Phase | Enforces | Network |
 |---|---|---|
-| `parser` | Strict YAML 1.2 — duplicate keys, anchors and aliases rejected | Never |
+| `parser` | The Musher YAML profile — [component §7.1](../specifications/component/v1/spec.md#yaml-profile) | Never |
 | `structural` | The family's JSON Schema 2020-12 bundle | Never |
 | `semantic` | Reference resolution, path containment, dependency cycles | Never |
 | `capability` | Account, region, and quota checks | Server only |
 
 An implementation MUST apply the phases in order and MUST NOT report a
 later-phase diagnostic before the earlier phases pass.
+
+## <a id="profiles"></a>Profiles
+
+Not every implementation runs every phase, and that is by design: `capability`
+needs an account, a region, and a quota, which is a server. An editor plugin
+that checks structure is a useful thing to be, and it is not the same thing as a
+control plane.
+
+So "Musher conformant" is not a claim anyone can make on its own. An
+implementation claims a **profile**, and each profile names the phases it must
+pass every case in:
+
+| Profile | Required phases | Typical implementation |
+|---|---|---|
+| `parser` | `parser` | A linter or formatter that reads documents but does not validate them |
+| `structural` | `parser`, `structural` | An editor integration binding the published schema |
+| `offline` | `parser`, `structural`, `semantic` | A CLI validating a working tree, with no network |
+| `platform` | all four | A control plane accepting submissions |
+
+The profiles are cumulative: `offline` includes everything `structural`
+requires. An implementation MUST NOT claim a profile while skipping any case in
+a phase that profile requires — a skipped case is never a passed one
+([above](#case-trees)).
+
+`offline` is the highest profile reachable without a network, and it is
+deliberately a named stopping point rather than a shortfall. No phase below
+`capability` may reach the network, so an implementation running everything a
+client is permitted to run is `offline`-conformant and complete.
+
+### Reporting a result
+
+An implementation publishing a conformance result SHOULD publish it in this
+shape, so that two claims can be compared:
+
+```json
+{
+  "implementation": "musher-cli",
+  "implementationVersion": "1.4.0",
+  "family": "component",
+  "specificationRelease": "1.2.0",
+  "suiteCommit": "af2dec0…",
+  "profile": "offline",
+  "passed": 184,
+  "failed": 0,
+  "skipped": 4
+}
+```
+
+`suiteCommit` matters as much as `specificationRelease`: a case may be added to
+the corpus between releases, so "which cases were run" is not answered by a
+version number alone.
+
+A result with `failed` greater than zero is not a conformance claim. A result
+with `skipped` greater than zero is a claim only if every skipped case belongs
+to a phase outside the declared profile.
 
 ## Coverage status
 

@@ -120,17 +120,26 @@ of any other vocabulary of this shape.
 Releases are automated. Merging a Conventional Commit to `main` opens a
 release-please PR; merging that PR tags the release and triggers publication.
 
-1. Tag `<family>/v<MAJOR>.<MINOR>.<PATCH>` is created
-2. A `.tar.gz` of the bundle, prose, and conformance suite is built with
+1. The release pull request records the pending version in
+   [`published.json`](published.json) — its path and the checksums of the bytes
+   about to be tagged
+2. Tag `<family>/v<MAJOR>.<MINOR>.<PATCH>` is created
+3. A `.tar.gz` of the bundle, prose, and conformance suite is built with
    SHA-256 checksums and a SLSA provenance attestation
-3. The archive is attached to a GitHub Release
-4. The schema is published to `https://schemas.musher.dev/<family>/…`
-5. `catalog.json` is regenerated for editor discovery
+4. The archive is attached to a GitHub Release
+5. The schema is published to `https://schemas.musher.dev/<family>/…`, rebuilt
+   from the tag rather than from `main`
+6. `catalog.json` is regenerated for editor discovery
 
-Released versions are **immutable**. Tag deletion is blocked by repository
-ruleset. A flawed release is corrected by publishing a superseding patch, and
-the flawed version is marked with `deprecated: true` plus HTTP `Deprecation`
-and `Sunset` headers pointing at the migration guide.
+Released versions are **immutable**. Tag deletion and update are blocked by
+repository ruleset, and `published.json` is append-only — a rewritten tag or an
+edited entry fails CI and stops the deploy rather than silently altering a URL
+documented as permanent. A flawed release is corrected by publishing a
+superseding patch, and the flawed version is marked with `deprecated: true` plus
+HTTP `Deprecation` and `Sunset` headers pointing at the migration guide.
+
+[ADR 0006](docs/adr/0006-publication-from-tags.md) sets out the publication
+model and why the ledger exists.
 
 ## Deprecation and retirement
 
@@ -153,6 +162,24 @@ behaviour inside compiled code, biases the specification toward one language's
 standard library, and saddles this repository with production security
 patching. Implementations conform to the prose and the fixtures — not to the
 behaviour of a blessed executable.
+
+## Tooling dependencies
+
+Everything under `tools/` is non-normative and is never published. A dependency
+there is a development and CI tool, not part of the contract, and nothing it
+produces is distributed.
+
+One is worth naming explicitly. [`@sourcemeta/jsonschema`](https://github.com/sourcemeta/jsonschema)
+is **AGPL-3.0**, and it is used to meta-validate the schemas and to cross-check
+every structural verdict against Blaze — a second, independent implementation of
+JSON Schema 2020-12. Two validators agreeing is the point: everything else here
+asks Ajv, so a schema Ajv reads differently from everyone else would pass every
+gate and fail in the SDKs.
+
+Using it as a CI tool does not place this repository's schemas or prose under
+the AGPL, and no artifact this repository publishes derives from it. A
+contributor without it sees the checks report themselves as skipped rather than
+passed.
 
 ## Security
 

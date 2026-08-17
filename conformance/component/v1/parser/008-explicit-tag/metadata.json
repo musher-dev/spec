@@ -1,0 +1,10 @@
+{
+  "id": "parser-008-explicit-tag",
+  "phase": "parser",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#yaml-profile",
+  "requirements": [
+    "COMP-YAML-009"
+  ],
+  "summary": "A node carrying an explicit YAML tag is rejected."
+}

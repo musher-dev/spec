@@ -59,17 +59,19 @@ function listDirs(parent: string): string[] {
  * treat that as success, not as an error, so the harness stays green on a
  * freshly scaffolded family.
  */
-export function discoverFamilies(): Family[] {
+export function discoverFamilies(repoRoot: string = REPO_ROOT): Family[] {
+  const specificationsDir = join(repoRoot, 'specifications')
+  const conformanceRoot = join(repoRoot, 'conformance')
   const families: Family[] = []
-  for (const name of listDirs(SPECIFICATIONS_DIR)) {
+  for (const name of listDirs(specificationsDir)) {
     if (!DIR_NAME.test(name)) {
       throw new Error(`specifications/${name}: family directory must be lowercase kebab-case`)
     }
-    for (const major of listDirs(join(SPECIFICATIONS_DIR, name))) {
+    for (const major of listDirs(join(specificationsDir, name))) {
       if (!MAJOR_DIR.test(major)) {
         throw new Error(`specifications/${name}/${major}: version directory must match v<MAJOR>`)
       }
-      const dir = join(SPECIFICATIONS_DIR, name, major)
+      const dir = join(specificationsDir, name, major)
       families.push({
         name,
         major,
@@ -80,7 +82,7 @@ export function discoverFamilies(): Family[] {
         specPath: join(dir, 'spec.md'),
         bundlePath: join(dir, 'schemas', 'dist', `${name}.schema.json`),
         bundleUrl: `${SCHEMA_ORIGIN}/${name}/${major}/${name}.schema.json`,
-        conformanceDir: join(CONFORMANCE_DIR, name, major),
+        conformanceDir: join(conformanceRoot, name, major),
       })
     }
   }

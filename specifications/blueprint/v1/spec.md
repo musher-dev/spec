@@ -4,12 +4,25 @@
 **Family:** `blueprint`
 **Schema:** `https://schemas.musher.dev/blueprint/v1/blueprint.schema.json`
 
-The key words MUST, MUST NOT, REQUIRED, SHALL, SHALL NOT, SHOULD, SHOULD NOT,
-RECOMMENDED, MAY, and OPTIONAL in this document are to be interpreted as
-described in [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119).
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+"SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
+"OPTIONAL" in this document are to be interpreted as described in
+BCP 14 [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119) and
+[RFC 8174](https://www.rfc-editor.org/rfc/rfc8174) when, and only when, they
+appear in all capitals, as shown here.
 
-> **This document is normative.** Where it disagrees with a `description` field
-> in the JSON Schema, this document wins.
+> **What is normative.** This document defines the complete behaviour of the
+> specification. The JSON Schema bundle is its executable form for structural
+> validity, and the [conformance corpus](../../../conformance/README.md) is its
+> executable form for observable outcomes; both are normative, and neither is
+> permitted to disagree with this document or with the other. Schema
+> `description` fields, examples, generated documentation, and validator message
+> text are informative.
+>
+> A disagreement between two normative artifacts is a defect in this
+> specification and blocks a release. Until it is fixed this document governs —
+> but that is how to read a broken contract, not a licence for the schema to be
+> wrong.
 
 ---
 
@@ -60,11 +73,11 @@ MUST NOT appear on a blueprint document, and a validator MUST reject them with
 Three rules bind the item together. All three are `semantic`, and all three
 are measured against the item root defined below.
 
-| Rule | Diagnostic |
-|---|---|
-| `metadata.slug` MUST equal the item directory name. | `ERR_SLUG_MISMATCH` |
-| `metadata.version` MUST equal the sibling listing's `metadata.version`. | `ERR_VERSION_MISMATCH` |
-| Every component document in the item MUST be referenced by some node. | `ERR_UNREFERENCED_COMPONENT` |
+| ID | Rule | Diagnostic |
+|---|---|---|
+| <a id="BP-ID-001"></a>`BP-ID-001` | `metadata.slug` MUST equal the item directory name. | `ERR_SLUG_MISMATCH` |
+| <a id="BP-ID-002"></a>`BP-ID-002` | `metadata.version` MUST equal the sibling listing's `metadata.version`. | `ERR_VERSION_MISMATCH` |
+| <a id="BP-ID-003"></a>`BP-ID-003` | Every component document in the item MUST be referenced by some node. | `ERR_UNREFERENCED_COMPONENT` |
 
 **An unreferenced component document is an error, not dead weight.** A
 component nothing references is not deployed, not checked against any node,
@@ -645,7 +658,9 @@ over without a directory.
 
 ## <a id="validation-layers"></a>6. Validation layers
 
-As defined in [component §7](../../component/v1/spec.md#validation-layers).
+As defined in [component §7](../../component/v1/spec.md#validation-layers), and
+written in the YAML profile
+[component §7.1](../../component/v1/spec.md#yaml-profile) states.
 Blueprint documents exercise the `semantic` phase more heavily than any other
 family — repo-local reference resolution, connection compatibility, and the
 parameter merge all live there.
@@ -685,6 +700,12 @@ family adds:
 An implementation conforms when it produces the declared outcome for every
 fixture in [`conformance/blueprint/v1/`](../../../conformance/blueprint/v1/).
 
+An implementation MUST declare the **profile** it claims, as
+[component §9](../../component/v1/spec.md#conformance) requires and
+[conformance/README.md](../../../conformance/README.md#profiles) defines. A
+skipped case is never a passed one.
+
+
 ## <a id="known-debt"></a>9. Known debt
 
 Seeded from the platform's generated schema. The naming that arrived with it
@@ -699,3 +720,43 @@ What remains is not a gap in the prose but a vocabulary nothing publishes yet:
 [§4.4](#advanced-constraints)'s compute-constraint pins, recorded there as a gap
 rather than described as a decision. See also
 [component §10](../../component/v1/spec.md#known-debt).
+
+## <a id="security"></a>10. Security considerations
+
+[Component §11](../../component/v1/spec.md#security) applies in full: a blueprint
+is untrusted input, parsed under the same profile and the same bounds. This
+section adds what is specific to a document that resolves *other* documents.
+
+**Path containment is the central one.** A repo-local `component` reference is a
+path this implementation will open, chosen by the document's author.
+[§4.1](#component-reference) requires it to stay inside the item root, and
+`ERR_REFERENCE_ESCAPE` is that rule. An implementation MUST decide containment on
+the **resolved** location rather than on the string: a reference is an escape if
+what it resolves to lies outside the item root, whether it got there by `../`, by
+an absolute path, or by a symbolic link inside the tree.
+
+Symlinks are the case worth stating plainly. A link committed inside an item can
+point anywhere the process can read, so an implementation MUST resolve links
+before testing containment, and MUST treat a dangling link resolving outside the
+root as an escape — containment is a property of the resolved location, not of
+whether the target happens to exist. The conformance corpus fixtures this
+directly; see [conformance/README.md](../../../conformance/README.md#case-trees).
+
+An implementation MUST NOT follow a reference outside the item root even when the
+resulting file would be readable and would parse. The rule is about what a
+reviewer of the item can see: a graph that reaches outside the directory being
+reviewed deploys something the review did not cover.
+
+**Graph traversal.** [§4.2](#connections) makes the component graph a directed
+graph an implementation walks. A cycle is rejected with `ERR_CONNECTION_CYCLE`,
+and an implementation MUST detect cycles rather than relying on a recursion limit
+to stop it — a stack overflow is a crash, not a diagnostic. The parser's nesting
+bound does not help here: the cycle is in the graph the document describes, not
+in the document's own structure.
+
+**Published references.** Resolving a published reference is `capability`
+([§6](#validation-layers)) precisely because it needs the catalog. An
+implementation MUST NOT reach the network during `parser`, `structural`, or
+`semantic`, so a blueprint composed entirely of repo-local references validates
+completely offline. A validator that resolved published references early would
+let a document under review choose a host for it to contact.

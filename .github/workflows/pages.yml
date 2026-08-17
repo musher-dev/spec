@@ -4,21 +4,27 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  # Called by release.yml immediately after a tag is created. Without this, the
+  # Pages run racing a release would enumerate tags before the tag for that very
+  # release existed, and the new version would not appear until the next push.
+  workflow_call:
 
 permissions:
   contents: read
-
-# One deployment at a time, and never cancel one in flight — an interrupted
-# deploy would leave the published origin in an indeterminate state.
-concurrency:
-  group: pages
-  cancel-in-progress: false
 
 jobs:
   deploy:
     name: Publish schemas.musher.dev
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # Job-level, not workflow-level. A workflow-level group would be held by the
+    # calling workflow while this job waited for the same group, which
+    # deadlocks; and only a job-level group serialises across both the push and
+    # the workflow_call path. Never cancel in flight — an interrupted deploy
+    # would leave the published origin in an indeterminate state.
+    concurrency:
+      group: pages-deploy
+      cancel-in-progress: false
     permissions:
       contents: read
       pages: write
@@ -27,7 +33,11 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      # Full history and every tag: pinned URLs are rebuilt from the tags, so a
+      # shallow checkout here would unpublish every released version.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
@@ -35,7 +45,7 @@ jobs:
 
       - uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e # v2.2.0
         with:
-          version: 3.x
+          version: 3.52.0
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install tooling dependencies
@@ -48,6 +58,12 @@ jobs:
       # public origin.
       - name: Verify committed bundles are current
         run: task check:drift
+
+      # Every released version must still hash to what published.json recorded.
+      # A rewritten tag or an edited ledger stops the deploy here rather than
+      # silently altering a URL documented as immutable forever.
+      - name: Verify published versions
+        run: task check:published
 
       - name: Assemble publication tree
         run: task site:build

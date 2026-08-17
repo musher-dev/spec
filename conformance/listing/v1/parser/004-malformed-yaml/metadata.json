@@ -3,5 +3,8 @@
   "phase": "parser",
   "expected": "fail",
   "clause": "specifications/listing/v1/spec.md#envelope",
+  "requirements": [
+    "COMP-YAML-001"
+  ],
   "summary": "A document that is not well-formed YAML 1.2 is rejected in the parser phase."
 }

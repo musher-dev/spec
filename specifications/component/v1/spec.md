@@ -4,12 +4,25 @@
 **Family:** `component`
 **Schema:** `https://schemas.musher.dev/component/v1/component.schema.json`
 
-The key words MUST, MUST NOT, REQUIRED, SHALL, SHALL NOT, SHOULD, SHOULD NOT,
-RECOMMENDED, MAY, and OPTIONAL in this document are to be interpreted as
-described in [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119).
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+"SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
+"OPTIONAL" in this document are to be interpreted as described in
+BCP 14 [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119) and
+[RFC 8174](https://www.rfc-editor.org/rfc/rfc8174) when, and only when, they
+appear in all capitals, as shown here.
 
-> **This document is normative.** Where it disagrees with a `description` field
-> in the JSON Schema, this document wins. Schema descriptions are explanatory.
+> **What is normative.** This document defines the complete behaviour of the
+> specification. The JSON Schema bundle is its executable form for structural
+> validity, and the [conformance corpus](../../../conformance/README.md) is its
+> executable form for observable outcomes; both are normative, and neither is
+> permitted to disagree with this document or with the other. Schema
+> `description` fields, examples, generated documentation, and validator message
+> text are informative.
+>
+> A disagreement between two normative artifacts is a defect in this
+> specification and blocks a release. Until it is fixed this document governs —
+> but that is how to read a broken contract, not a licence for the schema to be
+> wrong.
 
 ---
 
@@ -39,22 +52,24 @@ metadata: { … }
 spec: { … }
 ```
 
-| Field | Requirement |
-|---|---|
-| `specVersion` | REQUIRED. Declares the document-format compatibility family, independent of any API URL version. |
-| `kind` | REQUIRED. MUST be `COMPONENT` for this family. |
-| `metadata` | REQUIRED. Identity. |
-| `spec` | REQUIRED. The definition itself. |
+| ID | Field | Requirement |
+|---|---|---|
+| <a id="COMP-ENV-001"></a>`COMP-ENV-001` | `specVersion` | REQUIRED. Declares the document-format compatibility family, independent of any API URL version. |
+| <a id="COMP-ENV-002"></a>`COMP-ENV-002` | `kind` | REQUIRED. MUST be `COMPONENT` for this family. |
+| <a id="COMP-ENV-003"></a>`COMP-ENV-003` | `metadata` | REQUIRED. Identity. |
+| <a id="COMP-ENV-004"></a>`COMP-ENV-004` | `spec` | REQUIRED. The definition itself. |
 
-Unknown properties MUST be rejected with `ERR_UNKNOWN_FIELD` at every level, not
-only at the root of the envelope. A misspelled field is an error, never a
-silently ignored one — including when the misspelled field is optional, where
-ignoring it would silently substitute the default. A property that *is* defined,
-by a schema release the validator does not hold, is the same error for a reason
+<a id="COMP-ENV-005"></a>**`COMP-ENV-005`** — Unknown properties MUST be
+rejected with `ERR_UNKNOWN_FIELD` at every level, not only at the root of the
+envelope. A misspelled field is an error, never a silently ignored one —
+including when the misspelled field is optional, where ignoring it would
+silently substitute the default. A property that *is* defined, by a schema
+release the validator does not hold, is the same error for a reason
 [§3](#compatibility) gives.
 
-A validator encountering a `specVersion` it does not support MUST reject the
-document with `ERR_UNSUPPORTED_SPEC_VERSION` and MUST NOT attempt a best-effort
+<a id="COMP-ENV-006"></a>**`COMP-ENV-006`** — A validator encountering a
+`specVersion` it does not support MUST reject the document with
+`ERR_UNSUPPORTED_SPEC_VERSION` and MUST NOT attempt a best-effort
 interpretation.
 
 > **Note.** This envelope is deliberately not a Kubernetes-style
@@ -255,7 +270,7 @@ A reference MUST carry a tag or a digest. A bare name — an implicit `:latest` 
 is rejected in the `structural` phase with `ERR_INVALID_VALUE`. That is a
 grammar, so the schema carries it.
 
-A reference MUST NOT carry a floating tag. The floating set is `latest`,
+<a id="COMP-SRC-001"></a>A reference MUST NOT carry a floating tag. The floating set is `latest`,
 `main`, `main-stable`, `master`, `stable`, `edge`, `nightly`, `dev`, and
 `rolling`, compared case-insensitively; a reference whose tag is one of them is
 rejected in the `semantic` phase with `ERR_UNPINNED_IMAGE`.
@@ -355,7 +370,7 @@ endpoint is what null selects. It is:
 2. its sole `PUBLIC` endpoint, where it declares exactly one; failing that
 3. nothing.
 
-Where it is nothing, a reference that omits the endpoint is rejected in the
+<a id="COMP-EP-001"></a>Where it is nothing, a reference that omits the endpoint is rejected in the
 `semantic` phase with `ERR_AMBIGUOUS_ENDPOINT`. The schema cannot express this
 for the reason [§5.4](#health) gives: the endpoint names are mapping keys
 elsewhere in the document.
@@ -406,13 +421,13 @@ is not portably settable by the thing that has to set it. The rule is
 | `LITERAL` | `value`, and OPTIONAL `isSensitive` | The value itself. An empty string is permitted. |
 | `CONFIG_REF` | `configKey` | A reference. The document never holds the value. |
 
-**A key is declared once.** Two entries sharing a key are rejected in the
+<a id="COMP-ENVVAR-001"></a>**A key is declared once.** Two entries sharing a key are rejected in the
 `semantic` phase with `ERR_DUPLICATE_ENV_KEY`, anchored at the **later** of the
 two — the first declaration is the one that stands, so the second is the one an
 author has to change. Without this rule the sequence shape would make a repeated
 key mean whatever an implementation's last write happened to be.
 
-**A key is claimed by one declaration.** An input's
+<a id="COMP-ENVVAR-002"></a>**A key is claimed by one declaration.** An input's
 [`target.envVarKey`](#inputs) binds a resolved value into the environment, so it
 competes for the same namespace these entries do. Two declarations of one key
 are rejected in the `semantic` phase with `ERR_CONFLICTING_ENV_KEY`, in both
@@ -467,7 +482,7 @@ polls an HTTP path.
 `initialDelaySeconds: 10`, `periodSeconds: 10`, `timeoutSeconds: 5`,
 `successThreshold: 1`, `failureThreshold: 3`.
 
-`endpoint` names the endpoint whose port the probe targets; null selects the
+<a id="COMP-EP-002"></a>`endpoint` names the endpoint whose port the probe targets; null selects the
 primary endpoint [§5.2](#endpoints) elects, and is rejected with
 `ERR_AMBIGUOUS_ENDPOINT` where that section elects none. A probe naming an
 endpoint the workload does not declare is rejected with `ERR_UNKNOWN_ENDPOINT`.
@@ -476,7 +491,7 @@ mapping keys elsewhere in the document, and JSON Schema cannot constrain a value
 against a sibling's keys.
 
 **A probe MUST name an endpoint in the HTTP family.** Every probe polls an HTTP
-path, so an endpoint whose `protocol` is `TCP` or `UDP` has nothing for one to
+<a id="COMP-EP-003"></a>path, so an endpoint whose `protocol` is `TCP` or `UDP` has nothing for one to
 poll. A probe resolving to such an endpoint — by naming it, or by having the
 primary election select it — is rejected in the `semantic` phase with
 `ERR_ENDPOINT_NOT_HTTP`. The rule is `semantic` for the same reason as the two
@@ -575,7 +590,7 @@ already composed.
 endpoints, one that does MUST name the endpoint here: null elects nothing there
 and is rejected with `ERR_AMBIGUOUS_ENDPOINT`.
 
-Three further rules follow the name, all `semantic`. An endpoint the workload
+<a id="COMP-EP-004"></a>Three further rules follow the name, all `semantic`. An endpoint the workload
 does not declare is `ERR_UNKNOWN_ENDPOINT` — the same code and the same reason
 as a probe's. An endpoint that is declared but `PRIVATE` is
 `ERR_ENDPOINT_NOT_PUBLIC`: every source derives an externally reachable
@@ -646,7 +661,7 @@ pass.
 
 | Phase | Enforces | Where it runs |
 |---|---|---|
-| `parser` | Strict YAML 1.2. Duplicate keys MUST be rejected. Anchors and aliases MUST be rejected. | Client and server |
+| `parser` | The Musher YAML profile — [§7.1](#yaml-profile). | Client and server |
 | `structural` | This family's JSON Schema 2020-12 document. | Client and server |
 | `semantic` | Rules JSON Schema cannot express — reference resolution, path containment, uniqueness across collections. | Client and server |
 | `capability` | Account, region, and quota checks. | Server only |
@@ -674,6 +689,125 @@ it can measure has no way to refuse cheaply.
 different things to an author. One means the document is malformed; the other
 means it is well-formed and uses something this contract withholds.
 
+### <a id="yaml-profile"></a>7.1 The Musher YAML profile
+
+Musher documents are written in a **restricted profile of
+[YAML 1.2.2](https://yaml.org/spec/1.2.2/)**, not in unrestricted YAML. This
+section is that profile, and it governs all three families — the
+[blueprint](../../blueprint/v1/spec.md) and [listing](../../listing/v1/spec.md)
+specifications inherit it rather than restating it.
+
+Every restriction below withholds something YAML 1.2.2 permits. The reason is
+uniform, and it is the one [§2](#envelope) gives for rejecting a misspelled
+optional field: a document that means different things to different readers, or
+that cannot be judged without unbounded work, is not a contract. A feature is
+therefore withheld when it is *legal but ambiguous*, not when it is merely
+unusual.
+
+**Encoding and framing**
+
+| ID | Rule | Diagnostic |
+|---|---|---|
+| <a id="COMP-YAML-001"></a>`COMP-YAML-001` | A document MUST be encoded in UTF-8. Malformed UTF-8 is rejected. | `ERR_INVALID_YAML` |
+| <a id="COMP-YAML-002"></a>`COMP-YAML-002` | A document MAY begin with a UTF-8 byte order mark. It carries no meaning and MUST be ignored. | — |
+| <a id="COMP-YAML-003"></a>`COMP-YAML-003` | Line endings MAY be LF or CRLF, and carry no meaning. | — |
+| <a id="COMP-YAML-004"></a>`COMP-YAML-004` | A file MUST contain exactly one YAML document. The `---` and `...` markers MAY be present; a stream carrying more than one document is rejected. | `ERR_MULTIPLE_DOCUMENTS` |
+
+A file holding two documents has no answer to "which one is the component",
+and picking the first silently discards a thing the author wrote.
+
+**Structure**
+
+| ID | Rule | Diagnostic |
+|---|---|---|
+| <a id="COMP-YAML-005"></a>`COMP-YAML-005` | Every mapping key MUST be a string. A numeric, boolean, null, or complex key is rejected. | `ERR_NON_STRING_KEY` |
+| <a id="COMP-YAML-006"></a>`COMP-YAML-006` | A mapping key MUST NOT appear twice. | `ERR_DUPLICATE_KEY` |
+| <a id="COMP-YAML-007"></a>`COMP-YAML-007` | A document MUST NOT declare an anchor or an alias. | `ERR_ANCHOR_OR_ALIAS` |
+| <a id="COMP-YAML-008"></a>`COMP-YAML-008` | A document MUST NOT use a merge key (`<<`). | `ERR_MERGE_KEY` |
+| <a id="COMP-YAML-009"></a>`COMP-YAML-009` | A node MUST NOT carry an explicit tag — neither a custom tag (`!secret`) nor a core-schema tag (`!!str`). | `ERR_EXPLICIT_TAG` |
+
+Mapping keys are property names in every schema this repository publishes, and
+`1:` resolving to the integer one on one parser and the string `"1"` on another
+is the duplicate-key problem wearing a different hat.
+
+A merge key is an alias by another name and is withheld for the same reason.
+It is named separately because `<<` reads as a key rather than as a reference,
+so an author who writes one is not told about aliases; they are told about `<<`.
+
+An explicit tag overrides scalar resolution, and scalar resolution is exactly
+what this profile fixes below. `!!str 5` and `5` differ only in a tag, and a
+contract in which the type of a value depends on an annotation beside it has no
+stable reading.
+
+**Scalar resolution**
+
+Scalars resolve by the **YAML 1.2 core schema**, and by nothing else. `true`
+and `false` are booleans; `null` and `~` are null; `on`, `off`, `yes`, and `no`
+are strings, as YAML 1.2 requires and YAML 1.1 did not. A value whose intended
+type is not the resolved one MUST be quoted.
+
+This is the one place where naming the version does real work: a YAML 1.1
+parser reads `no` as boolean false, and a `country: no` in a document read by
+both is two different documents.
+
+**Bounds**
+
+An implementation MUST reject a document exceeding any of these, and MUST accept
+one that does not:
+
+| ID | Bound | Limit | Diagnostic |
+|---|---|---|---|
+| <a id="COMP-YAML-010"></a>`COMP-YAML-010` | Document size | 1 MiB (1 048 576 bytes) | `ERR_DOCUMENT_TOO_LARGE` |
+| <a id="COMP-YAML-011"></a>`COMP-YAML-011` | Nesting depth | 64 levels | `ERR_DEPTH_EXCEEDED` |
+| <a id="COMP-YAML-012"></a>`COMP-YAML-012` | Scalar length | 64 KiB (65 536 bytes) | `ERR_SCALAR_TOO_LONG` |
+
+The bounds are stated rather than left to implementations because "be sensible"
+is not a bound: a document one validator accepts and another refuses on size is
+not one contract, and an author has no way to discover the limit except by
+exceeding it somewhere.
+
+Each is far above any document a person writes and far below what makes a
+parser a denial-of-service surface. Document size MUST be measured before
+parsing — a limit a parser can apply only after building the tree is not a limit
+on the work it does. The alias ban already removes the billion-laughs shape;
+these bound the cases it does not cover.
+
+**What carries no meaning**
+
+Key order, comments, indentation width, quoting style, and flow-versus-block
+form are all presentation. Two documents differing only in these are the same
+document, and an implementation MUST NOT derive meaning from any of them.
+
+Because YAML 1.2 is a superset of JSON, a document written as JSON is a valid
+Musher document and is read identically.
+
+### <a id="format-policy"></a>7.2 The `format` keyword
+
+This clause is about the JSON Schema **keyword** `format`, not about the
+component field named `format` that [§6.1](#inputs) gives an input. The two are
+unrelated: the field is a Musher enum with its own rules, and no schema this
+repository publishes uses the keyword at all.
+
+Should one ever appear, `format` is an **annotation and asserts nothing**. That
+is the JSON Schema 2020-12 default rather than a shortcut: `format` constrains a
+value only where the Format Assertion vocabulary is explicitly declared, and no
+Musher schema declares it.
+
+A validator MUST NOT reject a document because a value fails a `format`
+keyword, and MUST NOT accept one it would otherwise reject because a value
+satisfies one.
+
+The reason is portability. `format` implementations differ — one library's
+`uri` accepts what another's rejects, and `email` is worse — so a schema that
+depended on `format` for rejection would validate differently depending on which
+library a consumer happened to link. A rule that must hold everywhere is written
+with an assertion keyword instead: `pattern`, `enum`, `minLength`, `const`. Where
+a rule cannot be expressed that way, it belongs to the `semantic` phase and
+carries a diagnostic of its own.
+
+Adopting the Format Assertion vocabulary later would make previously valid
+documents invalid, so it is a breaking change and needs an ADR.
+
 ## <a id="diagnostics"></a>8. Diagnostics
 
 Diagnostic **codes** and the **phase** at which validation fails are normative.
@@ -682,9 +816,16 @@ different text and that is expected.
 
 | Code | Phase | Meaning |
 |---|---|---|
-| `ERR_INVALID_YAML` | `parser` | The document is not well-formed YAML 1.2. |
+| `ERR_INVALID_YAML` | `parser` | The document is not well-formed YAML 1.2, or is not valid UTF-8. |
 | `ERR_DUPLICATE_KEY` | `parser` | The same mapping key appears twice. |
 | `ERR_ANCHOR_OR_ALIAS` | `parser` | The document declares a YAML anchor or an alias. |
+| `ERR_MULTIPLE_DOCUMENTS` | `parser` | The file carries more than one YAML document. |
+| `ERR_NON_STRING_KEY` | `parser` | A mapping key is not a string. |
+| `ERR_MERGE_KEY` | `parser` | The document uses a merge key (`<<`). |
+| `ERR_EXPLICIT_TAG` | `parser` | A node carries an explicit YAML tag. |
+| `ERR_DOCUMENT_TOO_LARGE` | `parser` | The document exceeds the size bound in [§7.1](#yaml-profile). |
+| `ERR_DEPTH_EXCEEDED` | `parser` | The document nests deeper than [§7.1](#yaml-profile) permits. |
+| `ERR_SCALAR_TOO_LONG` | `parser` | A scalar exceeds the length bound in [§7.1](#yaml-profile). |
 | `ERR_UNSUPPORTED_SPEC_VERSION` | `structural` | `specVersion` is not a supported value. |
 | `ERR_WRONG_KIND` | `structural` | `kind` does not match the family being validated. |
 | `ERR_UNKNOWN_FIELD` | `structural` | A property not defined by the schema is present. |
@@ -716,6 +857,17 @@ outcome for every fixture in
 Implementations MUST run the fixture corpus in their own CI. Passing a fixture
 that is declared to fail is a conformance failure.
 
+An implementation MUST declare the **profile** it claims. Conformance is not a
+single claim: `capability` needs an account, a region, and a quota, so an
+implementation a user runs locally cannot reach it, and an editor integration
+that checks structure is a useful thing to be without being a control plane.
+The profiles, and the report shape a claim should take, are defined in
+[conformance/README.md](../../../conformance/README.md#profiles).
+
+A skipped case is never a passed one. An implementation MUST NOT claim a
+profile while skipping any case in a phase that profile requires.
+
+
 ## <a id="known-debt"></a>10. Known debt
 
 This schema was seeded from the platform's Pydantic-generated catalog schema.
@@ -725,17 +877,90 @@ and `tools/src/lint.ts` now rejects both. No section of this document is marked
 TODO any longer: every rule it states is stated in prose, and the schema
 implements the prose rather than standing in for it.
 
-One debt remains, and it MUST be resolved before v1 is declared stable. Some
-schema `description` fields still speak the platform's vocabulary rather than
-this contract's — "resolved server-side at snapshot compute" names a pipeline
-stage a reader outside `musher-dev/platform` cannot look up. Descriptions are
-explanatory rather than normative, so nothing in this document turns on them; a
-reader who cannot resolve the words is still being told to go somewhere they
-cannot reach.
+**The vocabulary debt is closed.** Schema `description` fields no longer speak
+the platform's vocabulary. The phrase that named it — "resolved server-side at
+snapshot compute" — described a pipeline stage a reader outside
+`musher-dev/platform` could not look up, and it is gone: a `CONFIG_REF` is now
+described as this document describes it, a name whose value is resolved
+elsewhere and never appears in the file ([§5.3](#env-vars)). Descriptions are
+explanatory rather than normative, so nothing here turned on them; a reader who
+could not resolve the words was still being sent somewhere they could not reach.
 
-The Compute Profile half of that debt is closed.
-[Blueprint §4.3](../../blueprint/v1/spec.md#node-compute) now carries the slug
+The Compute Profile half closed earlier.
+[Blueprint §4.3](../../blueprint/v1/spec.md#node-compute) carries the slug
 grammar and names where the offered profiles are published, so a slug like
 `general.standard.small` resolves for a reader outside the platform.
 [ADR 0003](../../../docs/adr/0003-controlled-vocabulary-placement.md) records
 the rule that decided it.
+
+What remains for this family is not a gap in the prose. `capability` rules —
+`ERR_UNKNOWN_COMPONENT`, `ERR_VERSION_NOT_MONOTONIC`,
+`ERR_COMPONENT_NOT_PUBLISHED`, `ERR_UNKNOWN_COMPUTE_PROFILE` — carry no
+conformance fixture, because deciding any of them needs the catalog and no phase
+a client runs may reach the network. Each is recorded with that reason in the
+runner's `UNCOVERED` list rather than left to be assumed tested.
+
+## <a id="security"></a>11. Security considerations
+
+This section is addressed to **implementations**: what a validator, a CLI, or a
+control plane must do so that reading an untrusted component document is safe.
+[SECURITY.md](../../../SECURITY.md) is the separate question of what counts as a
+vulnerability *in this repository* and how to report one.
+
+A component document is untrusted input. It arrives from a pull request, a
+catalog submission, or a `POST` body, and every consideration below assumes its
+author is hostile.
+
+**Parsing.** [§7.1](#yaml-profile) is a security boundary as much as an
+interoperability one. Aliases are refused because expansion is where a small
+document becomes a large one, and the size bound is measured before parsing
+because a limit applied after the tree exists is not a limit on the work done to
+build it. An implementation MUST enforce all three bounds, and MUST NOT raise
+them to accommodate a document that exceeds them.
+
+An implementation MUST NOT resolve YAML tags to host language types. The tag ban
+makes this unreachable through a conforming parser, but a parser configured to
+construct arbitrary objects from tags is the classic deserialisation
+vulnerability, and the ban is not a substitute for choosing a safe loader.
+
+**Regular expressions.** Every `pattern` this specification publishes is free of
+lookaround and backreferences, which is what lets it compile under RE2 as well as
+under a backtracking engine. An implementation evaluating these patterns on a
+backtracking engine SHOULD apply a match timeout regardless: the guarantee is
+about the patterns published here, not about any the platform composes with them.
+
+**Image references.** [§5.1](#source) requires a tag or a digest and forbids a
+floating tag, and both rules are about supply chain rather than tidiness. A
+floating tag means the artifact that runs is not the artifact that was reviewed.
+`ERR_UNPINNED_IMAGE` is `semantic` and therefore offline: an implementation MUST
+NOT resolve a reference over the network to decide it, because doing so would let
+a document under review make the validator issue a request to a host the document
+chose.
+
+**Build sources.** A `GIT` source names a repository and a revision that an
+implementation will fetch and build. Fetching is a `capability` concern and out
+of scope here, but an implementation MUST treat the build context as untrusted:
+a checkout is attacker-controlled content, and a build path from it MUST NOT be
+allowed to read outside the context it was given.
+
+**Environment variables and secrets.** A component document is a public artifact
+— it is committed, published in a catalog, and shipped inside a release tarball.
+`envVars` carries configuration, and a literal value in one is visible to
+everyone who can read the document. A secret MUST NOT be written as a `LITERAL`
+value; that is what `CONFIG_REF` exists for. Nothing in the `structural` or
+`semantic` phase can detect a secret pasted into a literal, so this is a rule
+about authoring that an implementation SHOULD surface as a warning where it can.
+
+An implementation MUST NOT include resolved configuration values in a diagnostic
+message. Diagnostics are logged, attached to pull requests, and printed in CI
+output, and a validator that echoes the value it rejected turns a validation
+error into a disclosure.
+
+**Schema retrieval.** Every published bundle is self-contained: all `$ref`s
+resolve inside `$defs`, and no validator needs a network request to evaluate a
+document ([README](../../../README.md)). An implementation SHOULD vendor the
+schema at an exact version rather than fetching it, and MUST verify what it
+fetches if it does — the `.sha256` beside each pinned URL and `published.json`
+are there for that. A validator that resolves schemas over the network at
+validation time is an SSRF primitive and a runtime dependency on an origin it
+does not control.

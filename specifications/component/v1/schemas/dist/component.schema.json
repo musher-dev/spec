@@ -85,7 +85,7 @@
       "additionalProperties": false,
       "properties": {
         "configKey": {
-          "description": "Key of the organization's saved configuration value, resolved server-side at snapshot compute. The component never holds plaintext; the entry's own key may alias it.",
+          "description": "Key of the organization's saved configuration value. The document holds only the name — the value is resolved elsewhere, when the component is deployed, and never appears in this file. The entry's own key may alias it. See spec.md 5.3.",
           "maxLength": 255,
           "minLength": 1,
           "pattern": "^[A-Z_][A-Z0-9_]*$",
@@ -174,14 +174,7 @@
           "type": "string"
         },
         "value": {
-          "description": "How the value resolves, discriminated on type: LITERAL (verbatim value) or CONFIG_REF (resolved at snapshot compute).",
-          "discriminator": {
-            "mapping": {
-              "CONFIG_REF": "#/$defs/ComponentConfigRefEnvVarValue",
-              "LITERAL": "#/$defs/ComponentLiteralEnvVarValue"
-            },
-            "propertyName": "type"
-          },
+          "description": "How the value resolves, discriminated on type: LITERAL (the value verbatim, in this document) or CONFIG_REF (a name the document does not hold the value for).",
           "oneOf": [
             {
               "$ref": "#/$defs/ComponentLiteralEnvVarValue"
@@ -189,7 +182,14 @@
             {
               "$ref": "#/$defs/ComponentConfigRefEnvVarValue"
             }
-          ]
+          ],
+          "x-musher-discriminator": {
+            "mapping": {
+              "CONFIG_REF": "#/$defs/ComponentConfigRefEnvVarValue",
+              "LITERAL": "#/$defs/ComponentLiteralEnvVarValue"
+            },
+            "propertyName": "type"
+          }
         }
       },
       "required": [
@@ -1084,7 +1084,7 @@
           "type": "object"
         },
         "envVars": {
-          "description": "Environment variables injected into the running workload. Each entry pairs a key (e.g. DATABASE_URL) with a value discriminated on type: LITERAL (verbatim value) or CONFIG_REF (resolved at snapshot compute). Keys are unique. Build-time values belong in source.build.arguments instead.",
+          "description": "Environment variables injected into the running workload. Each entry pairs a key (e.g. DATABASE_URL) with a value discriminated on type: LITERAL (the value verbatim, in this document) or CONFIG_REF (a name the document does not hold the value for). Keys are unique. Build-time values belong in source.build.arguments instead.",
           "items": {
             "$ref": "#/$defs/ComponentEnvVar"
           },
@@ -1126,13 +1126,6 @@
         },
         "source": {
           "description": "Discriminated image or git source the workload is built or run from.",
-          "discriminator": {
-            "mapping": {
-              "GIT": "#/$defs/ComponentGitSource",
-              "IMAGE": "#/$defs/ComponentImageSource"
-            },
-            "propertyName": "type"
-          },
           "oneOf": [
             {
               "$ref": "#/$defs/ComponentGitSource"
@@ -1140,7 +1133,14 @@
             {
               "$ref": "#/$defs/ComponentImageSource"
             }
-          ]
+          ],
+          "x-musher-discriminator": {
+            "mapping": {
+              "GIT": "#/$defs/ComponentGitSource",
+              "IMAGE": "#/$defs/ComponentImageSource"
+            },
+            "propertyName": "type"
+          }
         },
         "volumes": {
           "description": "Default volumes provisioned for deployments, keyed by volume name.",

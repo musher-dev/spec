@@ -3,5 +3,8 @@
   "phase": "parser",
   "expected": "fail",
   "clause": "specifications/component/v1/spec.md#envelope",
+  "requirements": [
+    "COMP-YAML-007"
+  ],
   "summary": "An anchor with no alias is rejected, not merely an alias."
 }

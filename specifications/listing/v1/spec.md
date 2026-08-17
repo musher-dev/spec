@@ -4,12 +4,25 @@
 **Family:** `listing`
 **Schema:** `https://schemas.musher.dev/listing/v1/listing.schema.json`
 
-The key words MUST, MUST NOT, REQUIRED, SHALL, SHALL NOT, SHOULD, SHOULD NOT,
-RECOMMENDED, MAY, and OPTIONAL in this document are to be interpreted as
-described in [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119).
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+"SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
+"OPTIONAL" in this document are to be interpreted as described in
+BCP 14 [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119) and
+[RFC 8174](https://www.rfc-editor.org/rfc/rfc8174) when, and only when, they
+appear in all capitals, as shown here.
 
-> **This document is normative.** Where it disagrees with a `description` field
-> in the JSON Schema, this document wins.
+> **What is normative.** This document defines the complete behaviour of the
+> specification. The JSON Schema bundle is its executable form for structural
+> validity, and the [conformance corpus](../../../conformance/README.md) is its
+> executable form for observable outcomes; both are normative, and neither is
+> permitted to disagree with this document or with the other. Schema
+> `description` fields, examples, generated documentation, and validator message
+> text are informative.
+>
+> A disagreement between two normative artifacts is a defect in this
+> specification and blocks a release. Until it is fixed this document governs —
+> but that is how to read a broken contract, not a licence for the schema to be
+> wrong.
 
 ---
 
@@ -44,10 +57,10 @@ format; `listingKind` identifies what the listing points at (`BLUEPRINT` or
 `metadata` carries `slug` and `version` — the same shape a blueprint carries.
 Where the item holds one, the two documents MUST agree.
 
-| Rule | Diagnostic |
-|---|---|
-| `metadata.slug` MUST equal the item directory name. | `ERR_SLUG_MISMATCH` |
-| Where the item holds a blueprint, `metadata.version` MUST equal its `metadata.version`. | `ERR_VERSION_MISMATCH` |
+| ID | Rule | Diagnostic |
+|---|---|---|
+| <a id="LIST-ID-001"></a>`LIST-ID-001` | `metadata.slug` MUST equal the item directory name. | `ERR_SLUG_MISMATCH` |
+| <a id="LIST-ID-002"></a>`LIST-ID-002` | Where the item holds a blueprint, `metadata.version` MUST equal its `metadata.version`. | `ERR_VERSION_MISMATCH` |
 
 Both are `semantic`, and both are measured against the item root —
 [blueprint §3.1](../../blueprint/v1/spec.md#item-directory) where the item
@@ -162,11 +175,11 @@ A listing is authored by a third party and rendered by the storefront, so
 the rules that make it safe to render. The reasoning is recorded in
 [ADR 0004](../../../docs/adr/0004-listing-description-trust-boundary.md).
 
-| Rule | Diagnostic |
-|---|---|
-| A description MUST NOT contain raw HTML — an *HTML block* ([CommonMark §4.6](https://spec.commonmark.org/0.31.2/#html-blocks)) or *raw HTML* inline ([§6.6](https://spec.commonmark.org/0.31.2/#raw-html)). | `ERR_RAW_HTML` |
-| A link destination MUST use the `https`, `http`, or `mailto` scheme, or be a fragment beginning `#`. | `ERR_DISALLOWED_SCHEME` |
-| An image destination MUST be a media path as defined by [§5](#media). | `ERR_IMAGE_NOT_LOCAL` |
+| ID | Rule | Diagnostic |
+|---|---|---|
+| <a id="LIST-MD-001"></a>`LIST-MD-001` | A description MUST NOT contain raw HTML — an *HTML block* ([CommonMark §4.6](https://spec.commonmark.org/0.31.2/#html-blocks)) or *raw HTML* inline ([§6.6](https://spec.commonmark.org/0.31.2/#raw-html)). | `ERR_RAW_HTML` |
+| <a id="LIST-MD-002"></a>`LIST-MD-002` | A link destination MUST use the `https`, `http`, or `mailto` scheme, or be a fragment beginning `#`. | `ERR_DISALLOWED_SCHEME` |
+| <a id="LIST-MD-003"></a>`LIST-MD-003` | An image destination MUST be a media path as defined by [§5](#media). | `ERR_IMAGE_NOT_LOCAL` |
 
 All three are `semantic`. Finding a link destination means parsing the document,
 which no JSON Schema pattern can do — this is the same line
@@ -265,11 +278,11 @@ walking the document to work out what to take.
 
 Three rules need the filesystem and are therefore `semantic`:
 
-| Rule | Diagnostic |
-|---|---|
-| The path MUST resolve to a file that exists. | `ERR_MEDIA_NOT_FOUND` |
-| The resolved target MUST lie inside the item root. | `ERR_PATH_ESCAPE` |
-| Two screenshots MUST NOT share a basename. | `ERR_DUPLICATE_MEDIA_BASENAME` |
+| ID | Rule | Diagnostic |
+|---|---|---|
+| <a id="LIST-MEDIA-001"></a>`LIST-MEDIA-001` | The path MUST resolve to a file that exists. | `ERR_MEDIA_NOT_FOUND` |
+| <a id="LIST-MEDIA-002"></a>`LIST-MEDIA-002` | The resolved target MUST lie inside the item root. | `ERR_PATH_ESCAPE` |
+| <a id="LIST-MEDIA-003"></a>`LIST-MEDIA-003` | Two screenshots MUST NOT share a basename. | `ERR_DUPLICATE_MEDIA_BASENAME` |
 
 **`ERR_PATH_ESCAPE` outlives the grammar.** The pattern above makes `..`
 unspellable, so no path can escape by traversal any more. One can still escape
@@ -294,7 +307,9 @@ change.
 
 ## <a id="validation-layers"></a>6. Validation layers
 
-As defined in [component §7](../../component/v1/spec.md#validation-layers).
+As defined in [component §7](../../component/v1/spec.md#validation-layers), and
+written in the YAML profile
+[component §7.1](../../component/v1/spec.md#yaml-profile) states.
 
 ## <a id="diagnostics"></a>7. Diagnostics
 
@@ -317,6 +332,12 @@ family adds:
 An implementation conforms when it produces the declared outcome for every
 fixture in [`conformance/listing/v1/`](../../../conformance/listing/v1/).
 
+An implementation MUST declare the **profile** it claims, as
+[component §9](../../component/v1/spec.md#conformance) requires and
+[conformance/README.md](../../../conformance/README.md#profiles) defines. A
+skipped case is never a passed one.
+
+
 ## <a id="known-debt"></a>9. Known debt
 
 Seeded from the platform's generated schema. The naming that arrived with it
@@ -337,3 +358,45 @@ applies: media dimensions and file size are unbounded ([§5](#media)), a
 ([§3](#identity)), and `tags` and `license` are unbounded free text that nothing
 checks. Closing any of them rejects documents v1 accepts. See
 [component §10](../../component/v1/spec.md#known-debt).
+
+## <a id="security"></a>10. Security considerations
+
+[Component §11](../../component/v1/spec.md#security) applies in full. What is
+specific to a listing is that, alone among the three families, its content is
+**rendered to other people**.
+
+**The description is a stored-injection surface.** [§4.1](#description-markdown)
+is the trust boundary, and [ADR 0004](../../../docs/adr/0004-listing-description-trust-boundary.md)
+records why it is drawn where it is. Two things about it are security rules
+rather than formatting ones:
+
+The renderer obligation in [§4.1](#description-markdown) — that a consumer MUST
+NOT emit an element, attribute, or URL the profile forbids, *whether or not it
+validated the document first* — is the only rule in this specification that
+constrains an implementation's output. It is stated that way deliberately.
+Validation happens where a document is submitted; rendering happens wherever the
+storefront runs, possibly against a document stored before a rule existed. A
+renderer that trusts validation to have happened is a renderer that will emit
+whatever is in the database.
+
+The URL scheme rule covers `homepageUrl`, `sourceRepoUrl`, and `supportUrl` as
+well as links inside Markdown ([§4](#presentation)). `javascript:` in a
+storefront field is the same stored injection as `javascript:` in a description
+link, and a renderer treats both as a link.
+
+**Remote images disclose viewers.** [§5](#media) requires media to be a path
+inside the item rather than a URL. A remote image would make every storefront
+visitor's IP address and user agent visible to a host the listing's author chose,
+turning a catalog page into a tracking beacon on behalf of a third party.
+
+**Media paths are paths.** `ERR_PATH_ESCAPE` is the listing's form of the
+containment rule; the symlink and resolved-location requirements in
+[blueprint §10](../../blueprint/v1/spec.md#security) apply identically. An
+implementation MUST NOT decode or transcode a media file to validate it —
+[§5](#media) turns on existence and containment, and nothing here requires an
+image parser to be pointed at untrusted bytes.
+
+**Text fields are unbounded in ways worth knowing.** `tags` and `license` are
+free text that nothing checks ([§9](#known-debt)). A storefront MUST escape both
+on render and MUST NOT treat `license` as an assertion about licensing — it is
+an author's claim, not a verified fact.

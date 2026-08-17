@@ -6,14 +6,20 @@
 # what a hand-placed release binary does not do. Claude Code is the exception:
 # it self-updates through its own installer (scripts/lib/base-setup.sh).
 #
-# actionlint must stay in step with .github/workflows/ci.yml, which installs the
-# same version through the upstream download script. Two environments, one
-# version — CI is not a mise host and does not read this file.
+# actionlint and task must stay in step with .github/workflows/*.yml, which
+# install the same versions themselves. Two environments, one version — CI is
+# not a mise host and does not read this file.
+#
+# Both are pinned exactly rather than to a range. `setup-task` with a range
+# resolves the newest match through the GitHub API on every run, so a degraded
+# API takes every workflow down before it reaches a single check — which is how
+# this pin came to be written.
 #
 # Change a version here, then rebuild the container or run `mise install`.
 # Docs: https://mise.jdx.dev
 
 [tools]
 "actionlint"        = "1.7.11"
+"task"              = "3.52.0"
 "npm:@openai/codex" = "0.143.0"
 "npm:lefthook"      = "2.1.10"

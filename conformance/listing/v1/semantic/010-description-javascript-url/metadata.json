@@ -3,5 +3,8 @@
   "phase": "semantic",
   "expected": "fail",
   "clause": "specifications/listing/v1/spec.md#description-markdown",
+  "requirements": [
+    "LIST-MD-002"
+  ],
   "summary": "A description link using a scheme outside the permitted set is rejected."
 }

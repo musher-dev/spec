@@ -55,6 +55,13 @@ tasks:
     cmds:
       - bun run src/bundle.ts
       - bun run src/catalog.ts
+      - bun run src/traceability.ts
+
+  traceability:
+    desc: Regenerate the requirement traceability matrix
+    dir: '{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/traceability.ts
 
   catalog:
     desc: Regenerate the SchemaStore catalog index
@@ -81,8 +88,83 @@ tasks:
       - task: check:drift
       - task: check:examples
       - task: check:conformance
+      - task: check:standards
+      - task: check:parity
+      - task: check:published
+      - task: check:compat
+      - task: check:test
+      - task: check:commits
+      - task: check:links
+      - task: check:spelling
       - task: check:shell
       - task: check:workflow
+
+  check:standards:
+    desc: Meta-validate schemas with an independent JSON Schema toolchain
+    dir: '{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/standards.ts
+
+  check:parity:
+    desc: Require Ajv and Blaze to agree on every structural verdict
+    dir: '{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/parity.ts
+
+  check:published:
+    desc: Verify every released version against the publication ledger
+    dir: '{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/published.ts
+
+  check:ledger:
+    desc: Fail if published.json changed anything already recorded
+    dir: '{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/ledger.ts check
+
+  check:compat:
+    desc: Replay every released version's accepted documents against the candidate schema
+    dir: '{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/compat.ts
+
+  check:commits:
+    desc: Hold the Conventional Commits vocabulary in step across its three copies
+    dir: '{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/commits.ts
+
+  check:links:
+    desc: Resolve every internal Markdown link and anchor
+    dir: '{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/links.ts
+
+  check:spelling:
+    desc: Spell-check prose, tooling sources, and schema descriptions
+    cmds:
+      - >-
+        tools/node_modules/.bin/cspell --no-progress --no-summary --unique
+        --config cspell.json "**/*.md" "tools/src/**/*.ts" "**/*.schema.json"
+
+  check:test:
+    desc: Run the tooling test suite
+    dir: '{{.TOOLS_DIR}}'
+    cmds:
+      - bun test
+
+  ledger:record:
+    desc: Record the pending release from the release-please manifest
+    dir: '{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/ledger.ts record
+
+  ledger:sync:
+    desc: Backfill ledger entries for tags that exist but were never recorded
+    dir: '{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/ledger.ts sync
 
   check:schema:
     desc: Meta-validate schema modules, $id uniqueness, and $ref locality
@@ -186,6 +268,9 @@ tasks:
     desc: Lint suite as run in CI
     cmds:
       - task: check:format
+      - task: check:commits
+      - task: check:links
+      - task: check:spelling
       - task: check:shell
       - task: check:workflow
 
@@ -196,6 +281,10 @@ tasks:
       - task: check:drift
       - task: check:examples
       - task: check:conformance
+      - task: check:standards
+      - task: check:parity
+      - task: check:compat
+      - task: check:test
 
   clean:
     desc: Remove generated output

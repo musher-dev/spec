@@ -23,6 +23,51 @@
       "path": "parser/004-malformed-yaml"
     },
     {
+      "id": "parser-005-multiple-documents",
+      "phase": "parser",
+      "path": "parser/005-multiple-documents"
+    },
+    {
+      "id": "parser-006-non-string-key",
+      "phase": "parser",
+      "path": "parser/006-non-string-key"
+    },
+    {
+      "id": "parser-007-merge-key",
+      "phase": "parser",
+      "path": "parser/007-merge-key"
+    },
+    {
+      "id": "parser-008-explicit-tag",
+      "phase": "parser",
+      "path": "parser/008-explicit-tag"
+    },
+    {
+      "id": "parser-009-scalar-too-long",
+      "phase": "parser",
+      "path": "parser/009-scalar-too-long"
+    },
+    {
+      "id": "parser-010-depth-exceeded",
+      "phase": "parser",
+      "path": "parser/010-depth-exceeded"
+    },
+    {
+      "id": "parser-011-document-too-large",
+      "phase": "parser",
+      "path": "parser/011-document-too-large"
+    },
+    {
+      "id": "parser-012-byte-order-mark",
+      "phase": "parser",
+      "path": "parser/012-byte-order-mark"
+    },
+    {
+      "id": "parser-013-crlf-line-endings",
+      "phase": "parser",
+      "path": "parser/013-crlf-line-endings"
+    },
+    {
       "id": "structural-001-minimal-valid",
       "phase": "structural",
       "path": "structural/001-minimal-valid"

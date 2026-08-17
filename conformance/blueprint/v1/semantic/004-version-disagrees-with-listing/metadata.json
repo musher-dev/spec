@@ -3,6 +3,9 @@
   "phase": "semantic",
   "expected": "fail",
   "clause": "specifications/blueprint/v1/spec.md#identity",
+  "requirements": [
+    "BP-ID-002"
+  ],
   "summary": "A blueprint whose version differs from its sibling listing's is rejected.",
   "document": "acme-wiki/blueprint.yaml"
 }

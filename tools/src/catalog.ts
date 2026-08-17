@@ -46,10 +46,10 @@ const TITLE: Record<string, string> = {
   listing: 'Musher Listing Document',
 }
 
-export function buildCatalog(): Json {
+export function buildCatalog(repoRoot: string = REPO_ROOT): Json {
   const schemas: Json[] = []
 
-  for (const family of discoverFamilies()) {
+  for (const family of discoverFamilies(repoRoot)) {
     const fileMatch = FILE_MATCH[family.name]
     if (fileMatch === undefined) {
       throw new Error(

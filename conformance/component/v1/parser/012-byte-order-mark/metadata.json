@@ -1,0 +1,10 @@
+{
+  "id": "parser-012-byte-order-mark",
+  "phase": "parser",
+  "expected": "pass",
+  "clause": "specifications/component/v1/spec.md#yaml-profile",
+  "requirements": [
+    "COMP-YAML-002"
+  ],
+  "summary": "A document beginning with a UTF-8 byte order mark is accepted, and the mark carries no meaning."
+}

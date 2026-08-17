@@ -4,8 +4,15 @@ Canonical public contracts, normative schemas, and language-neutral conformance
 suites for the [Musher](https://musher.dev) platform.
 
 This repository is the source of truth. If an implementation disagrees with the
-schemas and conformance fixtures published here, the implementation is
-defective.
+prose, the schemas, or the conformance fixtures published here, the
+implementation is defective.
+
+Each family's `spec.md` defines its complete behaviour. The JSON Schema bundle
+is that prose's executable form for structural validity, and the conformance
+corpus is its executable form for observable outcomes; all three are normative.
+Schema `description` fields, examples, and validator message text are
+informative. A disagreement between two normative artifacts is a defect here
+that blocks a release, not a choice for an implementation.
 
 ## Specification families
 
@@ -57,6 +64,16 @@ Automation MUST pin an exact version. Major-version aliases exist so editors
 pick up backward-compatible additions without a config change; they are not a
 stable target for a build.
 
+Exact-version paths are rebuilt from their git tags on every deploy, never from
+`main`, and each one carries its own `$id` naming that exact URL. Every release
+is accompanied by a `.sha256` sidecar, `/<family>/versions.json` inventories
+what a family has published, and [`published.json`](published.json) records the
+checksum of every version this repository has ever released. See
+[ADR 0006](docs/adr/0006-publication-from-tags.md).
+
+Once a family is tagged its alias serves that family's newest release; before
+its first tag the alias serves what is committed on `main`.
+
 ### Offline
 
 Every published schema is a self-contained compound document — all `$ref`s
@@ -77,7 +94,13 @@ conformance/<family>/v<major>/
   <phase>/<case-id>/   metadata.json, case.yaml, diagnostics.json
 tools/                 non-normative build and validation scripts (Bun + TypeScript)
 docs/adr/              architecture decision records
+docs/traceability.md   generated: every requirement, its clause, and its cases
+published.json         the checksum of every version ever released
 ```
+
+[`docs/traceability.md`](docs/traceability.md) is the map from a requirement
+identifier to the clause stating it and the conformance cases pinning it. It is
+generated, so it cannot drift from either.
 
 `schemas/dist/` is generated. Never edit it by hand — CI regenerates it and
 fails the build if your commit does not match.

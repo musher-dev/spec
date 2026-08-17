@@ -3,5 +3,8 @@
   "phase": "semantic",
   "expected": "fail",
   "clause": "specifications/component/v1/spec.md#health",
+  "requirements": [
+    "COMP-EP-002"
+  ],
   "summary": "A probe naming an endpoint the workload does not declare is rejected."
 }

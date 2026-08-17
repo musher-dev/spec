@@ -1,0 +1,17 @@
+# `8080:` resolves to the integer 8080 on a YAML 1.2 parser and to the string
+# "8080" on a parser that quotes implicit keys. Mapping keys are property names
+# in every schema this repository publishes, so the two readings are two
+# different documents — the duplicate-key problem wearing a different hat.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+    endpoints:
+      8080:
+        port: 8080

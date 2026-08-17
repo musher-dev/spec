@@ -79,10 +79,47 @@ jobs:
             echo "archive=$archive"
           } >> "$GITHUB_OUTPUT"
 
+      # The checked-out tree is this push's commit, and release-please tags that
+      # same commit — but nothing in this workflow says so, and the archive is
+      # published with a checksum that claims to describe the tag. Assert it
+      # rather than depending on release-please internals staying put.
+      - name: The tag points at the tree being built
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          set -euo pipefail
+          tagged="$(git rev-parse "refs/tags/${TAG}^{commit}")"
+          if [ "$tagged" != "$GITHUB_SHA" ]; then
+            echo "::error::${TAG} points at ${tagged}, but this job is building ${GITHUB_SHA}" >&2
+            exit 1
+          fi
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.14
+
+      - uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e # v2.2.0
+        with:
+          version: 3.52.0
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install tooling dependencies
+        working-directory: tools
+        run: bun install --frozen-lockfile
+
+      # Assemble the publication tree so the archive can ship the same bytes the
+      # pinned URL serves. Vendoring the tarball and fetching the URL must give
+      # an identical file — one released version, one byte sequence.
+      - name: Assemble publication tree
+        run: |
+          task check:published
+          task site:build
+
       - name: Build distribution archive
         env:
           FAMILY: ${{ steps.meta.outputs.family }}
           MAJOR: ${{ steps.meta.outputs.major }}
+          VERSION: ${{ steps.meta.outputs.version }}
           ARCHIVE: ${{ steps.meta.outputs.archive }}
         run: |
           set -euo pipefail
@@ -90,17 +127,25 @@ jobs:
           root="${staging}/${FAMILY}-${MAJOR}"
           mkdir -p "$root"
 
-          cp "specifications/${FAMILY}/${MAJOR}/schemas/dist/${FAMILY}.schema.json" "$root/"
+          pinned="site/${FAMILY}/v${VERSION}/${FAMILY}.schema.json"
+          test -f "$pinned" || { echo "::error::${pinned} was not assembled" >&2; exit 1; }
+          cp "$pinned" "$root/${FAMILY}.schema.json"
+          cp "${pinned}.sha256" "$root/${FAMILY}.schema.json.sha256"
+
           cp "specifications/${FAMILY}/${MAJOR}/spec.md" "$root/"
           cp LICENSE NOTICE "$root/"
           cp -r "specifications/${FAMILY}/${MAJOR}/examples" "$root/examples"
           cp -r "conformance/${FAMILY}/${MAJOR}" "$root/conformance"
           cp conformance/README.md "$root/conformance/README.md"
 
-          # Deterministic archive: sorted entries, no owner or timestamp noise.
-          tar --sort=name --owner=0 --group=0 --numeric-owner \
+          # Deterministic archive: sorted entries, no owner or timestamp noise,
+          # and `gzip -n` so no filename or mtime lands in the gzip header. The
+          # rerun guard below compares bytes, so this is load-bearing rather
+          # than cosmetic.
+          tar --format=gnu --sort=name --owner=0 --group=0 --numeric-owner \
               --mtime="@${SOURCE_DATE_EPOCH:-0}" \
-              -czf "$ARCHIVE" -C "$staging" "${FAMILY}-${MAJOR}"
+              -cf - -C "$staging" "${FAMILY}-${MAJOR}" \
+            | gzip -n -9 > "$ARCHIVE"
 
           sha256sum "$ARCHIVE" > "${ARCHIVE}.sha256"
           cat "${ARCHIVE}.sha256"
@@ -110,9 +155,48 @@ jobs:
         with:
           subject-path: ${{ steps.meta.outputs.archive }}
 
+      # No --clobber. A rerun must be idempotent, and loud when it cannot be:
+      # an asset already published with different bytes means either the build
+      # stopped being deterministic or the release was mutated, and both
+      # deserve a red X rather than a silent overwrite.
       - name: Attach to the release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.meta.outputs.tag }}
           ARCHIVE: ${{ steps.meta.outputs.archive }}
-        run: gh release upload "$TAG" "$ARCHIVE" "${ARCHIVE}.sha256" --clobber
+        run: |
+          set -euo pipefail
+          published="$(gh release view "$TAG" --json assets --jq '.assets[].name')"
+          scratch="$(mktemp -d)"
+
+          for asset in "$ARCHIVE" "${ARCHIVE}.sha256"; do
+            if printf '%s\n' "$published" | grep -qxF "$asset"; then
+              gh release download "$TAG" -p "$asset" -D "$scratch" --clobber
+              if ! cmp -s "$asset" "${scratch}/${asset}"; then
+                echo "::error::${asset} is already published for ${TAG} with different bytes" >&2
+                exit 1
+              fi
+              echo "${asset} already published and identical — skipping"
+            else
+              gh release upload "$TAG" "$asset"
+            fi
+          done
+
+  # ---------------------------------------------------------------------------
+  # Publish the site now that the tag exists.
+  #
+  # Pages also runs on push to main, but that run starts at the same moment as
+  # release-please and enumerates tags before this release has one — so it would
+  # deploy a tree with no pinned path for the version just cut, and the version
+  # would appear only on the next unrelated push. Calling Pages from here is
+  # what makes a release visible at its own URL when it is released.
+  # ---------------------------------------------------------------------------
+  publish:
+    name: Publish
+    needs: [release-please, artifacts]
+    if: needs.release-please.outputs.paths_released != '' && needs.release-please.outputs.paths_released != '[]'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/pages.yml

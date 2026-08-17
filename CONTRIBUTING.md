@@ -6,8 +6,17 @@ ordinary codebase.
 
 ## Ground rules
 
-1. **The schema is normative; implementations are downstream.** A change here
-   obligates the CLI, the API, and every SDK. Propose accordingly.
+1. **The prose is normative; the schema and the corpus are its executable
+   forms.** `spec.md` defines the complete behaviour of a family. The JSON
+   Schema bundle is its executable form for structural validity and the
+   conformance corpus is its executable form for observable outcomes — both
+   normative, and neither permitted to disagree with the prose or with the
+   other. Schema `description` fields, examples, and validator message text are
+   informative. A disagreement between two normative artifacts is a defect that
+   blocks a release, not something an implementation gets to resolve.
+
+   Implementations are downstream of all three. A change here obligates the CLI,
+   the API, and every SDK. Propose accordingly.
 2. **No schema change without conformance fixtures.** Every behavioural change
    must arrive with at least one positive and one negative fixture that would
    fail before the change and pass after it.
@@ -52,7 +61,8 @@ and a `tree/` when it is decided by reading the item the document sits in —
 a slug against its directory, a reference against a file. See
 [conformance/README.md](conformance/README.md#case-trees).
 
-Adding a diagnostic code to a `spec.md` obliges you to add a case for it.
+Adding a diagnostic code or a requirement ID to a `spec.md` obliges you to add a
+case for it.
 `check:conformance` fails otherwise, and the only way out is an entry in the
 runner's `UNCOVERED` list saying why the code cannot be exercised.
 
@@ -65,7 +75,15 @@ runner's `UNCOVERED` list saying why the code cannot be exercised.
 | `check:schema` | Every `src/` module is valid JSON Schema 2020-12; `$id`s are unique and canonical; no remote `$ref` |
 | `check:drift` | The committed `dist/` bundle matches a fresh compile of `src/` |
 | `check:examples` | Every file in `examples/` validates against its family's bundle |
-| `check:conformance` | Every conformance case produces its declared outcome; every declared diagnostic code has a case; every case directory is indexed |
+| `check:conformance` | Every conformance case produces its declared outcome; every declared diagnostic code and requirement ID has a case; every case directory is indexed |
+| `check:standards` | An independent JSON Schema toolchain accepts every module and bundle |
+| `check:parity` | Ajv and Blaze agree on every structural verdict |
+| `check:published` | Every released version still hashes to what `published.json` recorded |
+| `check:compat` | No released version's accepted documents are rejected by the candidate schema |
+| `check:test` | The tooling test suite, including the publication-immutability regressions |
+| `check:commits` | The Conventional Commits vocabulary agrees across its three copies |
+| `check:links` | Every internal Markdown link and anchor resolves |
+| `check:spelling` | Prose, tooling, and schema descriptions spell-check clean |
 | `check:shell` | ShellCheck over `.devcontainer/scripts` |
 | `check:workflow` | actionlint over `.github/workflows` |
 

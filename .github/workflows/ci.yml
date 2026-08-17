@@ -30,17 +30,33 @@ jobs:
 
       - uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e # v2.2.0
         with:
-          version: 3.x
+          version: 3.52.0
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install tooling dependencies
         working-directory: tools
         run: bun install --frozen-lockfile
 
+      # The release tarball, verified against a pinned SHA-256, rather than
+      # piping an install script from a URL into bash. The script is fetched
+      # from a mutable ref and executed unverified, which made it the one place
+      # in CI where an upstream compromise would run arbitrary code with the
+      # workflow's token.
+      #
+      # Keep ACTIONLINT_VERSION in step with .devcontainer/mise.toml. CI is not
+      # a mise host and does not read that file.
       - name: Install actionlint
+        env:
+          ACTIONLINT_VERSION: 1.7.11
+          ACTIONLINT_SHA256: 900919a84f2229bac68ca9cd4103ea297abc35e9689ebb842c6e34a3d1b01b0a
         run: |
-          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.11/scripts/download-actionlint.bash) 1.7.11
-          sudo mv actionlint /usr/local/bin/
+          set -euo pipefail
+          archive="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl -sSfL --retry 3 -o "$archive" \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/${archive}"
+          echo "${ACTIONLINT_SHA256}  ${archive}" | sha256sum -c -
+          tar -xzf "$archive" actionlint
+          sudo install -m 0755 actionlint /usr/local/bin/actionlint
 
       - name: Run lint suite
         run: task ci:lint
@@ -56,7 +72,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      # Full history and tags: check:compat replays each released version's
+      # accepted documents out of that version's own tag.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
@@ -64,7 +84,7 @@ jobs:
 
       - uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e # v2.2.0
         with:
-          version: 3.x
+          version: 3.52.0
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install tooling dependencies
@@ -76,6 +96,15 @@ jobs:
       # becoming a second, divergent source of truth.
       - name: Schema, drift, examples, conformance
         run: task ci:test
+
+      - name: Traceability matrix is current
+        run: |
+          task traceability
+          if ! git diff --quiet -- docs/traceability.md; then
+            echo "::error file=docs/traceability.md::stale. Run 'task traceability' and commit." >&2
+            git --no-pager diff -- docs/traceability.md
+            exit 1
+          fi
 
       - name: Catalog is current
         run: |
@@ -94,7 +123,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      # Full history and every tag: pinned paths are rebuilt from the tags, and
+      # the ledger's append-only check compares against the base commit.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
@@ -102,12 +135,23 @@ jobs:
 
       - uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e # v2.2.0
         with:
-          version: 3.x
+          version: 3.52.0
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install tooling dependencies
         working-directory: tools
         run: bun install --frozen-lockfile
+
+      # Every released version must still hash to what published.json recorded,
+      # and nothing already recorded may be edited or removed.
+      - name: Verify published versions
+        run: task check:published
+
+      - name: Ledger is append-only
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.sha }}
+        run: task check:ledger
 
       - name: Assemble publication tree
         run: |

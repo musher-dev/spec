@@ -38,7 +38,8 @@
         "required_status_checks": [
           { "context": "Lint" },
           { "context": "Schema" },
-          { "context": "Site Build" }
+          { "context": "Site Build" },
+          { "context": "Signed off" }
         ]
       }
     }

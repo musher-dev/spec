@@ -3,6 +3,9 @@
   "phase": "semantic",
   "expected": "fail",
   "clause": "specifications/listing/v1/spec.md#media",
+  "requirements": [
+    "LIST-MEDIA-002"
+  ],
   "summary": "A media path resolving outside the item root through a symlink is rejected.",
   "document": "acme-wiki/listing.yaml",
   "symlinks": {
