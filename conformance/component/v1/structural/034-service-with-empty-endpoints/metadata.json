@@ -1,0 +1,7 @@
+{
+  "id": "structural-034-service-with-empty-endpoints",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#workload",
+  "summary": "A SERVICE declaring an empty endpoints mapping is rejected."
+}

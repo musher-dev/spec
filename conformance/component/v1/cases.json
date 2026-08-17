@@ -183,6 +183,16 @@
       "path": "structural/032-env-var-key-not-uppercase"
     },
     {
+      "id": "structural-033-service-without-endpoints",
+      "phase": "structural",
+      "path": "structural/033-service-without-endpoints"
+    },
+    {
+      "id": "structural-034-service-with-empty-endpoints",
+      "phase": "structural",
+      "path": "structural/034-service-with-empty-endpoints"
+    },
+    {
       "id": "semantic-001-floating-tag-image-reference",
       "phase": "semantic",
       "path": "semantic/001-floating-tag-image-reference"
