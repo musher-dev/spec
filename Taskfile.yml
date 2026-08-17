@@ -7,8 +7,6 @@ version: '3'
 vars:
   TOOLS_DIR: tools
   SITE_DIR: site
-  LEFTHOOK_VERSION: v2.1.10
-  ACTIONLINT_VERSION: v1.7.11
 
 env:
   # Keep bun's cache inside the workspace-visible cache dir the dev container

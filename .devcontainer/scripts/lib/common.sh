@@ -139,23 +139,37 @@ install_npm_cli() {
 
 # --- Verification ---
 
-# Verifies that a list of commands are available on the PATH.
+# Verifies that a list of commands are available on the PATH and can run.
+#
+# Being on the PATH is not enough. A release binary fetched for the wrong CPU
+# architecture resolves fine and then dies with `exec format error` (exit 126)
+# the first time anything invokes it, which is a failure worth catching at
+# container build rather than mid-task. Every tool checked here exits 0 on
+# `--version`, so a non-zero status means the binary is not runnable.
 #
 # Arguments:
 #   $@ — command names to check
 # Outputs:
 #   Writes status of each tool to stderr via log()
 # Returns:
-#   0 if all tools found, 1 if any are missing
+#   0 if all tools found and runnable, 1 otherwise
 verify_tools() {
   log "Verifying installed tools..."
   local all_ok=true
+  local version
   for cmd in "$@"; do
-    if has_cmd "$cmd"; then
-      log "  ✓ ${cmd}: $("$cmd" --version 2>/dev/null || echo 'installed')"
-    else
+    if ! has_cmd "$cmd"; then
       log "  ✗ ${cmd}: MISSING"
       all_ok=false
+    elif ! version="$("$cmd" --version 2>/dev/null)"; then
+      log "  ✗ ${cmd}: on PATH at $(command -v "$cmd") but does not run"
+      all_ok=false
+    else
+      # First line only — shellcheck and actionlint both print a banner, and the
+      # status line is meant to be one line per tool. Trimmed after the status
+      # check rather than by piping through `head`, which would report the
+      # pipeline's exit code instead of the tool's.
+      log "  ✓ ${cmd}: ${version%%$'\n'*}"
     fi
   done
   [[ "${all_ok}" == true ]]
