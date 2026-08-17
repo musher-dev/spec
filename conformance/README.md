@@ -168,6 +168,61 @@ identical corpus.
 An implementation MUST apply the phases in order and MUST NOT report a
 later-phase diagnostic before the earlier phases pass.
 
+## <a id="profiles"></a>Profiles
+
+Not every implementation runs every phase, and that is by design: `capability`
+needs an account, a region, and a quota, which is a server. An editor plugin
+that checks structure is a useful thing to be, and it is not the same thing as a
+control plane.
+
+So "Musher conformant" is not a claim anyone can make on its own. An
+implementation claims a **profile**, and each profile names the phases it must
+pass every case in:
+
+| Profile | Required phases | Typical implementation |
+|---|---|---|
+| `parser` | `parser` | A linter or formatter that reads documents but does not validate them |
+| `structural` | `parser`, `structural` | An editor integration binding the published schema |
+| `offline` | `parser`, `structural`, `semantic` | A CLI validating a working tree, with no network |
+| `platform` | all four | A control plane accepting submissions |
+
+The profiles are cumulative: `offline` includes everything `structural`
+requires. An implementation MUST NOT claim a profile while skipping any case in
+a phase that profile requires — a skipped case is never a passed one
+([above](#case-trees)).
+
+`offline` is the highest profile reachable without a network, and it is
+deliberately a named stopping point rather than a shortfall. No phase below
+`capability` may reach the network, so an implementation running everything a
+client is permitted to run is `offline`-conformant and complete.
+
+### Reporting a result
+
+An implementation publishing a conformance result SHOULD publish it in this
+shape, so that two claims can be compared:
+
+```json
+{
+  "implementation": "musher-cli",
+  "implementationVersion": "1.4.0",
+  "family": "component",
+  "specificationRelease": "1.2.0",
+  "suiteCommit": "af2dec0…",
+  "profile": "offline",
+  "passed": 184,
+  "failed": 0,
+  "skipped": 4
+}
+```
+
+`suiteCommit` matters as much as `specificationRelease`: a case may be added to
+the corpus between releases, so "which cases were run" is not answered by a
+version number alone.
+
+A result with `failed` greater than zero is not a conformance claim. A result
+with `skipped` greater than zero is a claim only if every skipped case belongs
+to a phase outside the declared profile.
+
 ## Coverage status
 
 `parser`, `structural` and `semantic` are covered. Every diagnostic code the

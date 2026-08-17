@@ -77,6 +77,30 @@ const PHASES: readonly Phase[] = ['parser', 'structural', 'semantic', 'capabilit
 const IMPLEMENTED_PHASES = new Set<Phase>(['parser', 'structural', 'semantic'])
 
 /**
+ * The profiles conformance/README.md defines, cumulative and in order.
+ *
+ * Naming them here rather than only in prose is what stops the two drifting: if
+ * a phase is added to `IMPLEMENTED_PHASES`, the profile this runner reports
+ * changes with it, and if a profile's phase list is edited the runner's own
+ * claim moves. A profile nobody computes is a profile nobody checks.
+ */
+const PROFILES: readonly { readonly name: string; readonly phases: readonly Phase[] }[] = [
+  { name: 'parser', phases: ['parser'] },
+  { name: 'structural', phases: ['parser', 'structural'] },
+  { name: 'offline', phases: ['parser', 'structural', 'semantic'] },
+  { name: 'platform', phases: ['parser', 'structural', 'semantic', 'capability'] },
+]
+
+/** The highest profile a given set of implemented phases satisfies. */
+export function profileFor(implemented: ReadonlySet<Phase>): string | null {
+  let highest: string | null = null
+  for (const profile of PROFILES) {
+    if (profile.phases.every((phase) => implemented.has(phase))) highest = profile.name
+  }
+  return highest
+}
+
+/**
  * The family whose diagnostics table the other families declare themselves
  * deltas on: blueprint §7 and listing §7 both open "The codes in component §8
  * apply. This family adds:". The registry a fixture may draw on is therefore
@@ -516,11 +540,12 @@ function main(): void {
   }
 
   const suffix = skipped > 0 ? ` (${skipped} skipped)` : ''
+  const profile = profileFor(IMPLEMENTED_PHASES) ?? 'none'
   failures.report(
     ran === 0
       ? `No conformance cases executed${suffix}.`
-      : `${ran} conformance case(s) passed${suffix}.`,
+      : `${ran} conformance case(s) passed${suffix} — profile: ${profile}.`,
   )
 }
 
-main()
+if (import.meta.main) main()

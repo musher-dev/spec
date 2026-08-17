@@ -855,6 +855,17 @@ outcome for every fixture in
 Implementations MUST run the fixture corpus in their own CI. Passing a fixture
 that is declared to fail is a conformance failure.
 
+An implementation MUST declare the **profile** it claims. Conformance is not a
+single claim: `capability` needs an account, a region, and a quota, so an
+implementation a user runs locally cannot reach it, and an editor integration
+that checks structure is a useful thing to be without being a control plane.
+The profiles, and the report shape a claim should take, are defined in
+[conformance/README.md](../../../conformance/README.md#profiles).
+
+A skipped case is never a passed one. An implementation MUST NOT claim a
+profile while skipping any case in a phase that profile requires.
+
+
 ## <a id="known-debt"></a>10. Known debt
 
 This schema was seeded from the platform's Pydantic-generated catalog schema.

@@ -332,6 +332,12 @@ family adds:
 An implementation conforms when it produces the declared outcome for every
 fixture in [`conformance/listing/v1/`](../../../conformance/listing/v1/).
 
+An implementation MUST declare the **profile** it claims, as
+[component §9](../../component/v1/spec.md#conformance) requires and
+[conformance/README.md](../../../conformance/README.md#profiles) defines. A
+skipped case is never a passed one.
+
+
 ## <a id="known-debt"></a>9. Known debt
 
 Seeded from the platform's generated schema. The naming that arrived with it
