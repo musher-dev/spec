@@ -57,6 +57,16 @@ Automation MUST pin an exact version. Major-version aliases exist so editors
 pick up backward-compatible additions without a config change; they are not a
 stable target for a build.
 
+Exact-version paths are rebuilt from their git tags on every deploy, never from
+`main`, and each one carries its own `$id` naming that exact URL. Every release
+is accompanied by a `.sha256` sidecar, `/<family>/versions.json` inventories
+what a family has published, and [`published.json`](published.json) records the
+checksum of every version this repository has ever released. See
+[ADR 0006](docs/adr/0006-publication-from-tags.md).
+
+Once a family is tagged its alias serves that family's newest release; before
+its first tag the alias serves what is committed on `main`.
+
 ### Offline
 
 Every published schema is a self-contained compound document — all `$ref`s

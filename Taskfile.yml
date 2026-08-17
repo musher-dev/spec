@@ -81,8 +81,40 @@ tasks:
       - task: check:drift
       - task: check:examples
       - task: check:conformance
+      - task: check:published
+      - task: check:test
       - task: check:shell
       - task: check:workflow
+
+  check:published:
+    desc: Verify every released version against the publication ledger
+    dir: '{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/published.ts
+
+  check:ledger:
+    desc: Fail if published.json changed anything already recorded
+    dir: '{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/ledger.ts check
+
+  check:test:
+    desc: Run the tooling test suite
+    dir: '{{.TOOLS_DIR}}'
+    cmds:
+      - bun test
+
+  ledger:record:
+    desc: Record the pending release from the release-please manifest
+    dir: '{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/ledger.ts record
+
+  ledger:sync:
+    desc: Backfill ledger entries for tags that exist but were never recorded
+    dir: '{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/ledger.ts sync
 
   check:schema:
     desc: Meta-validate schema modules, $id uniqueness, and $ref locality
@@ -196,6 +228,7 @@ tasks:
       - task: check:drift
       - task: check:examples
       - task: check:conformance
+      - task: check:test
 
   clean:
     desc: Remove generated output

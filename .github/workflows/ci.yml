@@ -94,7 +94,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      # Full history and every tag: pinned paths are rebuilt from the tags, and
+      # the ledger's append-only check compares against the base commit.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
@@ -108,6 +112,17 @@ jobs:
       - name: Install tooling dependencies
         working-directory: tools
         run: bun install --frozen-lockfile
+
+      # Every released version must still hash to what published.json recorded,
+      # and nothing already recorded may be edited or removed.
+      - name: Verify published versions
+        run: task check:published
+
+      - name: Ledger is append-only
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.sha }}
+        run: task check:ledger
 
       - name: Assemble publication tree
         run: |

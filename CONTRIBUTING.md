@@ -66,6 +66,8 @@ runner's `UNCOVERED` list saying why the code cannot be exercised.
 | `check:drift` | The committed `dist/` bundle matches a fresh compile of `src/` |
 | `check:examples` | Every file in `examples/` validates against its family's bundle |
 | `check:conformance` | Every conformance case produces its declared outcome; every declared diagnostic code has a case; every case directory is indexed |
+| `check:published` | Every released version still hashes to what `published.json` recorded |
+| `check:test` | The tooling test suite, including the publication-immutability regressions |
 | `check:shell` | ShellCheck over `.devcontainer/scripts` |
 | `check:workflow` | actionlint over `.github/workflows` |
 

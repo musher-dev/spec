@@ -120,17 +120,26 @@ of any other vocabulary of this shape.
 Releases are automated. Merging a Conventional Commit to `main` opens a
 release-please PR; merging that PR tags the release and triggers publication.
 
-1. Tag `<family>/v<MAJOR>.<MINOR>.<PATCH>` is created
-2. A `.tar.gz` of the bundle, prose, and conformance suite is built with
+1. The release pull request records the pending version in
+   [`published.json`](published.json) — its path and the checksums of the bytes
+   about to be tagged
+2. Tag `<family>/v<MAJOR>.<MINOR>.<PATCH>` is created
+3. A `.tar.gz` of the bundle, prose, and conformance suite is built with
    SHA-256 checksums and a SLSA provenance attestation
-3. The archive is attached to a GitHub Release
-4. The schema is published to `https://schemas.musher.dev/<family>/…`
-5. `catalog.json` is regenerated for editor discovery
+4. The archive is attached to a GitHub Release
+5. The schema is published to `https://schemas.musher.dev/<family>/…`, rebuilt
+   from the tag rather than from `main`
+6. `catalog.json` is regenerated for editor discovery
 
-Released versions are **immutable**. Tag deletion is blocked by repository
-ruleset. A flawed release is corrected by publishing a superseding patch, and
-the flawed version is marked with `deprecated: true` plus HTTP `Deprecation`
-and `Sunset` headers pointing at the migration guide.
+Released versions are **immutable**. Tag deletion and update are blocked by
+repository ruleset, and `published.json` is append-only — a rewritten tag or an
+edited entry fails CI and stops the deploy rather than silently altering a URL
+documented as permanent. A flawed release is corrected by publishing a
+superseding patch, and the flawed version is marked with `deprecated: true` plus
+HTTP `Deprecation` and `Sunset` headers pointing at the migration guide.
+
+[ADR 0006](docs/adr/0006-publication-from-tags.md) sets out the publication
+model and why the ledger exists.
 
 ## Deprecation and retirement
 

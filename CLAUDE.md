@@ -20,6 +20,13 @@ implementation of what is defined here.
    are all breaking and require a new `v<N>` directory.
 5. **No executables, no generated language bindings.** Data artifacts only. See
    GOVERNANCE.md → Binary policy.
+6. **`published.json` is append-only.** It records the checksum of every version
+   ever released. Editing or removing an entry is the paper form of unpublishing
+   an immutable URL; CI rejects both. New entries are written by the release
+   pull request, not by hand. See docs/adr/0006.
+7. **Exact-version URLs are rebuilt from tags, never from `main`.**
+   `tools/src/site.ts` extracts each release from its own tag. Nothing in the
+   working tree may feed a path that has already been published.
 
 ## Layout
 
