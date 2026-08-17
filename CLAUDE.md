@@ -83,5 +83,7 @@ now rejects both, but the seeding still shows in the prose: some `description`
 text uses platform vocabulary (`snapshot compute`) that a reader outside
 `musher-dev/platform` cannot resolve. Compute Profile slugs used to be on that
 list; blueprint §4.3 now carries the grammar and names where the vocabulary is
-published, per docs/adr/0003. Only `listing/v1/spec.md` still carries `TODO`
-sections — they are what keeps v1 pre-stable.
+published, per docs/adr/0003. No `spec.md` carries a `TODO` section any longer —
+listing §4.1 and §4.2 closed the last two, per docs/adr/0004 and GOVERNANCE.md →
+Changing a controlled vocabulary. What is left in each family's Known debt is a
+gap recorded where it applies, not an unanswered question.

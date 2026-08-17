@@ -58,6 +58,55 @@ Any change that would cause a previously valid document to fail validation is a
 Adding a required field, narrowing an enum, tightening a pattern, and removing
 a field are all breaking. Adding an optional field is not.
 
+## Changing a controlled vocabulary
+
+A field whose value comes from a closed `enum` is a controlled vocabulary this
+repository decides — [ADR 0003](docs/adr/0003-controlled-vocabulary-placement.md)
+§1 calls it placement one. Adding a term is a minor release; removing one is
+breaking, and therefore a new major.
+
+That asymmetry is the whole problem. Growth is cheap in every individual case
+and irreversible in aggregate, so the rule below is editorial rather than
+technical: nothing in CI can fail a term that is merely a bad idea.
+
+### An open taxonomy: listing `category`
+
+A candidate term must justify itself **against the terms that already exist**,
+and the proposing pull request must say so in three parts:
+
+1. **Which existing terms it was tested against**, and why each is wrong for the
+   listings it is meant to hold. A term proposed without this reads as an
+   addition; with it, it reads as a gap.
+2. **That it is how a buyer browses, not what the software is built with.** A
+   category answers "what am I looking for". The technology an item is made of
+   is what `tags` carries, and a term that would have been a good tag is not a
+   category.
+3. **That it is not a subset of an existing term.** A term that splits an
+   existing one in two makes both less useful, because a listing that could sit
+   in either now sits in whichever its author picked.
+
+Approval is one maintainer, as for any ordinary change. What is not ordinary is
+that a reviewer is expected to reject a well-formed term on editorial grounds —
+a taxonomy is judged by what it excludes, and twenty categories is a taxonomy
+while sixty is a list with none.
+
+**There is no numeric ceiling, and the reason is worth stating.** A cap would be
+honoured only by refusing every candidate once it was reached, because the
+alternative — merging two terms to make room — is a removal and therefore a new
+major. A limit that cannot be enforced within the major it applies to is a limit
+in name, and it would displace the judgement that actually does the work.
+
+### A closed progression: listing `lifecycleStage`
+
+`lifecycleStage` is not a taxonomy and does not share the rule above. It is a
+short ordered progression describing maturity, and its terms are not
+alternatives an author chooses between on taste — each one makes a claim about
+the item that the storefront acts on.
+
+Adding a stage therefore changes what the storefront *means*, not how it sorts,
+and needs an **accepted ADR** rather than the admission test. The same is true
+of any other vocabulary of this shape.
+
 ## Release process
 
 Releases are automated. Merging a Conventional Commit to `main` opens a
