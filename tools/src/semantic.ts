@@ -305,22 +305,6 @@ function checkEnvVarKeys(document: Json, out: Diagnostic[]): void {
 
 const LOCAL_REFERENCE = /^\.\.?\//
 
-/** Consumer-anchored edges: node → the nodes it reads a value from. */
-function connectionGraph(document: Json): Map<string, string[]> {
-  const components = child(child(document, 'spec'), 'components')
-  const graph = new Map<string, string[]>()
-  for (const node of keysOf(components)) {
-    const connections = child(child(components, node), 'connections')
-    const targets: string[] = []
-    for (const key of keysOf(connections)) {
-      const from = asString(child(child(connections, key), 'fromRole'))
-      if (from !== undefined) targets.push(from)
-    }
-    graph.set(node, targets)
-  }
-  return graph
-}
-
 /** Blueprint §4.2 — `fromRole` MUST name a node in this blueprint. */
 function checkConnectionRoles(document: Json, out: Diagnostic[]): void {
   const components = child(child(document, 'spec'), 'components')
@@ -338,118 +322,6 @@ function checkConnectionRoles(document: Json, out: Diagnostic[]): void {
       }
     }
   }
-}
-
-/**
- * Blueprint §4.2 — the connection graph MUST be acyclic.
- *
- * Reporting is normative and pinned to a canonical form: the walk begins at the
- * lexicographically smallest node in the cycle. Two implementations that find
- * the same cycle then name it identically, instead of leaking whichever node
- * their traversal happened to start from into a comparable diagnostic.
- *
- * Cycles are found as strongly connected components, then reported one per
- * component. An SCC is the right granularity: a knot of four mutually reachable
- * nodes is one problem, not one per elementary cycle through it.
- */
-function checkCycles(document: Json, out: Diagnostic[]): void {
-  const graph = connectionGraph(document)
-  const nodes = [...graph.keys()].sort()
-
-  // Iterative Tarjan — a blueprint is small, but a recursive walk would put the
-  // stack depth at the mercy of the document.
-  const index = new Map<string, number>()
-  const low = new Map<string, number>()
-  const onStack = new Set<string>()
-  const stack: string[] = []
-  const components: string[][] = []
-  let counter = 0
-
-  for (const root of nodes) {
-    if (index.has(root)) continue
-    const work: { node: string; next: number }[] = [{ node: root, next: 0 }]
-    index.set(root, counter)
-    low.set(root, counter)
-    counter += 1
-    stack.push(root)
-    onStack.add(root)
-
-    while (work.length > 0) {
-      const frame = work[work.length - 1]
-      if (frame === undefined) break
-      const successors = (graph.get(frame.node) ?? []).filter((n) => graph.has(n)).sort()
-
-      if (frame.next < successors.length) {
-        const successor = successors[frame.next] as string
-        frame.next += 1
-        if (!index.has(successor)) {
-          index.set(successor, counter)
-          low.set(successor, counter)
-          counter += 1
-          stack.push(successor)
-          onStack.add(successor)
-          work.push({ node: successor, next: 0 })
-        } else if (onStack.has(successor)) {
-          low.set(frame.node, Math.min(low.get(frame.node) ?? 0, index.get(successor) ?? 0))
-        }
-        continue
-      }
-
-      work.pop()
-      const parent = work[work.length - 1]
-      if (parent !== undefined) {
-        low.set(parent.node, Math.min(low.get(parent.node) ?? 0, low.get(frame.node) ?? 0))
-      }
-      if (low.get(frame.node) === index.get(frame.node)) {
-        const component: string[] = []
-        for (;;) {
-          const popped = stack.pop()
-          if (popped === undefined) break
-          onStack.delete(popped)
-          component.push(popped)
-          if (popped === frame.node) break
-        }
-        components.push(component)
-      }
-    }
-  }
-
-  for (const component of components) {
-    const members = new Set(component)
-    const selfLoop =
-      component.length === 1 &&
-      (graph.get(component[0] as string) ?? []).includes(component[0] as string)
-    if (component.length < 2 && !selfLoop) continue
-
-    const first = [...members].sort()[0] as string
-    out.push({
-      code: 'ERR_DEPENDENCY_CYCLE',
-      path: `/spec/components/${token(first)}/connections`,
-      message: `connection cycle: ${closedWalk(graph, members, first).join(' -> ')}`,
-    })
-  }
-}
-
-/**
- * A closed walk through `members` starting and ending at `first`, choosing the
- * lexicographically smallest unvisited successor at each step so the walk is a
- * property of the graph rather than of the traversal.
- */
-function closedWalk(graph: Map<string, string[]>, members: Set<string>, first: string): string[] {
-  const walk = [first]
-  const seen = new Set([first])
-  let current = first
-  for (;;) {
-    const successors = (graph.get(current) ?? []).filter((n) => members.has(n)).sort()
-    if (successors.includes(first) && walk.length > 1) break
-    const next = successors.find((n) => !seen.has(n))
-    if (next === undefined) break
-    seen.add(next)
-    walk.push(next)
-    current = next
-  }
-  walk.push(first)
-  return walk
 }
 
 // ===========================================================================
@@ -1174,7 +1046,6 @@ export function semanticDiagnostics(
   }
   if (family.name === 'blueprint') {
     checkConnectionRoles(document, out)
-    checkCycles(document, out)
   }
   if (family.name === 'listing') {
     checkScreenshotBasenames(document, out)

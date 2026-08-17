@@ -306,32 +306,31 @@ non-sensitive output is not wired into a sensitive input. Those silences are
 gaps rather than considered permissions, recorded here so a reader can tell the
 two apart; closing any of them rejects compositions that validate today.
 
-**The connection graph MUST be acyclic.** A cycle is rejected in the
-`semantic` phase with `ERR_DEPENDENCY_CYCLE`.
+**The connection graph MAY contain a cycle.** Two nodes MAY each consume an
+output of the other, and an implementation MUST NOT reject a composition for
+that reason alone.
 
-This is the canonical rule JSON Schema cannot express, and it is worth being
-straight about what it costs, because a resolver does not need it. An output
-is a function of its own node and nothing else
-([component §6.2](../../component/v1/spec.md#outputs)), so an implementation
-that resolves every output before binding any edge needs no topological order
-and does not fail on a cycle. Acyclicity is not a resolution hazard.
+The rule follows from one already stated. An output is a function of its own
+node and nothing else
+([component §6.2](../../component/v1/spec.md#outputs)), so every output in the
+graph is resolvable before any edge is bound. Resolution is one pass over a
+finite set of nodes: it needs no topological order, and there is no order for a
+cycle to contradict. A cyclic graph is not a resolution hazard, and rejecting
+one would be rejecting a document nothing in this contract cannot process.
 
-It is required anyway. A specification that permits cycles obliges every
-implementation, in every language, to be that two-pass resolver in perpetuity,
-and forecloses any later rule that needs an order — an ordered rollout, a
-health-gated start, a value that legitimately does depend on an inbound edge.
-It also obliges every reader of a blueprint to work out for themselves whether
-the composition in front of them terminates. A two-node cycle is legible; a
-six-node one is not. The rule costs one traversal, which is less than the
-option it keeps open.
+What it permits has a name. **Mutual service discovery** — two services that
+each need the other's address — is a composition an author writes deliberately,
+and it is expressible only if a cycle is legal. A rule that forbade it would be
+spending a working capability.
 
-**Reporting a cycle.** The diagnostic MUST name the participating nodes as a
-closed walk, beginning at the lexicographically smallest node name in the
-cycle and following edges from there — `db → cache → queue → db`. Two
-implementations that find the same cycle then report the same walk, which is
-what makes the node names comparable across a conformance corpus instead of an
-artifact of whichever node the traversal happened to start from. The
-diagnostic anchors at `/spec/components/<first>/connections`.
+**What this forecloses, stated rather than discovered later.** No rule in this
+version depends on the order in which nodes are materialised, and a later one
+that did — an ordered rollout, a health-gated start, a value that legitimately
+depends on an inbound edge — would need an acyclic graph to be meaningful.
+Requiring acyclicity after publication rejects compositions that validate
+today, so such a rule is a new major version rather than an addition to this
+one. Anyone proposing one should know that before starting rather than
+afterwards.
 
 ### <a id="node-compute"></a>4.3 Node compute
 
@@ -648,7 +647,8 @@ over without a directory.
 
 As defined in [component §7](../../component/v1/spec.md#validation-layers).
 Blueprint documents exercise the `semantic` phase more heavily than any other
-family — repo-local reference resolution and cycle detection both live there.
+family — repo-local reference resolution, connection compatibility, and the
+parameter merge all live there.
 
 Published reference resolution is the exception: it needs the catalog, so it
 belongs to `capability`. A blueprint composed entirely of repo-local references
@@ -672,7 +672,6 @@ family adds:
 | `ERR_UNKNOWN_COMPUTE_PROFILE` | `capability` | A node's `size` names a Compute Profile the catalog does not offer. |
 | `ERR_INCOMPATIBLE_TYPE` | `semantic` | A connection joins an output and an input whose `schema.type`s differ. |
 | `ERR_INCOMPATIBLE_SEMANTIC_TYPE` | `semantic` | A connection joins an output and an input whose `schema.semanticType`s disagree. |
-| `ERR_DEPENDENCY_CYCLE` | `semantic` | The connection graph contains a cycle. |
 | `ERR_SLUG_MISMATCH` | `semantic` | `metadata.slug` disagrees with the item directory name. |
 | `ERR_VERSION_MISMATCH` | `semantic` | `metadata.version` disagrees with the sibling listing document. |
 | `ERR_UNREFERENCED_COMPONENT` | `semantic` | A component document in the item is referenced by no node. |

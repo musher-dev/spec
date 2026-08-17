@@ -584,9 +584,11 @@ connection.
 
 That constraint is what makes an output referenceable at all: a consumer can
 read a producer's output without the producer having first been told anything.
-It is not, however, a licence for a cyclic graph.
-[Blueprint §4.2](../../blueprint/v1/spec.md#connections) requires the
-connection graph to be acyclic, for reasons of its own.
+It is also what lets two components consume each other.
+[Blueprint §4.2](../../blueprint/v1/spec.md#connections) permits a cyclic
+connection graph, and this rule is why it can: every output in a composition is
+resolvable before any connection is bound, so a cycle among the connections
+leaves nothing unresolved.
 
 **Where an output must fit the input it feeds.** An output's `schema` and the
 `schema` of the input it is wired to must agree on `type`, and on
