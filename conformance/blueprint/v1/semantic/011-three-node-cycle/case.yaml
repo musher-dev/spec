@@ -1,13 +1,10 @@
-# A three-node cycle written in an order that is not its reporting order. The
-# nodes appear as queue, db, cache and the walk is required to begin at `cache`,
-# the lexicographically smallest node in the cycle.
+# A three-node cycle: queue -> db -> cache -> queue.
 #
-# This is the case semantic-002 cannot make: with two nodes, "smallest first"
-# and "first declared" can coincide by luck. Here they do not, so an
-# implementation that reports from wherever its traversal happened to start
-# produces `queue -> db -> cache -> queue` and fails — which is the point.
-# The node names in a diagnostic are comparable across implementations only
-# because this rule fixes them.
+# This is the case semantic-002 cannot make. A two-node cycle is legible on
+# sight, and an implementation could conceivably permit one by accident. Three
+# nodes, declared in an order that is not the order the edges run in, is a
+# cycle only a real traversal finds — so this pins that §4.2 permits cycles as
+# such rather than tolerating the smallest of them.
 specVersion: v1
 kind: BLUEPRINT
 metadata:

@@ -1,6 +1,0 @@
-[
-  {
-    "code": "ERR_DEPENDENCY_CYCLE",
-    "path": "/spec/components/cache/connections"
-  }
-]

@@ -1,7 +1,7 @@
 {
   "id": "semantic-002-connection-cycle",
   "phase": "semantic",
-  "expected": "fail",
+  "expected": "pass",
   "clause": "specifications/blueprint/v1/spec.md#connections",
-  "summary": "A cyclic connection graph is rejected, and the walk is reported from its smallest node."
+  "summary": "A cyclic connection graph validates: mutual service discovery is expressible."
 }
