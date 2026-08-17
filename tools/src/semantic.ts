@@ -873,6 +873,12 @@ function checkConnectionCompatibility(
  *
  * `ui` and `isRequired` are deliberately not compared. They describe how a value
  * is asked for, not what it is.
+ *
+ * The comparison is over the *canonical* form of each schema block, because
+ * §5.2's test is equality "once defaults are applied". Serialising the block as
+ * written would make two identical declarations differ over the order their keys
+ * happen to appear in and over whether a default was spelled out or left
+ * implicit — neither of which is a disagreement about the value.
  */
 function checkInputMerge(
   components: Json | undefined,
@@ -892,7 +898,7 @@ function checkInputMerge(
       // so it never reaches the merge (§5.1).
       if (child(input, 'suppliedBy') === 'CONNECTION') continue
 
-      const schema = JSON.stringify(child(input, 'schema') ?? null)
+      const schema = canonicalValueSchema(child(input, 'schema'))
       const earlier = taken.get(key)
       if (earlier === undefined) {
         taken.set(key, { node, schema })
@@ -906,6 +912,42 @@ function checkInputMerge(
       })
     }
   }
+}
+
+/**
+ * The defaults component §6.1's `schema` block carries. A property left out
+ * declares the same thing as one written at its default, so both have to reach
+ * the same canonical form before two blocks are compared.
+ */
+const VALUE_SCHEMA_DEFAULTS: Record<string, Json> = {
+  default: null,
+  format: null,
+  isSensitive: false,
+  pattern: null,
+  semanticType: null,
+}
+
+/**
+ * A schema block reduced to a form that depends on what it declares rather than
+ * on how it was written: defaults filled in, keys emitted in a fixed order.
+ */
+function canonicalValueSchema(schema: Json | undefined): string {
+  if (
+    schema === undefined ||
+    schema === null ||
+    typeof schema !== 'object' ||
+    Array.isArray(schema)
+  ) {
+    return JSON.stringify(schema ?? null)
+  }
+  const merged: Record<string, Json> = { ...VALUE_SCHEMA_DEFAULTS }
+  for (const key of keysOf(schema)) {
+    const value = child(schema, key)
+    if (value !== undefined) merged[key] = value
+  }
+  const canonical: Record<string, Json> = {}
+  for (const key of Object.keys(merged).sort()) canonical[key] = merged[key] as Json
+  return JSON.stringify(canonical)
 }
 
 /** Present and not null. An optional property spelled `null` sets nothing. */
