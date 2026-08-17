@@ -1,0 +1,8 @@
+{
+  "id": "semantic-016-parameter-covers-no-input",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#authored-parameters",
+  "summary": "An authored parameter whose key names no USER input is rejected.",
+  "document": "acme-wiki/blueprint.yaml"
+}

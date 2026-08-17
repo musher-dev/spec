@@ -15,6 +15,12 @@ set -euo pipefail
 # Recognizes lines that start with an uppercase identifier followed by '='.
 # Skips blanks, comments (`#`), and commented-out overrides.
 #
+# A file declaring no keys is a legitimate state, not an error: this
+# repository's template is entirely commented defaults by design. grep exits 1
+# when it matches nothing, and `set -o pipefail` above would turn that into a
+# failure of the whole check — so the match is captured before the pipeline
+# rather than inside it.
+#
 # Arguments:
 #   $1 — path to env file
 # Outputs:
@@ -22,7 +28,11 @@ set -euo pipefail
 env_check_keys() {
   local file="${1:?usage: env_check_keys <file>}"
   [[ -f "${file}" ]] || return 0
-  grep -E '^[A-Z_][A-Z0-9_]*=' "${file}" | sed 's/=.*//' | awk '!seen[$0]++'
+
+  local declarations
+  declarations="$(grep -E '^[A-Z_][A-Z0-9_]*=' "${file}" || true)"
+  [[ -n "${declarations}" ]] || return 0
+  printf '%s\n' "${declarations}" | sed 's/=.*//' | awk '!seen[$0]++'
 }
 
 # Reports keys present in <example> but missing from <env>.
@@ -42,7 +52,9 @@ env_check_drift() {
   local expected actual missing
   expected="$(env_check_keys "${example_file}" | sort -u)"
   actual="$(env_check_keys "${env_file}" | sort -u)"
-  missing="$(comm -23 <(echo "${expected}") <(echo "${actual}"))"
+  # An empty key set echoes as one blank line, which comm would read as a key
+  # named "". Dropping blanks keeps an empty set genuinely empty.
+  missing="$(comm -23 <(echo "${expected}") <(echo "${actual}") | grep -v '^$' || true)"
 
   if [[ -n "${missing}" ]]; then
     echo "${missing}" >&2

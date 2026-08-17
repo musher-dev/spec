@@ -1,0 +1,6 @@
+[
+  {
+    "code": "ERR_INCOMPATIBLE_PARAMETER_TYPE",
+    "path": "/spec/parameters/adminPassword/schema/type"
+  }
+]

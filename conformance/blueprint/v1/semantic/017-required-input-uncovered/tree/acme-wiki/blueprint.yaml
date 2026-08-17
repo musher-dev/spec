@@ -1,0 +1,26 @@
+# `postgres` requires an `adminPassword` the deploying user has to type: no
+# generator mints it, no platform default derives it, and its schema carries no
+# default. The override covers `siteTitle` and stops there, so the form never
+# asks and the workload starts without it.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  version: 1
+spec:
+  components:
+    api:
+      component: ./components/api.yaml
+      size: general.standard.small
+      connections: {}
+    db:
+      component: ./components/postgres.yaml
+      size: general.standard.small
+      connections: {}
+  parameters:
+    siteTitle:
+      schema:
+        type: STRING
+        default: Acme Wiki
+      ui:
+        label: Site title

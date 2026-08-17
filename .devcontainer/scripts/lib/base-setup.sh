@@ -140,12 +140,16 @@ base_install_claude() {
 # Verifies the CLIs this script installs (plus a couple of key Feature tools)
 # are on PATH. Runtimes are validated by the container build itself.
 #
+# actionlint and shellcheck are here because `task check` runs both, and a tool
+# that is absent or built for the wrong CPU architecture should fail loudly at
+# container build rather than at the first push.
+#
 # Outputs:
 #   Writes tool status to stderr via log()
 # Returns:
 #   0 if all tools found, 1 if any are missing
 base_verify_tools() {
-  verify_tools gh task codex lefthook claude
+  verify_tools gh task codex lefthook claude actionlint shellcheck
 }
 
 # --- Orchestrator ---

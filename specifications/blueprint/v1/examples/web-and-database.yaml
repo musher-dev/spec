@@ -33,6 +33,17 @@ spec:
         DATABASE_URL:
           fromRole: db
           fromOutput: connectionString
+  # A non-empty `parameters` is an authored override: it replaces the form that
+  # would otherwise be derived from the graph's USER inputs, rather than adding
+  # to it. Binding is by key and the key is the whole of the correspondence — a
+  # parameter names no node and no target — so `siteTitle` here supplies the
+  # `siteTitle` input of every component that declares one, which is what lets
+  # one parameter serve two components.
+  #
+  # Overriding is a commitment: the derived set is not consulted, so every input
+  # the deploying user would have had to type has to be named here. `siteTitle`
+  # is the only one — the database password is generated, and `DATABASE_URL`
+  # arrives over the wire above rather than through the form.
   parameters:
     siteTitle:
       schema:

@@ -278,7 +278,20 @@
     },
     "BlueprintParameter": {
       "description": "An install-form parameter composed at the graph layer (map value; keyed by key).",
+      "$comment": "spec.md §5.3: a generated value is secret material, and isSensitive is required explicitly because its default is false — the wrong answer here. The derived path inherits the marking from the input, which component §6.1 already obliges; this keeps the authored path from being the way to lose it. Mirrors ComponentInput's generator branch.",
       "additionalProperties": false,
+      "if": {
+        "properties": {
+          "generator": {
+            "not": {
+              "type": "null"
+            }
+          }
+        },
+        "required": [
+          "generator"
+        ]
+      },
       "properties": {
         "description": {
           "description": "Help text shown beneath the field, or null when none is set.",
@@ -322,6 +335,20 @@
         "schema",
         "ui"
       ],
+      "then": {
+        "properties": {
+          "schema": {
+            "properties": {
+              "isSensitive": {
+                "const": true
+              }
+            },
+            "required": [
+              "isSensitive"
+            ]
+          }
+        }
+      },
       "type": "object",
       "x-additionalPropertiesName": "parameterKey"
     },

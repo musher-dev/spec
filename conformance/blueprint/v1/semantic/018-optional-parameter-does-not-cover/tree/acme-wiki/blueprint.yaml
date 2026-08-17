@@ -1,0 +1,27 @@
+# The override names `adminPassword`, so it is covered by key — and it still
+# does not guarantee a value. `isRequired` defaults to true on a component
+# input and to false on a blueprint parameter, so copying the key and saying
+# nothing else turns a required value into one the user may skip. Naming the
+# key is not the test; asking for the value is.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  version: 1
+spec:
+  components:
+    api:
+      component: ./components/api.yaml
+      size: general.standard.small
+      connections: {}
+    db:
+      component: ./components/postgres.yaml
+      size: general.standard.small
+      connections: {}
+  parameters:
+    adminPassword:
+      schema:
+        type: STRING
+        isSensitive: true
+      ui:
+        label: Administrator password
