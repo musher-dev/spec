@@ -241,6 +241,11 @@
       "id": "semantic-021-published-reference-suppresses-unbound",
       "phase": "semantic",
       "path": "semantic/021-published-reference-suppresses-unbound"
+    },
+    {
+      "id": "semantic-022-identical-input-redeclaration",
+      "phase": "semantic",
+      "path": "semantic/022-identical-input-redeclaration"
     }
   ]
 }
