@@ -73,6 +73,16 @@
       "path": "structural/010-media-paths"
     },
     {
+      "id": "structural-011-url-field-disallowed-scheme",
+      "phase": "structural",
+      "path": "structural/011-url-field-disallowed-scheme"
+    },
+    {
+      "id": "structural-012-support-url-mailto",
+      "phase": "structural",
+      "path": "structural/012-support-url-mailto"
+    },
+    {
       "id": "semantic-001-duplicate-screenshot-basename",
       "phase": "semantic",
       "path": "semantic/001-duplicate-screenshot-basename"
@@ -106,6 +116,26 @@
       "id": "semantic-007-component-item-version-independent",
       "phase": "semantic",
       "path": "semantic/007-component-item-version-independent"
+    },
+    {
+      "id": "semantic-008-description-raw-html",
+      "phase": "semantic",
+      "path": "semantic/008-description-raw-html"
+    },
+    {
+      "id": "semantic-009-description-html-in-code-fence",
+      "phase": "semantic",
+      "path": "semantic/009-description-html-in-code-fence"
+    },
+    {
+      "id": "semantic-010-description-javascript-url",
+      "phase": "semantic",
+      "path": "semantic/010-description-javascript-url"
+    },
+    {
+      "id": "semantic-011-description-remote-image",
+      "phase": "semantic",
+      "path": "semantic/011-description-remote-image"
     }
   ]
 }

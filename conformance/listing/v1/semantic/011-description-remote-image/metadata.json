@@ -1,0 +1,7 @@
+{
+  "id": "semantic-011-description-remote-image",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/listing/v1/spec.md#description-markdown",
+  "summary": "A description image that is not an item media path is rejected."
+}

@@ -128,7 +128,9 @@
         "homepageUrl": {
           "anyOf": [
             {
+              "$comment": "Anchored and lookahead-free, so it compiles under RE2 as well as ECMA-262 and cannot be driven to backtrack. The scheme set is spec.md §4.1's, applied to a field that carries a URL directly rather than inside Markdown.",
               "maxLength": 2048,
+              "pattern": "^(?:https?://|mailto:)[^\\s]+$",
               "type": "string"
             },
             {
@@ -136,7 +138,7 @@
             }
           ],
           "default": null,
-          "description": "Project homepage URL, or null when none."
+          "description": "Project homepage URL, or null when none. Must use the https, http, or mailto scheme."
         },
         "icon": {
           "anyOf": [
@@ -194,7 +196,9 @@
         "sourceRepoUrl": {
           "anyOf": [
             {
+              "$comment": "The same grammar homepageUrl carries; see the note there.",
               "maxLength": 2048,
+              "pattern": "^(?:https?://|mailto:)[^\\s]+$",
               "type": "string"
             },
             {
@@ -202,7 +206,7 @@
             }
           ],
           "default": null,
-          "description": "Source repository URL, or null when none."
+          "description": "Source repository URL, or null when none. Must use the https, http, or mailto scheme."
         },
         "summary": {
           "description": "One-line storefront tagline summarising the listing.",
@@ -213,7 +217,9 @@
         "supportUrl": {
           "anyOf": [
             {
+              "$comment": "The same grammar homepageUrl carries; see the note there. mailto: is in the set for this field in particular — a support address is a plausible value.",
               "maxLength": 2048,
+              "pattern": "^(?:https?://|mailto:)[^\\s]+$",
               "type": "string"
             },
             {
@@ -221,7 +227,7 @@
             }
           ],
           "default": null,
-          "description": "Support or documentation URL, or null when none."
+          "description": "Support or documentation URL, or null when none. Must use the https, http, or mailto scheme."
         },
         "tags": {
           "description": "Free-form discovery tags applied to the listing.",

@@ -130,14 +130,15 @@ inside a root it has not been given.
 Markdown. It is a one-line tagline; rendering it as Markdown turns an
 underscore in a product name into emphasis and an asterisk into a bullet.
 
-`description` is Markdown, at most 20 000 characters.
+`description` is Markdown, at most 20 000 characters, and is constrained to the
+profile in [§4.1](#description-markdown).
 
-> **TODO** — The permitted Markdown subset for `description`. This one is a
-> security question rather than an undocumented behaviour: neither this
-> specification nor any implementation constrains the subset today, and a
-> storefront rendering untrusted Markdown from a third-party listing is an
-> injection surface. Raw embedded HTML, `javascript:` URLs, and remote image
-> references are the three that need deciding.
+`homepageUrl`, `sourceRepoUrl`, and `supportUrl` MUST use the `https`, `http`,
+or `mailto` scheme. A value that does not is rejected in the `structural` phase
+with `ERR_INVALID_VALUE`. The rule is [§4.1](#description-markdown)'s, applied
+to the fields that carry a URL directly rather than inside Markdown —
+`javascript:` in `homepageUrl` is the same stored injection as `javascript:` in
+a description link, and a storefront renders both.
 
 > **TODO** — `category` and `lifecycleStage` are controlled vocabularies. State
 > the governance rule for adding a term — this is the field most likely to need
@@ -151,6 +152,61 @@ not an authoring one. A document that declares it is rejected in the
 `structural` phase with `ERR_UNKNOWN_FIELD`, like any other unknown property —
 accepting it silently would let an author believe they had promoted their own
 listing.
+
+### <a id="description-markdown"></a>4.1 The description Markdown profile
+
+`description` is **[CommonMark 0.31.2](https://spec.commonmark.org/0.31.2/)**,
+narrowed by the three rules below. Naming a grammar and a version is deliberate:
+"Markdown" is not one language, and a rule written against it is a rule each
+implementation resolves against whatever parser it happened to have.
+
+A listing is authored by a third party and rendered by the storefront, so
+`description` is untrusted content displayed in a first-party origin. These are
+the rules that make it safe to render. The reasoning is recorded in
+[ADR 0004](../../../docs/adr/0004-listing-description-trust-boundary.md).
+
+| Rule | Diagnostic |
+|---|---|
+| A description MUST NOT contain raw HTML — an *HTML block* ([CommonMark §4.6](https://spec.commonmark.org/0.31.2/#html-blocks)) or *raw HTML* inline ([§6.6](https://spec.commonmark.org/0.31.2/#raw-html)). | `ERR_RAW_HTML` |
+| A link destination MUST use the `https`, `http`, or `mailto` scheme, or be a fragment beginning `#`. | `ERR_DISALLOWED_SCHEME` |
+| An image destination MUST be a media path as defined by [§5](#media). | `ERR_IMAGE_NOT_LOCAL` |
+
+All three are `semantic`. Finding a link destination means parsing the document,
+which no JSON Schema pattern can do — this is the same line
+[§5](#media) draws between the media grammar it carries as a `pattern` and the
+three rules it cannot.
+
+**A code fence is not raw HTML.** CommonMark tokenises a code span and a fenced
+code block as their own constructs, so a listing MAY document `<script>` or an
+embed snippet inside one and remain conforming. This is the reason the rule is
+written in CommonMark's terms rather than as a search for angle brackets: a
+lexical rule would reject the authors writing honest documentation, which is
+most of them. Character entity references — `&amp;`, `&#39;` — are likewise not
+raw HTML.
+
+**The rule reaches the renderer.** A consumer rendering `description` MUST NOT
+emit an HTML element, an attribute, or a URL that this profile forbids, whether
+or not it validated the document first. This is the only rule in this
+specification that constrains an implementation's output rather than a document,
+and it is stated because an authoring rule alone would protect nobody: the
+document this profile exists to stop is written by someone who will not run the
+validator.
+
+**An image is a media path, with everything that follows from it.** [§5](#media)
+fixes `media/` as the one directory an item ships assets from, and a description
+image is held to the same grammar — so a remote image is not merely discouraged,
+it is unspellable. It is a rule rather than a note because a remote image
+discloses every storefront viewer's IP address and user agent to a host the
+listing author chose, on every page view, with no interaction. §5's `semantic`
+rules reach a description image too: it MUST resolve to a file that exists and
+MUST lie inside the item root, reported at `/spec/description` with
+`ERR_MEDIA_NOT_FOUND` and `ERR_PATH_ESCAPE`. Basename uniqueness does not — that
+rule is about the screenshot gallery, which a description image is not part of.
+
+**What v1 does not constrain.** A link target is never fetched, so nothing here
+decides whether a permitted scheme points somewhere hostile; that is a
+moderation problem and not a validation one. Nor is there a bound on how many
+links, images, or headings a description may hold.
 
 ## <a id="media"></a>5. Media
 
@@ -218,6 +274,9 @@ family adds:
 | `ERR_MEDIA_NOT_FOUND` | `semantic` | A referenced media file does not exist. |
 | `ERR_PATH_ESCAPE` | `semantic` | A media path resolves outside the item directory. |
 | `ERR_DUPLICATE_MEDIA_BASENAME` | `semantic` | Two screenshots share a basename. |
+| `ERR_RAW_HTML` | `semantic` | `description` contains raw HTML. |
+| `ERR_DISALLOWED_SCHEME` | `semantic` | A `description` link uses a scheme outside the permitted set. |
+| `ERR_IMAGE_NOT_LOCAL` | `semantic` | A `description` image is not an item media path. |
 
 ## <a id="conformance"></a>8. Conformance
 

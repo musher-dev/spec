@@ -1,0 +1,26 @@
+# A remote image executes nothing. It discloses every storefront viewer's IP
+# address and user agent to a host the listing author chose, on every page view,
+# with no interaction — a per-view beacon pointed at people who have no
+# relationship with the author.
+#
+# §5 already fixed `media/` as the one directory an item ships assets from, so a
+# description image is held to the same grammar and a remote one is unspellable
+# rather than merely discouraged. The badge below is the shape this rejects in
+# practice, and rejecting it is the deliberate cost.
+specVersion: v1
+kind: LISTING
+metadata:
+  slug: postgres
+  version: 1
+spec:
+  listingKind: COMPONENT
+  displayName: PostgreSQL
+  summary: The open-source relational database
+  category: INFRASTRUCTURE
+  lifecycleStage: STABLE
+  description: |
+    ## PostgreSQL
+
+    ![build status](https://img.shields.io/badge/build-passing-green.svg)
+
+    A relational database.

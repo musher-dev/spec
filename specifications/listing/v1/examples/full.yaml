@@ -1,7 +1,9 @@
 # yaml-language-server: $schema=https://schemas.musher.dev/listing/v1/listing.schema.json
 #
-# A storefront entry using the full descriptive surface. Media paths are
-# relative to the listing document.
+# A storefront entry using the full descriptive surface. Media paths begin at
+# `media/` and resolve inside the item root (§5). The description stays inside
+# §4.1's profile: no raw HTML, links on permitted schemes, and an image that is
+# an item media path rather than a remote one.
 specVersion: v1
 kind: LISTING
 metadata:
@@ -29,6 +31,11 @@ spec:
     A single container of `postgres:17.10-alpine` on port 5432 as a private TCP
     endpoint. You supply the password at deploy time; a 10 GiB volume keeps the
     data directory across restarts.
+
+    ![The connection details panel](media/overview.png)
+
+    Read the [upstream documentation](https://www.postgresql.org/docs/), or
+    write to <support@example.com> if something here is wrong.
   category: INFRASTRUCTURE
   lifecycleStage: STABLE
   tags:

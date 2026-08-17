@@ -1,0 +1,25 @@
+# A listing is authored by a third party and rendered by the storefront, so the
+# description is untrusted content in a first-party origin. Raw HTML is the
+# direct script-execution vector, and CommonMark permits it by default — which
+# is why §4.1 narrows the profile rather than naming CommonMark and stopping.
+#
+# Both forms appear here: an HTML block (CommonMark §4.6) and raw inline HTML
+# (§6.6). One diagnostic is declared; the runner permits the second.
+specVersion: v1
+kind: LISTING
+metadata:
+  slug: postgres
+  version: 1
+spec:
+  listingKind: COMPONENT
+  displayName: PostgreSQL
+  summary: The open-source relational database
+  category: INFRASTRUCTURE
+  lifecycleStage: STABLE
+  description: |
+    ## What it is
+
+    <div align="center"><img src="https://tracker.example/pixel.png"></div>
+
+    A relational database with an <span onmouseover="alert(1)">interesting</span>
+    reputation.

@@ -21,6 +21,7 @@ import {
   realpathSync,
 } from 'node:fs'
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
+import { type Node, Parser } from 'commonmark'
 import { type Diagnostic, parseDocument } from './document.ts'
 import { type Family, isObject, type Json } from './spec.ts'
 
@@ -484,6 +485,102 @@ function checkScreenshotBasenames(document: Json, out: Diagnostic[]): void {
   }
 }
 
+/**
+ * Listing §5's media path grammar, as the schema carries it. Restated here
+ * because §4.1 holds a description image to the same shape, and a description
+ * is a Markdown blob no `pattern` can reach into.
+ */
+const MEDIA_PATH =
+  /^media\/(?:[A-Za-z0-9][A-Za-z0-9._-]*\/)*[A-Za-z0-9][A-Za-z0-9._-]*\.(?:[Pp][Nn][Gg]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp])$/
+
+/** Listing §4.1 — the schemes a description link destination may use. */
+const PERMITTED_SCHEMES = new Set(['https:', 'http:', 'mailto:'])
+
+/**
+ * `spec.description` parsed as CommonMark 0.31.2, or `undefined` when the
+ * listing declares none. Parsed once and walked by every §4.1 rule: three
+ * separate walks over the same blob would be three chances to disagree about
+ * what the document says.
+ */
+function descriptionAst(document: Json): Node | undefined {
+  const description = asString(child(child(document, 'spec'), 'description'))
+  if (description === undefined) return undefined
+  return new Parser().parse(description)
+}
+
+/** Every node in an AST, in document order. */
+function* walk(ast: Node): Generator<Node> {
+  const walker = ast.walker()
+  let step = walker.next()
+  while (step !== null) {
+    if (step.entering) yield step.node
+    step = walker.next()
+  }
+}
+
+/**
+ * Listing §4.1 — a link destination must carry a permitted scheme or be a
+ * fragment. A destination CommonMark could not resolve to a URL at all is not
+ * a scheme this set contains, so it fails with the rest.
+ */
+function schemeIsPermitted(destination: string): boolean {
+  if (destination.startsWith('#')) return true
+  try {
+    return PERMITTED_SCHEMES.has(new URL(destination).protocol)
+  } catch {
+    // Not absolute. A storefront has no base URL to resolve it against, so a
+    // relative link resolves against the storefront's own path — a broken link
+    // rather than a hostile one, but not a link this profile permits either.
+    return false
+  }
+}
+
+/**
+ * Listing §4.1 — the three rules the description profile carries. Every
+ * diagnostic anchors at `/spec/description`: the field is one scalar, so there
+ * is no finer pointer to give, and the offending destination rides in the
+ * message instead. Message text is not normative (conformance/README.md).
+ */
+function checkDescriptionMarkdown(document: Json, out: Diagnostic[]): void {
+  const ast = descriptionAst(document)
+  if (ast === undefined) return
+
+  for (const node of walk(ast)) {
+    // A code span and a fenced code block are their own constructs in
+    // CommonMark's grammar, never `html_block` or `html_inline` — which is why
+    // a listing may document `<script>` inside a fence and stay conforming.
+    if (node.type === 'html_block' || node.type === 'html_inline') {
+      out.push({
+        code: 'ERR_RAW_HTML',
+        path: '/spec/description',
+        message: `description contains raw HTML: ${summarise(node.literal ?? '')}`,
+      })
+      continue
+    }
+    const destination = node.destination ?? ''
+    if (node.type === 'link' && !schemeIsPermitted(destination)) {
+      out.push({
+        code: 'ERR_DISALLOWED_SCHEME',
+        path: '/spec/description',
+        message: `link destination "${summarise(destination)}" is not https, http, mailto, or a fragment`,
+      })
+    }
+    if (node.type === 'image' && !MEDIA_PATH.test(destination)) {
+      out.push({
+        code: 'ERR_IMAGE_NOT_LOCAL',
+        path: '/spec/description',
+        message: `image destination "${summarise(destination)}" is not a media path under media/`,
+      })
+    }
+  }
+}
+
+/** A diagnostic message quotes the offender; it does not reproduce it. */
+function summarise(value: string): string {
+  const flat = value.replace(/\s+/g, ' ').trim()
+  return flat.length > 60 ? `${flat.slice(0, 60)}…` : flat
+}
+
 // ===========================================================================
 // item-scoped rules
 // ===========================================================================
@@ -502,6 +599,20 @@ function mediaPaths(document: Json): { path: string; pointer: string }[] {
       const file = asString(child(screenshot, 'file'))
       if (file !== undefined) {
         found.push({ path: file, pointer: `/spec/screenshots/${position}/file` })
+      }
+    }
+  }
+
+  // §4.1 — a description image is a media path, so §5's existence and
+  // containment rules reach it. Only well-formed ones: a destination that is
+  // not a media path at all is already ERR_IMAGE_NOT_LOCAL, and piling
+  // ERR_MEDIA_NOT_FOUND on top would report one mistake twice.
+  const ast = descriptionAst(document)
+  if (ast !== undefined) {
+    for (const node of walk(ast)) {
+      const destination = node.destination ?? ''
+      if (node.type === 'image' && MEDIA_PATH.test(destination)) {
+        found.push({ path: destination, pointer: '/spec/description' })
       }
     }
   }
@@ -1059,6 +1170,7 @@ export function semanticDiagnostics(
   }
   if (family.name === 'listing') {
     checkScreenshotBasenames(document, out)
+    checkDescriptionMarkdown(document, out)
   }
 
   const { itemRoot } = context
