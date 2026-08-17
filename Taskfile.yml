@@ -82,6 +82,7 @@ tasks:
       - task: check:examples
       - task: check:conformance
       - task: check:published
+      - task: check:compat
       - task: check:test
       - task: check:shell
       - task: check:workflow
@@ -97,6 +98,12 @@ tasks:
     dir: '{{.TOOLS_DIR}}'
     cmds:
       - bun run src/ledger.ts check
+
+  check:compat:
+    desc: Replay every released version's accepted documents against the candidate schema
+    dir: '{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/compat.ts
 
   check:test:
     desc: Run the tooling test suite
@@ -228,6 +235,7 @@ tasks:
       - task: check:drift
       - task: check:examples
       - task: check:conformance
+      - task: check:compat
       - task: check:test
 
   clean:

@@ -70,6 +70,14 @@ export function tagCommit(repoRoot: string, ref: string): string {
   return git(repoRoot, ['rev-parse', `${ref}^{commit}`])
 }
 
+/** Every file under `path` as of a ref, repo-relative, sorted by git. */
+export function listTreeFiles(repoRoot: string, ref: string, path: string): string[] {
+  const { status, stdout } = run(repoRoot, ['ls-tree', '-r', '--name-only', ref, '--', path])
+  if (status !== 0) return []
+  const output = stdout.toString('utf8').trim()
+  return output === '' ? [] : output.split('\n')
+}
+
 /**
  * A file's bytes as of a ref, or null when the ref does not carry that path.
  *
