@@ -1089,6 +1089,13 @@ function checkParameterBinding(
   // may be declared by several nodes; a parameter covers all of them.
   const declared = new Map<string, Json[]>()
 
+  // §5.3 — the unbound test asserts that *no* node declares the key, so it needs
+  // every node's inputs. Where one was not read — a published reference, or a
+  // local one already rejected as missing or escaping — the claim is not
+  // decidable and MUST NOT be reported. The coverage and type rules below are
+  // positive claims over what was read, so they degrade on their own.
+  const allReadable = keysOf(components).every((node) => resolved.has(node))
+
   for (const node of keysOf(components).sort()) {
     const component = resolved.get(node)
     // A published reference resolves in the capability phase, so its inputs are
@@ -1111,6 +1118,7 @@ function checkParameterBinding(
     const pointer = `/spec/parameters/${token(key)}`
     const covered = declared.get(key)
     if (covered === undefined) {
+      if (!allReadable) continue
       out.push({
         code: 'ERR_UNBOUND_PARAMETER',
         path: pointer,

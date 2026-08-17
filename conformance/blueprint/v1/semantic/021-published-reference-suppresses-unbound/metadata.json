@@ -1,0 +1,8 @@
+{
+  "id": "semantic-021-published-reference-suppresses-unbound",
+  "phase": "semantic",
+  "expected": "pass",
+  "clause": "specifications/blueprint/v1/spec.md#authored-parameters",
+  "summary": "A parameter binding an unreadable node's input is not reported as unbound.",
+  "document": "acme-wiki/blueprint.yaml"
+}

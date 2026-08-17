@@ -625,6 +625,18 @@ contributes none of them ([§4.1](#component-reference)). A blueprint mixing the
 two forms is checked against the repo-local half and no further, and an
 implementation MUST NOT report an input it was never given the means to read.
 
+**And one of the three stops being decidable.** The coverage and type rules read
+only the inputs in front of them, so an unreadable node subtracts from what they
+check and does nothing else. `ERR_UNBOUND_PARAMETER` is the mirror image: it
+asserts that *no* node declares the key, which is a claim about every node's
+inputs. Where any node's component is unreadable — a published reference, or a
+repo-local one already rejected as naming no document or as escaping the item
+root — an implementation MUST NOT report `ERR_UNBOUND_PARAMETER` for any
+parameter. The claim becomes decidable again only when every node's inputs were
+readable, and a diagnostic an implementation cannot substantiate is worse than a
+silence, which is the trade [§3](#identity) already makes for a document handed
+over without a directory.
+
 ## <a id="validation-layers"></a>6. Validation layers
 
 As defined in [component §7](../../component/v1/spec.md#validation-layers).
