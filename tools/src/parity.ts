@@ -51,7 +51,7 @@ interface Subject {
  * 36 KiB schema: one instance takes ~1.5s and twenty take barely longer, so a
  * call per subject would put this check into the minutes and it would be turned
  * off. Chunked because the CLI mishandles a long argument list — past roughly
- * fifty paths it concatenates them into one nonexistent filename and exits 6.
+ * fifty paths it concatenates them into one non-existent filename and exits 6.
  * Twenty is comfortably inside that and still amortises the startup.
  */
 const BATCH = 20
