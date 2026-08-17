@@ -16,3 +16,10 @@ specifications/*/v*/schemas/dist/*.json linguist-generated=true
 *.png     binary
 *.jpg     binary
 *.ico     binary
+
+# Two parser fixtures are *about* their bytes, so normalization would quietly
+# destroy what they test. The CRLF case asserts CRLF endings are accepted; the
+# `* text=auto eol=lf` rule above rewrote it to LF, and it passed while testing
+# nothing. `-text` opts both out of every normalization.
+conformance/component/v1/parser/013-crlf-line-endings/case.yaml -text
+conformance/component/v1/parser/012-byte-order-mark/case.yaml   -text
