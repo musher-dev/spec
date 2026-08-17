@@ -72,6 +72,7 @@ function main(): void {
       checkDefsNames(doc, rel, failures)
       checkDefsPointers(doc, rel, failures)
       checkTitlePlacement(doc, rel, failures)
+      checkExtensionKeywords(doc, rel, failures)
       checkMetaValid(doc, rel, failures)
     }
   }
@@ -189,10 +190,10 @@ function checkDefsNames(doc: { [k: string]: Json }, rel: string, failures: Failu
 }
 
 /**
- * `$ref` is not the only thing that points into `$defs`. `discriminator.mapping`
- * values are JSON Pointers too, and a rename that misses one leaves a mapping
- * naming a definition that no longer exists — the document still compiles, and
- * every check above still passes.
+ * `$ref` is not the only thing that points into `$defs`.
+ * `x-musher-discriminator.mapping` values are JSON Pointers too, and a rename
+ * that misses one leaves a mapping naming a definition that no longer exists —
+ * the document still compiles, and every check above still passes.
  */
 function checkDefsPointers(doc: { [k: string]: Json }, rel: string, failures: Failures): void {
   const defs = isObject(doc.$defs) ? doc.$defs : {}
@@ -229,18 +230,80 @@ function checkTitlePlacement(doc: { [k: string]: Json }, rel: string, failures: 
 }
 
 function checkMetaValid(doc: { [k: string]: Json }, rel: string, failures: Failures): void {
-  // strict:false — the seeded schemas carry OpenAPI vendor extensions
-  // (x-additionalPropertiesName) that Ajv's strict mode rejects but 2020-12
-  // explicitly permits.
-  const ajv = new Ajv2020({
-    strict: false,
-    allErrors: true,
-    validateFormats: false,
-  })
+  const ajv = strictAjv()
   try {
     ajv.compile(doc)
   } catch (error) {
     failures.add(`${rel}: not a valid JSON Schema 2020-12 document — ${(error as Error).message}`)
+  }
+}
+
+/**
+ * Every keyword this repository uses that JSON Schema 2020-12 does not define.
+ *
+ * All of them are annotations: they carry no assertion, and removing one would
+ * not change what validates. They are listed here rather than waved through by
+ * `strict: false`, because the point of strict mode is to catch a *misspelled*
+ * keyword — `additionalPropertes`, `minimun` — which 2020-12 ignores silently
+ * and which would leave a rule this repository believes it is enforcing doing
+ * nothing at all. A document format that rejects unknown instance fields at
+ * every level should hold its own schemas to the same standard.
+ */
+const EXTENSION_KEYWORDS = [
+  // Names the key of a map-valued object, for documentation renderers. The
+  // keys are chosen by the document author, so no schema can name them.
+  'x-additionalPropertiesName',
+  // Which `oneOf` branch a reader should expect, keyed on a property. The
+  // adjacent `oneOf` and `const` do the actual validation; this is a rendering
+  // hint, prefixed to say so. See component §5.1 and §5.3.
+  'x-musher-discriminator',
+] as const
+
+export function strictAjv(): Ajv2020 {
+  const ajv = new Ajv2020({
+    strict: true,
+    // `strictTypes` is Ajv's style opinion, not a correctness rule: it wants a
+    // redundant `type` beside every `pattern` or `required`, including inside
+    // an `if`/`then` whose containing schema has already fixed the type. Adding
+    // those would edit the schemas to satisfy a linter rather than to say
+    // anything new, and each edit is a chance to change what validates. What
+    // strict mode is switched on for is `strictSchema` — the unknown-keyword
+    // check that catches `additionalPropertes` or `minimun` silently doing
+    // nothing — and that stays on.
+    strictTypes: false,
+    allErrors: true,
+    // In 2020-12 `format` is an annotation unless the format-assertion
+    // vocabulary is explicitly declared, and no Musher schema declares it. No
+    // format library is registered, so any `format` keyword is collected as an
+    // annotation and asserts nothing — which is the dialect's default
+    // behaviour, not a shortcut. Declaring the vocabulary would be a breaking
+    // change and needs an ADR.
+    validateFormats: false,
+  })
+  for (const keyword of EXTENSION_KEYWORDS) {
+    ajv.addKeyword({ keyword, metaSchema: {} })
+  }
+  return ajv
+}
+
+/**
+ * Nothing outside the allowlist may invent a keyword.
+ *
+ * Ajv's strict mode catches an unknown keyword where it can infer one is
+ * intended, but it cannot distinguish "a Musher extension" from "a typo that
+ * happens to look like one". Naming the permitted set makes adding an extension
+ * a deliberate, reviewable act rather than a side effect.
+ */
+function checkExtensionKeywords(doc: { [k: string]: Json }, rel: string, failures: Failures): void {
+  for (const { node, pointer } of walkObjects(doc)) {
+    for (const key of Object.keys(node)) {
+      if (!key.startsWith('x-')) continue
+      if ((EXTENSION_KEYWORDS as readonly string[]).includes(key)) continue
+      failures.add(
+        `${rel}: ${pointer || '<root>'} declares "${key}", which is not an allowed ` +
+          `extension. Permitted: ${EXTENSION_KEYWORDS.join(', ')}.`,
+      )
+    }
   }
 }
 

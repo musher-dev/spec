@@ -175,7 +175,7 @@
         },
         "value": {
           "description": "How the value resolves, discriminated on type: LITERAL (verbatim value) or CONFIG_REF (resolved at snapshot compute).",
-          "discriminator": {
+          "x-musher-discriminator": {
             "mapping": {
               "CONFIG_REF": "#/$defs/ComponentConfigRefEnvVarValue",
               "LITERAL": "#/$defs/ComponentLiteralEnvVarValue"
@@ -1126,7 +1126,7 @@
         },
         "source": {
           "description": "Discriminated image or git source the workload is built or run from.",
-          "discriminator": {
+          "x-musher-discriminator": {
             "mapping": {
               "GIT": "#/$defs/ComponentGitSource",
               "IMAGE": "#/$defs/ComponentImageSource"

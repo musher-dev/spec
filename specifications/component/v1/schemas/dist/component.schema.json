@@ -175,13 +175,6 @@
         },
         "value": {
           "description": "How the value resolves, discriminated on type: LITERAL (verbatim value) or CONFIG_REF (resolved at snapshot compute).",
-          "discriminator": {
-            "mapping": {
-              "CONFIG_REF": "#/$defs/ComponentConfigRefEnvVarValue",
-              "LITERAL": "#/$defs/ComponentLiteralEnvVarValue"
-            },
-            "propertyName": "type"
-          },
           "oneOf": [
             {
               "$ref": "#/$defs/ComponentLiteralEnvVarValue"
@@ -189,7 +182,14 @@
             {
               "$ref": "#/$defs/ComponentConfigRefEnvVarValue"
             }
-          ]
+          ],
+          "x-musher-discriminator": {
+            "mapping": {
+              "CONFIG_REF": "#/$defs/ComponentConfigRefEnvVarValue",
+              "LITERAL": "#/$defs/ComponentLiteralEnvVarValue"
+            },
+            "propertyName": "type"
+          }
         }
       },
       "required": [
@@ -1126,13 +1126,6 @@
         },
         "source": {
           "description": "Discriminated image or git source the workload is built or run from.",
-          "discriminator": {
-            "mapping": {
-              "GIT": "#/$defs/ComponentGitSource",
-              "IMAGE": "#/$defs/ComponentImageSource"
-            },
-            "propertyName": "type"
-          },
           "oneOf": [
             {
               "$ref": "#/$defs/ComponentGitSource"
@@ -1140,7 +1133,14 @@
             {
               "$ref": "#/$defs/ComponentImageSource"
             }
-          ]
+          ],
+          "x-musher-discriminator": {
+            "mapping": {
+              "GIT": "#/$defs/ComponentGitSource",
+              "IMAGE": "#/$defs/ComponentImageSource"
+            },
+            "propertyName": "type"
+          }
         },
         "volumes": {
           "description": "Default volumes provisioned for deployments, keyed by volume name.",
