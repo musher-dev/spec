@@ -1,0 +1,21 @@
+# §4's scheme rule is one rule with two placements, and this case is what makes
+# that sentence testable. RFC 3986 §3.1 makes the scheme case-insensitive, and
+# the semantic half inherits that for free — it parses the destination, and
+# parsing lower-cases the scheme. The `pattern` on a scalar field has no
+# case-insensitive flag to inherit it from, so it spells the alternation in
+# character classes instead. Without this case, the two halves can disagree
+# about `HTTPS://` and nothing fails.
+specVersion: v1
+kind: LISTING
+metadata:
+  slug: postgres
+  version: 1
+spec:
+  listingKind: COMPONENT
+  displayName: PostgreSQL
+  summary: The open-source relational database
+  category: INFRASTRUCTURE
+  lifecycleStage: STABLE
+  homepageUrl: HTTPS://www.postgresql.org
+  sourceRepoUrl: Http://git.postgresql.org/git/postgresql.git
+  supportUrl: MAILTO:support@example.com

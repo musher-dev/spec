@@ -128,9 +128,9 @@
         "homepageUrl": {
           "anyOf": [
             {
-              "$comment": "Anchored and lookahead-free, so it compiles under RE2 as well as ECMA-262 and cannot be driven to backtrack. The scheme set is spec.md §4.1's, applied to a field that carries a URL directly rather than inside Markdown.",
+              "$comment": "Anchored and lookahead-free, so it compiles under RE2 as well as ECMA-262 and cannot be driven to backtrack. The scheme set is spec.md §4.1's, applied to a field that carries a URL directly rather than inside Markdown. The scheme alternation is spelled in character classes because a JSON Schema pattern carries no case-insensitive flag, and RFC 3986 §3.1 makes the scheme case-insensitive — the same reason the media path alternation is spelled that way. Without it this pattern would reject an upper-case scheme the description half of the same rule accepts.",
               "maxLength": 2048,
-              "pattern": "^(?:https?://|mailto:)[^\\s]+$",
+              "pattern": "^(?:[Hh][Tt][Tt][Pp][Ss]?://|[Mm][Aa][Ii][Ll][Tt][Oo]:)[^\\s]+$",
               "type": "string"
             },
             {
@@ -138,7 +138,7 @@
             }
           ],
           "default": null,
-          "description": "Project homepage URL, or null when none. Must use the https, http, or mailto scheme."
+          "description": "Project homepage URL, or null when none. Must use the https, http, or mailto scheme, in any case."
         },
         "icon": {
           "anyOf": [
@@ -198,7 +198,7 @@
             {
               "$comment": "The same grammar homepageUrl carries; see the note there.",
               "maxLength": 2048,
-              "pattern": "^(?:https?://|mailto:)[^\\s]+$",
+              "pattern": "^(?:[Hh][Tt][Tt][Pp][Ss]?://|[Mm][Aa][Ii][Ll][Tt][Oo]:)[^\\s]+$",
               "type": "string"
             },
             {
@@ -206,7 +206,7 @@
             }
           ],
           "default": null,
-          "description": "Source repository URL, or null when none. Must use the https, http, or mailto scheme."
+          "description": "Source repository URL, or null when none. Must use the https, http, or mailto scheme, in any case."
         },
         "summary": {
           "description": "One-line storefront tagline summarising the listing.",
@@ -219,7 +219,7 @@
             {
               "$comment": "The same grammar homepageUrl carries; see the note there. mailto: is in the set for this field in particular — a support address is a plausible value.",
               "maxLength": 2048,
-              "pattern": "^(?:https?://|mailto:)[^\\s]+$",
+              "pattern": "^(?:[Hh][Tt][Tt][Pp][Ss]?://|[Mm][Aa][Ii][Ll][Tt][Oo]:)[^\\s]+$",
               "type": "string"
             },
             {
@@ -227,7 +227,7 @@
             }
           ],
           "default": null,
-          "description": "Support or documentation URL, or null when none. Must use the https, http, or mailto scheme."
+          "description": "Support or documentation URL, or null when none. Must use the https, http, or mailto scheme, in any case."
         },
         "tags": {
           "description": "Free-form discovery tags applied to the listing.",

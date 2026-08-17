@@ -1,0 +1,26 @@
+# The description half of structural-013. This one passes today, and that is the
+# point of pinning it: the two halves of the scheme rule were reconciled by
+# widening the scalar `pattern`, and a later attempt to reconcile them the other
+# way — by making the parsed check case-sensitive — would start rejecting this
+# document. Pinning both halves is what stops the rule drifting apart again.
+#
+# The link is spelled inline and the reference form is left to semantic-010,
+# since what is under test here is the destination's scheme rather than the
+# syntax that spells the link.
+specVersion: v1
+kind: LISTING
+metadata:
+  slug: postgres
+  version: 1
+spec:
+  listingKind: COMPONENT
+  displayName: PostgreSQL
+  summary: The open-source relational database
+  category: INFRASTRUCTURE
+  lifecycleStage: STABLE
+  description: |
+    ## Getting started
+
+    Read the [upstream documentation](HTTPS://www.postgresql.org/docs/) first,
+    then mail [the maintainers](MAILTO:support@example.com) if anything is
+    unclear.

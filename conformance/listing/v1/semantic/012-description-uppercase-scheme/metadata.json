@@ -1,0 +1,10 @@
+{
+  "id": "semantic-012-description-uppercase-scheme",
+  "phase": "semantic",
+  "expected": "pass",
+  "clause": "specifications/listing/v1/spec.md#description-markdown",
+  "requirements": [
+    "LIST-MD-002"
+  ],
+  "summary": "A description link destination carrying a permitted scheme in upper case is accepted."
+}

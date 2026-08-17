@@ -1,0 +1,17 @@
+# The other edge of structural-013. Folding case in the scheme alternation must
+# admit `HTTPS://` without admitting `JAVASCRIPT:`, and a character-class
+# alternation spelled one class too wide would do both. The payload is the one
+# from structural-011 with the scheme shouted, because that is exactly the input
+# an author reaches for once they learn the lower-case spelling is rejected.
+specVersion: v1
+kind: LISTING
+metadata:
+  slug: postgres
+  version: 1
+spec:
+  listingKind: COMPONENT
+  displayName: PostgreSQL
+  summary: The open-source relational database
+  category: INFRASTRUCTURE
+  lifecycleStage: STABLE
+  homepageUrl: JAVASCRIPT:alert(document.domain)
