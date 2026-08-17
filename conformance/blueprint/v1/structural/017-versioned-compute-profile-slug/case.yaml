@@ -1,0 +1,15 @@
+# The profile is versioned where it is published, and a node does not name that
+# version: it names the tier and gets the current version of it. The grammar has
+# three segments, so a fourth is rejected without needing a rule of its own.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: postgres
+  version: 1
+spec:
+  components:
+    db:
+      component: ./components/postgres.yaml
+      size: general.standard.small.v1
+      connections: {}
+  parameters: {}

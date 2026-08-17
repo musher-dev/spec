@@ -34,13 +34,16 @@
   "type": "object",
   "$defs": {
     "BlueprintComputeConstraints": {
-      "description": "Advanced, optional compute pins honored when the node is placed on a host.",
+      "description": "Advanced, optional compute pins that narrow the hosts a node may be placed on. A pin never changes the compute the node's size names. See spec.md §4.4.",
+      "$comment": "Every term pin is a lowercase token rather than a member of a closed set: the grammar is fixed by this contract, the vocabularies are not published anywhere yet, and spec.md §4.4 records that as a gap. cpuDedication is the exception — two values are the whole concept.",
       "additionalProperties": false,
       "properties": {
         "acceleratorInterconnect": {
-          "description": "Required interconnect such as 'nvlink' or 'pcie', or null for any.",
+          "description": "Required accelerator interconnect, such as nvlink or pcie. Null pins nothing. The permitted terms are not a vocabulary this contract defines — see spec.md §4.4.",
           "anyOf": [
             {
+              "maxLength": 64,
+              "pattern": "^[a-z0-9][a-z0-9_-]*$",
               "type": "string"
             },
             {
@@ -50,7 +53,7 @@
           "default": null
         },
         "acceleratorMinVramGb": {
-          "description": "Minimum accelerator VRAM in GiB, or null for no floor.",
+          "description": "Minimum accelerator VRAM in GiB. Null pins no floor.",
           "anyOf": [
             {
               "minimum": 1,
@@ -63,16 +66,21 @@
           "default": null
         },
         "acceleratorRuntime": {
-          "description": "Required accelerator runtimes, e.g. ['cuda']. Empty means any.",
+          "description": "Required accelerator runtimes, such as cuda. An empty array pins nothing, and a term may not repeat. The permitted terms are not a vocabulary this contract defines — see spec.md §4.4.",
           "items": {
+            "maxLength": 64,
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
             "type": "string"
           },
-          "type": "array"
+          "type": "array",
+          "uniqueItems": true
         },
         "acceleratorSkuClass": {
-          "description": "Exact accelerator SKU class to pin, or null.",
+          "description": "Exact accelerator SKU class to pin. Null pins nothing. The permitted terms are not a vocabulary this contract defines — see spec.md §4.4.",
           "anyOf": [
             {
+              "maxLength": 64,
+              "pattern": "^[a-z0-9][a-z0-9_-]*$",
               "type": "string"
             },
             {
@@ -82,16 +90,23 @@
           "default": null
         },
         "cpuArchitecture": {
-          "description": "Allowed CPU architectures, e.g. ['x86_64', 'arm64']. Empty means any.",
+          "description": "Permitted CPU architectures, such as x86_64 or arm64. An empty array pins nothing, and a term may not repeat. The permitted terms are not a vocabulary this contract defines — see spec.md §4.4.",
           "items": {
+            "maxLength": 64,
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
             "type": "string"
           },
-          "type": "array"
+          "type": "array",
+          "uniqueItems": true
         },
         "cpuDedication": {
-          "description": "CPU dedication: 'shared' or 'dedicated', or null for the platform default.",
+          "description": "Whether the node's vCPU must be dedicated rather than shared. Null pins nothing. This is the one pin whose vocabulary this contract closes — see spec.md §4.4.",
           "anyOf": [
             {
+              "enum": [
+                "shared",
+                "dedicated"
+              ],
               "type": "string"
             },
             {
@@ -101,9 +116,11 @@
           "default": null
         },
         "networkClass": {
-          "description": "Required network class such as 'standard', or null for the default.",
+          "description": "Required network class. Null pins nothing. The permitted terms are not a vocabulary this contract defines — see spec.md §4.4.",
           "anyOf": [
             {
+              "maxLength": 64,
+              "pattern": "^[a-z0-9][a-z0-9_-]*$",
               "type": "string"
             },
             {
@@ -113,9 +130,11 @@
           "default": null
         },
         "storageClass": {
-          "description": "Required storage class such as 'local-nvme', or null for the default.",
+          "description": "Required storage class, such as local-nvme. Null pins nothing. The permitted terms are not a vocabulary this contract defines — see spec.md §4.4.",
           "anyOf": [
             {
+              "maxLength": 64,
+              "pattern": "^[a-z0-9][a-z0-9_-]*$",
               "type": "string"
             },
             {
@@ -125,7 +144,7 @@
           "default": null
         },
         "storageMinIops": {
-          "description": "Minimum provisioned IOPS, or null for no floor.",
+          "description": "Minimum provisioned IOPS. Null pins no floor.",
           "anyOf": [
             {
               "minimum": 1,
@@ -201,7 +220,7 @@
       },
       "properties": {
         "advanced": {
-          "description": "Optional advanced compute pins that narrow the eligible-host set at schedule time.",
+          "description": "Optional advanced compute pins that narrow the eligible-host set at schedule time. Absent, null, and a block with no pin set all mean the same thing. See spec.md §4.4.",
           "anyOf": [
             {
               "$ref": "#/$defs/BlueprintComputeConstraints"
@@ -239,9 +258,10 @@
           "type": "object"
         },
         "size": {
-          "description": "Compute Profile slug bound to this node, such as general.standard.small. Required per node — a component document carries no compute of its own.",
-          "maxLength": 128,
-          "minLength": 1,
+          "description": "Compute Profile slug bound to this node, in family.tier.size form — for example general.standard.small. Required per node, because a component document carries no compute of its own. The grammar is fixed here; the profiles actually on offer are published at https://api.musher.dev/v1/reference/compute-profiles.",
+          "$comment": "Lookahead-free, so it compiles under RE2 as well as ECMA-262. Only the grammar is here. Which profiles are actually offered changes when the platform gains hardware to back a tier, not when this schema is released, so membership is a capability check rather than an enum. See spec.md §4.3.",
+          "maxLength": 64,
+          "pattern": "^(general|compute|memory|storage|gpu|accelerator)\\.(economy|standard|performance|premium)\\.(nano|small|medium|large|xlarge)$",
           "type": "string"
         }
       },

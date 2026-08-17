@@ -1,0 +1,25 @@
+# Every one of the nine pins, each a lowercase token or a positive integer.
+# The pins narrow which host may run the node; none of them changes the compute
+# `size` names.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: inference
+  version: 1
+spec:
+  components:
+    api:
+      component: ./components/api.yaml
+      size: gpu.performance.large
+      advanced:
+        cpuArchitecture: [x86_64, arm64]
+        cpuDedication: dedicated
+        acceleratorMinVramGb: 24
+        acceleratorRuntime: [cuda]
+        acceleratorInterconnect: nvlink
+        acceleratorSkuClass: h100-sxm
+        storageClass: local-nvme
+        storageMinIops: 20000
+        networkClass: standard
+      connections: {}
+  parameters: {}

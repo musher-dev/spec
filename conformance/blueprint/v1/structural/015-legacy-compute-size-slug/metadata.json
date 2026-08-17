@@ -1,0 +1,7 @@
+{
+  "id": "structural-015-legacy-compute-size-slug",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#node-compute",
+  "summary": "A raw-resource size slug is not a Compute Profile and is rejected."
+}

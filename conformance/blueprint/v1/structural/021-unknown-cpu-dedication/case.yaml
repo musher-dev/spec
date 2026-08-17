@@ -1,0 +1,16 @@
+# The one pin whose vocabulary this contract closes. A vCPU is shared or it is
+# not; a third term would be a different concept wearing this one's name.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: postgres
+  version: 1
+spec:
+  components:
+    db:
+      component: ./components/postgres.yaml
+      size: general.standard.small
+      advanced:
+        cpuDedication: exclusive
+      connections: {}
+  parameters: {}

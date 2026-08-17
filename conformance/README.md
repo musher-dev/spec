@@ -163,13 +163,15 @@ later-phase diagnostic before the earlier phases pass.
 ## Coverage status
 
 `parser`, `structural` and `semantic` are covered. Every diagnostic code the
-three `spec.md` files declare is exercised by at least one case, with two
-exceptions, both `capability`:
+three `spec.md` files declare is exercised by at least one case, with four
+exceptions, all `capability`:
 
 | Code | Why it has no case |
 |---|---|
 | `ERR_UNKNOWN_COMPONENT` | `capability` — resolving a published reference needs the catalog, and no phase a client runs may reach the network |
 | `ERR_VERSION_NOT_MONOTONIC` | `capability` — comparing a version against the lineage it extends needs the catalog, and a fixture is one document with no previous release to be greater than |
+| `ERR_COMPONENT_NOT_PUBLISHED` | `capability` — only the registry holds publication state, and a fixture is a tree of files none of which has one |
+| `ERR_UNKNOWN_COMPUTE_PROFILE` | `capability` — the slug grammar is fixtured, but which profiles are offered changes when the platform gains hardware to back a tier, not when this repository releases |
 
 That table is not prose anyone has to remember to update.
 `task check:conformance` derives it: every `ERR_*` row in a family's own

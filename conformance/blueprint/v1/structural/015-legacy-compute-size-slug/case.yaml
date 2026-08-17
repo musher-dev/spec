@@ -1,0 +1,15 @@
+# A raw-resource name. It says how much silicon, which is the promise §4.3 says
+# a profile slug exists not to make — the same nominal vCPU count means a
+# burstable shared core on one host and a dedicated modern one on another.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: postgres
+  version: 1
+spec:
+  components:
+    db:
+      component: ./components/postgres.yaml
+      size: 1vcpu-1gb
+      connections: {}
+  parameters: {}

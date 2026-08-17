@@ -441,6 +441,10 @@ const UNCOVERED: ReadonlyMap<string, string> = new Map([
     'ERR_COMPONENT_NOT_PUBLISHED',
     'capability — only the registry holds publication state, so deciding it needs the catalog, and a fixture is a tree of files none of which has one',
   ],
+  [
+    'ERR_UNKNOWN_COMPUTE_PROFILE',
+    'capability — the grammar is fixtured (structural/015 through 018), but which profiles are offered changes when the platform gains hardware to back a tier, so deciding membership needs the catalog',
+  ],
 ])
 
 /**

@@ -1,0 +1,7 @@
+{
+  "id": "structural-018-reserved-compute-profile-slug",
+  "phase": "structural",
+  "expected": "pass",
+  "clause": "specifications/blueprint/v1/spec.md#node-compute",
+  "summary": "A grammatical slug validates whether or not the profile is currently offered."
+}

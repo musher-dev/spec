@@ -1,0 +1,7 @@
+{
+  "id": "structural-017-versioned-compute-profile-slug",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#node-compute",
+  "summary": "A node names a bare profile slug, not the versioned form."
+}
