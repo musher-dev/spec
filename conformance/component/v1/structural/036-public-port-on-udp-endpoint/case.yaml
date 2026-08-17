@@ -1,0 +1,30 @@
+# PUBLIC_PORT on a PUBLIC UDP endpoint. Two things at once, both deliberate:
+# the port is derivable on its own, for a consumer that takes host and port as
+# separate settings rather than one string; and UDP is an L4 protocol equally
+# with TCP, which no other case exercises.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: ghcr.io/musher-dev/game:1.4.2
+    endpoints:
+      game:
+        containerPort: 27015
+        protocol: UDP
+        visibility: PUBLIC
+  contract:
+    inputs:
+      gamePort:
+        schema:
+          type: INTEGER
+        ui:
+          label: Game server port
+        platformDefault:
+          source: PUBLIC_PORT
+          endpoint: game
+    outputs: {}

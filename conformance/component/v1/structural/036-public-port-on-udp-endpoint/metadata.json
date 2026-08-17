@@ -1,0 +1,7 @@
+{
+  "id": "structural-036-public-port-on-udp-endpoint",
+  "phase": "structural",
+  "expected": "pass",
+  "clause": "specifications/component/v1/spec.md#inputs",
+  "summary": "PUBLIC_PORT derives the allocated edge port of a PUBLIC UDP endpoint."
+}

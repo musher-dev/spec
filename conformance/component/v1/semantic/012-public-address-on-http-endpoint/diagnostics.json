@@ -1,0 +1,6 @@
+[
+  {
+    "code": "ERR_ENDPOINT_NOT_L4",
+    "path": "/spec/contract/inputs/apiAddress/platformDefault/endpoint"
+  }
+]

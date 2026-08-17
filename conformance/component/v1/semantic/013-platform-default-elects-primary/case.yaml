@@ -1,0 +1,35 @@
+# A platform default naming no endpoint. §6.1 makes null select the primary
+# §5.2 elects, and the workload's sole PUBLIC endpoint is it — so the L4 rule
+# is applied to the elected endpoint exactly as it would be to a named one.
+#
+# No case exercised the elected path for a platform default before; every other
+# platformDefault fixture names its endpoint outright.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: ghcr.io/musher-dev/broker:3.13.7
+    endpoints:
+      amqp:
+        containerPort: 5672
+        protocol: TCP
+        visibility: PUBLIC
+      metrics:
+        containerPort: 9090
+        protocol: HTTP
+        visibility: PRIVATE
+  contract:
+    inputs:
+      brokerAddress:
+        schema:
+          type: STRING
+        ui:
+          label: Broker address
+        platformDefault:
+          source: PUBLIC_ADDRESS
+    outputs: {}

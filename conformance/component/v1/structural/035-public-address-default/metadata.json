@@ -1,0 +1,7 @@
+{
+  "id": "structural-035-public-address-default",
+  "phase": "structural",
+  "expected": "pass",
+  "clause": "specifications/component/v1/spec.md#inputs",
+  "summary": "PUBLIC_ADDRESS derives the host:port of a PUBLIC TCP endpoint."
+}
