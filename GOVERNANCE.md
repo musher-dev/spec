@@ -58,6 +58,14 @@ Any change that would cause a previously valid document to fail validation is a
 Adding a required field, narrowing an enum, tightening a pattern, and removing
 a field are all breaking. Adding an optional field is not.
 
+One narrow exception applies before a family's first release.
+[ADR 0005](docs/adr/0005-platform-divergence-reconciliation.md) §1 sets it out:
+while a family has no published version, requirements 2 and 3 do not apply,
+because the compatibility guarantee is stated against a released version and
+there is none to run from. Requirement 1 still applies, as does declaring the
+change as breaking. The exception closes for a family the moment its first tag
+is created.
+
 ## Changing a controlled vocabulary
 
 A field whose value comes from a closed `enum` is a controlled vocabulary this
