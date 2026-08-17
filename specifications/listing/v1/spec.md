@@ -352,3 +352,45 @@ applies: media dimensions and file size are unbounded ([§5](#media)), a
 ([§3](#identity)), and `tags` and `license` are unbounded free text that nothing
 checks. Closing any of them rejects documents v1 accepts. See
 [component §10](../../component/v1/spec.md#known-debt).
+
+## <a id="security"></a>10. Security considerations
+
+[Component §11](../../component/v1/spec.md#security) applies in full. What is
+specific to a listing is that, alone among the three families, its content is
+**rendered to other people**.
+
+**The description is a stored-injection surface.** [§4.1](#description-markdown)
+is the trust boundary, and [ADR 0004](../../../docs/adr/0004-listing-description-trust-boundary.md)
+records why it is drawn where it is. Two things about it are security rules
+rather than formatting ones:
+
+The renderer obligation in [§4.1](#description-markdown) — that a consumer MUST
+NOT emit an element, attribute, or URL the profile forbids, *whether or not it
+validated the document first* — is the only rule in this specification that
+constrains an implementation's output. It is stated that way deliberately.
+Validation happens where a document is submitted; rendering happens wherever the
+storefront runs, possibly against a document stored before a rule existed. A
+renderer that trusts validation to have happened is a renderer that will emit
+whatever is in the database.
+
+The URL scheme rule covers `homepageUrl`, `sourceRepoUrl`, and `supportUrl` as
+well as links inside Markdown ([§4](#presentation)). `javascript:` in a
+storefront field is the same stored injection as `javascript:` in a description
+link, and a renderer treats both as a link.
+
+**Remote images disclose viewers.** [§5](#media) requires media to be a path
+inside the item rather than a URL. A remote image would make every storefront
+visitor's IP address and user agent visible to a host the listing's author chose,
+turning a catalog page into a tracking beacon on behalf of a third party.
+
+**Media paths are paths.** `ERR_PATH_ESCAPE` is the listing's form of the
+containment rule; the symlink and resolved-location requirements in
+[blueprint §10](../../blueprint/v1/spec.md#security) apply identically. An
+implementation MUST NOT decode or transcode a media file to validate it —
+[§5](#media) turns on existence and containment, and nothing here requires an
+image parser to be pointed at untrusted bytes.
+
+**Text fields are unbounded in ways worth knowing.** `tags` and `license` are
+free text that nothing checks ([§9](#known-debt)). A storefront MUST escape both
+on render and MUST NOT treat `license` as an assertion about licensing — it is
+an author's claim, not a verified fact.

@@ -779,6 +779,33 @@ document, and an implementation MUST NOT derive meaning from any of them.
 Because YAML 1.2 is a superset of JSON, a document written as JSON is a valid
 Musher document and is read identically.
 
+### <a id="format-policy"></a>7.2 The `format` keyword
+
+This clause is about the JSON Schema **keyword** `format`, not about the
+component field named `format` that [§6.1](#inputs) gives an input. The two are
+unrelated: the field is a Musher enum with its own rules, and no schema this
+repository publishes uses the keyword at all.
+
+Should one ever appear, `format` is an **annotation and asserts nothing**. That
+is the JSON Schema 2020-12 default rather than a shortcut: `format` constrains a
+value only where the Format Assertion vocabulary is explicitly declared, and no
+Musher schema declares it.
+
+A validator MUST NOT reject a document because a value fails a `format`
+keyword, and MUST NOT accept one it would otherwise reject because a value
+satisfies one.
+
+The reason is portability. `format` implementations differ — one library's
+`uri` accepts what another's rejects, and `email` is worse — so a schema that
+depended on `format` for rejection would validate differently depending on which
+library a consumer happened to link. A rule that must hold everywhere is written
+with an assertion keyword instead: `pattern`, `enum`, `minLength`, `const`. Where
+a rule cannot be expressed that way, it belongs to the `semantic` phase and
+carries a diagnostic of its own.
+
+Adopting the Format Assertion vocabulary later would make previously valid
+documents invalid, so it is a breaking change and needs an ADR.
+
 ## <a id="diagnostics"></a>8. Diagnostics
 
 Diagnostic **codes** and the **phase** at which validation fails are normative.
@@ -851,3 +878,68 @@ grammar and names where the offered profiles are published, so a slug like
 `general.standard.small` resolves for a reader outside the platform.
 [ADR 0003](../../../docs/adr/0003-controlled-vocabulary-placement.md) records
 the rule that decided it.
+
+## <a id="security"></a>11. Security considerations
+
+This section is addressed to **implementations**: what a validator, a CLI, or a
+control plane must do so that reading an untrusted component document is safe.
+[SECURITY.md](../../../SECURITY.md) is the separate question of what counts as a
+vulnerability *in this repository* and how to report one.
+
+A component document is untrusted input. It arrives from a pull request, a
+catalog submission, or a `POST` body, and every consideration below assumes its
+author is hostile.
+
+**Parsing.** [§7.1](#yaml-profile) is a security boundary as much as an
+interoperability one. Aliases are refused because expansion is where a small
+document becomes a large one, and the size bound is measured before parsing
+because a limit applied after the tree exists is not a limit on the work done to
+build it. An implementation MUST enforce all three bounds, and MUST NOT raise
+them to accommodate a document that exceeds them.
+
+An implementation MUST NOT resolve YAML tags to host language types. The tag ban
+makes this unreachable through a conforming parser, but a parser configured to
+construct arbitrary objects from tags is the classic deserialisation
+vulnerability, and the ban is not a substitute for choosing a safe loader.
+
+**Regular expressions.** Every `pattern` this specification publishes is free of
+lookaround and backreferences, which is what lets it compile under RE2 as well as
+under a backtracking engine. An implementation evaluating these patterns on a
+backtracking engine SHOULD apply a match timeout regardless: the guarantee is
+about the patterns published here, not about any the platform composes with them.
+
+**Image references.** [§5.1](#source) requires a tag or a digest and forbids a
+floating tag, and both rules are about supply chain rather than tidiness. A
+floating tag means the artifact that runs is not the artifact that was reviewed.
+`ERR_UNPINNED_IMAGE` is `semantic` and therefore offline: an implementation MUST
+NOT resolve a reference over the network to decide it, because doing so would let
+a document under review make the validator issue a request to a host the document
+chose.
+
+**Build sources.** A `GIT` source names a repository and a revision that an
+implementation will fetch and build. Fetching is a `capability` concern and out
+of scope here, but an implementation MUST treat the build context as untrusted:
+a checkout is attacker-controlled content, and a build path from it MUST NOT be
+allowed to read outside the context it was given.
+
+**Environment variables and secrets.** A component document is a public artifact
+— it is committed, published in a catalog, and shipped inside a release tarball.
+`envVars` carries configuration, and a literal value in one is visible to
+everyone who can read the document. A secret MUST NOT be written as a `LITERAL`
+value; that is what `CONFIG_REF` exists for. Nothing in the `structural` or
+`semantic` phase can detect a secret pasted into a literal, so this is a rule
+about authoring that an implementation SHOULD surface as a warning where it can.
+
+An implementation MUST NOT include resolved configuration values in a diagnostic
+message. Diagnostics are logged, attached to pull requests, and printed in CI
+output, and a validator that echoes the value it rejected turns a validation
+error into a disclosure.
+
+**Schema retrieval.** Every published bundle is self-contained: all `$ref`s
+resolve inside `$defs`, and no validator needs a network request to evaluate a
+document ([README](../../../README.md)). An implementation SHOULD vendor the
+schema at an exact version rather than fetching it, and MUST verify what it
+fetches if it does — the `.sha256` beside each pinned URL and `published.json`
+are there for that. A validator that resolves schemas over the network at
+validation time is an SSRF primitive and a runtime dependency on an origin it
+does not control.

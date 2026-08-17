@@ -714,3 +714,43 @@ What remains is not a gap in the prose but a vocabulary nothing publishes yet:
 [§4.4](#advanced-constraints)'s compute-constraint pins, recorded there as a gap
 rather than described as a decision. See also
 [component §10](../../component/v1/spec.md#known-debt).
+
+## <a id="security"></a>10. Security considerations
+
+[Component §11](../../component/v1/spec.md#security) applies in full: a blueprint
+is untrusted input, parsed under the same profile and the same bounds. This
+section adds what is specific to a document that resolves *other* documents.
+
+**Path containment is the central one.** A repo-local `component` reference is a
+path this implementation will open, chosen by the document's author.
+[§4.1](#component-reference) requires it to stay inside the item root, and
+`ERR_REFERENCE_ESCAPE` is that rule. An implementation MUST decide containment on
+the **resolved** location rather than on the string: a reference is an escape if
+what it resolves to lies outside the item root, whether it got there by `../`, by
+an absolute path, or by a symbolic link inside the tree.
+
+Symlinks are the case worth stating plainly. A link committed inside an item can
+point anywhere the process can read, so an implementation MUST resolve links
+before testing containment, and MUST treat a dangling link resolving outside the
+root as an escape — containment is a property of the resolved location, not of
+whether the target happens to exist. The conformance corpus fixtures this
+directly; see [conformance/README.md](../../../conformance/README.md#case-trees).
+
+An implementation MUST NOT follow a reference outside the item root even when the
+resulting file would be readable and would parse. The rule is about what a
+reviewer of the item can see: a graph that reaches outside the directory being
+reviewed deploys something the review did not cover.
+
+**Graph traversal.** [§4.2](#connections) makes the component graph a directed
+graph an implementation walks. A cycle is rejected with `ERR_CONNECTION_CYCLE`,
+and an implementation MUST detect cycles rather than relying on a recursion limit
+to stop it — a stack overflow is a crash, not a diagnostic. The parser's nesting
+bound does not help here: the cycle is in the graph the document describes, not
+in the document's own structure.
+
+**Published references.** Resolving a published reference is `capability`
+([§6](#validation-layers)) precisely because it needs the catalog. An
+implementation MUST NOT reach the network during `parser`, `structural`, or
+`semantic`, so a blueprint composed entirely of repo-local references validates
+completely offline. A validator that resolved published references early would
+let a document under review choose a host for it to contact.

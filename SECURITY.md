@@ -33,16 +33,30 @@ Specification design disagreements are not security issues. Open a normal issue.
 
 ## Verifying a release
 
-Every release attaches a `.tar.gz`, a `checksums.txt`, and a SLSA provenance
+Every release attaches a `.tar.gz`, a matching `.sha256`, and a SLSA provenance
 attestation.
 
 ```sh
 # Checksums
-sha256sum --check checksums.txt
+sha256sum --check component-v1.0.0.tar.gz.sha256
 
 # Provenance
 gh attestation verify component-v1.0.0.tar.gz --repo musher-dev/spec
 ```
+
+A published schema can be verified without downloading a release. Each
+exact-version URL has a `.sha256` beside it, and
+[`published.json`](https://schemas.musher.dev/published.json) records the
+checksum of every version ever released:
+
+```sh
+curl -sO https://schemas.musher.dev/component/v1.0.0/component.schema.json
+curl -s https://schemas.musher.dev/component/v1.0.0/component.schema.json.sha256 \
+  | sha256sum --check -
+```
+
+A pinned URL whose bytes do not match what `published.json` records is a
+supply-chain report, not a bug — see below.
 
 ## Supported versions
 
