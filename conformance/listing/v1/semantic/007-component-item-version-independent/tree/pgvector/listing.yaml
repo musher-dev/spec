@@ -1,0 +1,18 @@
+# The regression pin for listing §3.1: an item with no blueprint has an item
+# root all the same — the directory holding this document — and the version
+# rule has no second operand there. The listing sits at 2 while the two
+# component documents sit at 11 and 4, and none of the three agrees with any
+# other. A validator that reached past the missing blueprint to a component
+# document rejects this.
+specVersion: v1
+kind: LISTING
+metadata:
+  slug: pgvector
+  version: 2
+spec:
+  listingKind: COMPONENT
+  displayName: pgvector
+  summary: Vector similarity search for PostgreSQL
+  category: INFRASTRUCTURE
+  lifecycleStage: STABLE
+  icon: media/icon.png

@@ -41,17 +41,18 @@ format; `listingKind` identifies what the listing points at (`BLUEPRINT` or
 
 ## <a id="identity"></a>3. Identity
 
-`metadata` carries `slug` and `version` — the same shape the sibling blueprint
-carries, and the two MUST agree.
+`metadata` carries `slug` and `version` — the same shape a blueprint carries.
+Where the item holds one, the two documents MUST agree.
 
 | Rule | Diagnostic |
 |---|---|
 | `metadata.slug` MUST equal the item directory name. | `ERR_SLUG_MISMATCH` |
-| `metadata.version` MUST equal the sibling blueprint's `metadata.version`. | `ERR_VERSION_MISMATCH` |
+| Where the item holds a blueprint, `metadata.version` MUST equal its `metadata.version`. | `ERR_VERSION_MISMATCH` |
 
-Both are `semantic`, and both are measured against the item root defined in
-[blueprint §3.1](../../blueprint/v1/spec.md#item-directory). A listing handed
-over with no directory has no item root, and an implementation in that
+Both are `semantic`, and both are measured against the item root —
+[blueprint §3.1](../../blueprint/v1/spec.md#item-directory) where the item
+holds a blueprint, [§3.1](#component-item) below where it does not. A listing
+handed over with no directory has no item root, and an implementation in that
 position MUST NOT report either rule.
 
 **The two documents are one item's two halves.** A listing whose version has
@@ -59,14 +60,69 @@ moved ahead of its blueprint describes something other than what would be
 installed — this release's storefront copy over last release's graph. The rule
 is what keeps "read about this" and "install this" the same thing.
 
-The version rule needs a blueprint to compare against. An item whose listing
-is `listingKind: COMPONENT` need not contain one; where there is no sibling
-blueprint the rule has nothing to compare and does not apply.
+**A `COMPONENT` item's listing version is bound to nothing, and that is a rule
+rather than the absence of one.** The rule above pins an item's two halves to
+each other, so it takes two. An item whose listing is
+`listingKind: COMPONENT` need not hold a blueprint, and where it holds none the
+rule has no second operand — not a different one.
 
-> **TODO** — What `metadata.version` agrees with in a `COMPONENT` item, which
-> has no blueprint. The component documents each carry their own
-> `metadata.version` and an item may hold more than one, so this is not the
-> same rule with a different sibling.
+The component documents beneath it are not that second operand.
+[Component §4](../../component/v1/spec.md#metadata) settles this for the
+blueprint shape already: an item's version counts releases of the item, a
+component's counts releases of the component, and in the published form one
+component is deployed by many items at once. The SHOULD stated there — that a
+release of a component an item deploys is accompanied by a release of the item
+— reaches a `COMPONENT` item unchanged, and carries no diagnostic here for the
+reason it carries none there.
+
+**Why not a designated primary.** An item MAY hold more than one component
+document ([§3.1](#component-item)), so no single one of them is *the*
+component. Pinning to a designated one would need a field naming which, which
+is contract surface added to reproduce what the blueprint shape gets from its
+graph — and it would contradict component §4, which says no item is pinned to a
+component beneath it.
+
+**What v1 does not constrain.** A listing declaring `listingKind: BLUEPRINT` in
+an item holding no `blueprint.yaml` is not detected. The version rule is
+conditioned on there being a sibling, so it goes silent rather than failing,
+and `listingKind` is presentation ([§1](#scope)) — nothing reads it to decide
+which files an item must hold. Closing this needs a rule that rejects items
+validating today, which makes it a breaking change.
+
+### <a id="component-item"></a>3.1 The COMPONENT item
+
+[Blueprint §3.1](../../blueprint/v1/spec.md#item-directory) anchors the item
+root on `blueprint.yaml`. An item whose listing is `listingKind: COMPONENT` has
+no such file, and the version rule is not the only one that needs a root:
+`metadata.slug` above is measured against one, and [§5](#media) resolves every
+media path inside one.
+
+```
+<slug>/
+  listing.yaml          this document
+  components/           the component documents the item publishes
+  media/                icon and screenshots
+```
+
+**The directory containing `listing.yaml` is the item root.** The two
+definitions agree wherever both apply: an item holding a blueprint holds the
+two documents as siblings, so the directory containing one is the directory
+containing the other.
+
+Two names in that tree are fixed: `listing.yaml`, and `media/` by
+[§5](#media). Component documents MAY sit anywhere under the root —
+`components/` is the same convention blueprint §3.1 describes, and a flat
+sibling is equally valid.
+
+**An item MAY hold more than one component document.** Blueprint §3's
+`ERR_UNREFERENCED_COMPONENT` has no analogue in this shape. That rule exists
+because a blueprint's graph names the documents it deploys, so a document the
+graph does not name is invisible; there is no graph here to name anything.
+
+The no-directory rule reaches §5 as well as §3. A listing handed over without
+a directory has no item root, so an implementation in that position MUST NOT
+report `ERR_MEDIA_NOT_FOUND` or `ERR_PATH_ESCAPE` either — both resolve a path
+inside a root it has not been given.
 
 ## <a id="presentation"></a>4. Presentation
 
@@ -99,7 +155,8 @@ listing.
 ## <a id="media"></a>5. Media
 
 `icon` and `screenshots[].file` are media paths, resolved inside the item root
-defined in [blueprint §3.1](../../blueprint/v1/spec.md#item-directory).
+— [blueprint §3.1](../../blueprint/v1/spec.md#item-directory) where the item
+holds a blueprint, [§3.1](#component-item) where it does not.
 
 A media path MUST satisfy all of the following, and is rejected in the
 `structural` phase with `ERR_INVALID_VALUE` when it does not:
