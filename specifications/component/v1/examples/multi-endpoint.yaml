@@ -2,10 +2,12 @@
 #
 # A service fronting two public URLs, one public TCP port, and one private
 # port. Because more than one endpoint is PUBLIC, nothing here may say "the
-# component's URL" — the readiness probe and the platform default each name the
-# endpoint they mean, and both name one in the HTTP family. `wire` is the other
-# address form: a PUBLIC TCP endpoint published at a host:port edge address,
-# which compels no probe and which no platform default may derive from.
+# component's URL" — every reference names the endpoint it means.
+#
+# Both of §5.2's address forms are read. `console` publishes a URL, so
+# PUBLIC_URL takes it. `wire` is a PUBLIC TCP endpoint published at a host:port
+# edge address, which compels no readiness probe and which PUBLIC_ADDRESS —
+# never PUBLIC_URL — is the source for.
 specVersion: v1
 kind: COMPONENT
 metadata:
@@ -49,4 +51,14 @@ spec:
           label: Console URL
         target:
           envVarKey: CONSOLE_URL
+      wireAddress:
+        schema:
+          type: STRING
+        platformDefault:
+          source: PUBLIC_ADDRESS
+          endpoint: wire
+        ui:
+          label: Wire protocol address
+        target:
+          envVarKey: WIRE_ADDRESS
     outputs: {}

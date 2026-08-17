@@ -1,0 +1,7 @@
+{
+  "id": "structural-033-service-without-endpoints",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#workload",
+  "summary": "A SERVICE declaring no endpoints block is rejected."
+}

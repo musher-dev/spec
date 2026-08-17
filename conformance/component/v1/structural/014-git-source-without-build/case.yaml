@@ -8,6 +8,11 @@ metadata:
 spec:
   workload:
     kind: SERVICE
+    endpoints:
+      web:
+        containerPort: 8080
+        protocol: HTTP
+        visibility: PRIVATE
     source:
       type: GIT
       repositoryUrl: https://github.com/musher-dev/examples

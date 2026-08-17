@@ -1,6 +1,9 @@
 # yaml-language-server: $schema=https://schemas.musher.dev/component/v1/component.schema.json
 #
-# The smallest component that validates: a service running a pinned image.
+# The smallest component that validates: a service running a pinned image and
+# serving one private port. §5 requires the endpoint — a SERVICE that exposes
+# nothing is a WORKER — and PRIVATE keeps it minimal, since §5.4 compels a
+# readiness probe only on a PUBLIC HTTP-family endpoint.
 specVersion: v1
 kind: COMPONENT
 metadata:
@@ -11,3 +14,8 @@ spec:
     source:
       type: IMAGE
       ref: nginx:1.29.4-alpine
+    endpoints:
+      web:
+        containerPort: 8080
+        protocol: HTTP
+        visibility: PRIVATE

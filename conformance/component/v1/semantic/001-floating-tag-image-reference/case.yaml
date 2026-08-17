@@ -11,3 +11,8 @@ spec:
     source:
       type: IMAGE
       ref: ghcr.io/musher-dev/api:nightly
+    endpoints:
+      api:
+        containerPort: 8080
+        protocol: HTTP
+        visibility: PRIVATE

@@ -1,0 +1,7 @@
+{
+  "id": "semantic-013-platform-default-elects-primary",
+  "phase": "semantic",
+  "expected": "pass",
+  "clause": "specifications/component/v1/spec.md#inputs",
+  "summary": "A platform default naming no endpoint resolves to the elected primary."
+}

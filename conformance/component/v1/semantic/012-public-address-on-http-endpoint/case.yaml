@@ -1,0 +1,37 @@
+# The mirror of semantic-009. PUBLIC_ADDRESS derives the host:port a TCP or UDP
+# endpoint publishes on an allocated edge port; an HTTP-family endpoint is
+# published through the shared ingress as a URL, so there is no such port to
+# name.
+#
+# The endpoint is declared and PUBLIC and still cannot answer, which is the
+# same shape semantic-009 has and the reason the two codes name the axis that
+# failed rather than sharing one.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+    endpoints:
+      api:
+        containerPort: 8080
+        protocol: HTTP
+        visibility: PUBLIC
+    health:
+      readiness:
+        path: /healthz
+        endpoint: api
+  contract:
+    inputs:
+      apiAddress:
+        schema:
+          type: STRING
+        ui:
+          label: API address
+        platformDefault:
+          source: PUBLIC_ADDRESS
+          endpoint: api

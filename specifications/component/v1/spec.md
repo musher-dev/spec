@@ -186,7 +186,7 @@ and the shape decides which of the remaining fields carry meaning.
 
 | Field | `SERVICE` | `WORKER` | `JOB` | `CRON` |
 |---|---|---|---|---|
-| `endpoints` | permitted | forbidden | forbidden | forbidden |
+| `endpoints` | REQUIRED, ≥ 1 | forbidden | forbidden | forbidden |
 | `command` | permitted | permitted | REQUIRED | REQUIRED |
 | `schedule` | forbidden | forbidden | forbidden | REQUIRED |
 | `health.readiness` | see [§5.4](#health) | permitted | permitted | permitted |
@@ -211,11 +211,22 @@ nothing to run without it, so it is REQUIRED on both. On a `SERVICE` or a
 `WORKER` it overrides the image's default command, which is meaningful rather
 than meaningless, so it stays permitted.
 
-**A `SERVICE` MAY declare no endpoint.** The smallest component that validates
-is a service running a pinned image and nothing else. A service exposing no
-endpoint and a worker are operationally much the same thing, so requiring at
-least one endpoint is a defensible rule. It is simply not this version's rule,
-and adopting it later rejects documents v1 accepts.
+**A `SERVICE` MUST declare at least one endpoint.** A service is the kind that
+serves, and one exposing nothing is a `WORKER` under another name. Permitting
+it would leave `kind` describing nothing: two documents would differ in the
+word they use for a workload that runs identically, and a reader could not tell
+from the `kind` whether anything could reach it.
+
+Both spellings of "none" are rejected, and they carry different codes because
+they read differently to an author. An absent `endpoints` block is
+`ERR_MISSING_FIELD` — the author has not said how the service is reached. A
+block written and left empty is `ERR_INVALID_VALUE` — the author has said, and
+said nothing. Both are `structural`.
+
+This is the one rule in this section where a workload that runs perfectly well
+is refused. A container that listens on no port and is meant to stay up is a
+real thing to want; it is a `WORKER`, and writing it as one costs an author a
+single word.
 
 Input and output keys are unique within a component because `contract.inputs`
 and `contract.outputs` are mappings. A repeated key is `ERR_DUPLICATE_KEY` in
@@ -321,9 +332,10 @@ two rules below turn on:
 Nothing here is `structural`: a `PUBLIC` `TCP` endpoint is a database, a game
 server, an MQTT broker or an SMTP relay exposed to the internet, and rejecting
 it would make a working capability inexpressible. What the split does decide is
-which references may name such an endpoint — [§5.4](#health) for a probe and
-[§6.1](#inputs) for a platform default, both of which derive something only a
-URL-published endpoint has.
+which references may name such an endpoint. [§5.4](#health)'s probe reads a URL
+and may name only the first row. [§6.1](#inputs)'s platform default reads
+either, and each of its four sources is tied to the row it takes its value
+from.
 
 **A component MAY declare more than one `PUBLIC` endpoint**, and each one
 publishes its own address. A component fronting an API on one port and a console
@@ -351,9 +363,9 @@ elsewhere in the document.
 "Nothing" is reached two ways and both are rejected, though they read
 differently to an author. A workload declaring several candidates has too many
 and must choose. A workload declaring no endpoint at all has none, and a probe
-on it polls a port that does not exist — which [§5](#workload) permits the
-workload to be, since a `SERVICE` MAY declare no endpoint, but which no probe
-can survive.
+on it polls a port that does not exist. [§5](#workload) puts the second beyond
+a `SERVICE`, which MUST declare at least one endpoint — but the other three
+kinds declare none and may still carry a probe, so the case survives there.
 
 **Why that is an error rather than a tiebreak.** Electing the first name in sort
 order would give every document an answer, and would let a new endpoint called
@@ -367,11 +379,10 @@ should believe. That silence is a gap rather than a considered permission, and
 is recorded here so a reader can tell the two apart. Closing it rejects
 documents that validate today.
 
-Nor does v1 give the contract any way to read the edge address of a `PUBLIC`
-`TCP` or `UDP` endpoint. [§6.1](#inputs)'s two sources both derive from a URL,
-and no third source is defined. That is a decision rather than a gap: the
-address form exists, and whether the contract should expose it is a question
-this version declines to answer rather than one it overlooked.
+The edge address of a `PUBLIC` `TCP` or `UDP` endpoint **is** readable from the
+contract. [§6.1](#inputs)'s `PUBLIC_ADDRESS` derives the whole `host:port` and
+`PUBLIC_PORT` the allocated port alone, so a component whose sibling needs a
+broker's or a database's edge address at install time can say so.
 
 ### <a id="env-vars"></a>5.3 Environment variables
 
@@ -541,9 +552,23 @@ marked sensitive is echoed back into logs and interfaces. The value rides on a
 
 **A platform default derives the value from the component's own addressing.**
 `platformDefault` is OPTIONAL and null by default. Where it is present, `source`
-is REQUIRED and selects what is derived — `PUBLIC_URL` for the full URL of a
-public endpoint, `PUBLIC_HOSTNAME` for its hostname alone — and `endpoint` names
-which endpoint it is derived from.
+is REQUIRED and selects what is derived, and `endpoint` names which endpoint it
+is derived from.
+
+There are four sources, and they come in two pairs because
+[§5.2](#endpoints) gives a `PUBLIC` endpoint two address forms:
+
+| `source` | Derives | From an endpoint publishing |
+|---|---|---|
+| `PUBLIC_URL` | The full URL. | a **URL** — `HTTP`, `HTTPS`, `WS`, `GRPC` |
+| `PUBLIC_HOSTNAME` | The host part of that URL. | " |
+| `PUBLIC_ADDRESS` | The full `host:port`. | a **`host:port`** — `TCP`, `UDP` |
+| `PUBLIC_PORT` | The allocated edge port alone. | " |
+
+Each pair reads one address form. `PUBLIC_PORT` and `PUBLIC_HOSTNAME` exist
+beside the whole they are part of because a consumer that takes host and port
+as separate settings should not have to split a string this contract had
+already composed.
 
 `endpoint` is null by default and selects the primary endpoint
 [§5.2](#endpoints) elects. Since a component MAY expose several `PUBLIC`
@@ -553,14 +578,30 @@ and is rejected with `ERR_AMBIGUOUS_ENDPOINT`.
 Three further rules follow the name, all `semantic`. An endpoint the workload
 does not declare is `ERR_UNKNOWN_ENDPOINT` — the same code and the same reason
 as a probe's. An endpoint that is declared but `PRIVATE` is
-`ERR_ENDPOINT_NOT_PUBLIC`: both sources derive an externally reachable address,
-and a `PRIVATE` endpoint has none to give.
+`ERR_ENDPOINT_NOT_PUBLIC`: every source derives an externally reachable
+address, and a `PRIVATE` endpoint has none to give.
 
-The third follows from [§5.2](#endpoints)'s two address forms. Both sources
-derive from a **URL** — `PUBLIC_URL` is one, `PUBLIC_HOSTNAME` is the host part
-of one — and a `PUBLIC` `TCP` or `UDP` endpoint publishes a `host:port` address
-instead, which has no URL to take either from. Naming one is
-`ERR_ENDPOINT_NOT_HTTP`, the same code a probe on such an endpoint carries.
+The third is the pairing above, enforced. **A source MUST name an endpoint
+publishing the address form it reads.** A `URL` source naming a `TCP` or `UDP`
+endpoint is `ERR_ENDPOINT_NOT_HTTP`, the same code a probe on such an endpoint
+carries. A `host:port` source naming an `HTTP`-family endpoint is
+`ERR_ENDPOINT_NOT_L4`. Two codes rather than one so a diagnostic names the axis
+that failed, which is the same reason [blueprint §4.2](../../blueprint/v1/spec.md#connections)
+splits its two compatibility codes.
+
+**Why an HTTP-family endpoint does not answer `PUBLIC_ADDRESS`.** It is
+reachable at a host and a port like anything else, so admitting it would be
+easy and is refused deliberately. Such an endpoint is published through the
+shared ingress rather than on a port allocated to it, so what the derivation
+would yield is the ingress address on the ingress port — true, and not the
+thing an author asking for an edge address is asking for. They want the port
+their broker was given. A source that returns a defensible value nobody wanted
+is worse than one that rejects the document, because the first failure is
+silent and arrives at runtime.
+
+Both rules apply to the endpoint a reference *resolves to*, elected or named,
+for the reason [§5.2](#endpoints) gives: the primary is what null selects, so a
+rule about the endpoint a reference means reaches it equally.
 
 **A platform default is not a `CONNECTION`.** The value comes from the
 component's own workload, never from an upstream node, which is the same line
@@ -584,9 +625,11 @@ connection.
 
 That constraint is what makes an output referenceable at all: a consumer can
 read a producer's output without the producer having first been told anything.
-It is not, however, a licence for a cyclic graph.
-[Blueprint §4.2](../../blueprint/v1/spec.md#connections) requires the
-connection graph to be acyclic, for reasons of its own.
+It is also what lets two components consume each other.
+[Blueprint §4.2](../../blueprint/v1/spec.md#connections) permits a cyclic
+connection graph, and this rule is why it can: every output in a composition is
+resolvable before any connection is bound, so a cycle among the connections
+leaves nothing unresolved.
 
 **Where an output must fit the input it feeds.** An output's `schema` and the
 `schema` of the input it is wired to must agree on `type`, and on
@@ -654,7 +697,8 @@ different text and that is expected.
 | `ERR_UNKNOWN_ENDPOINT` | `semantic` | A probe or a platform default names an endpoint the workload does not declare. |
 | `ERR_AMBIGUOUS_ENDPOINT` | `semantic` | A reference omits the endpoint, and the workload elects no primary. |
 | `ERR_ENDPOINT_NOT_PUBLIC` | `semantic` | A platform default deriving a public address names a `PRIVATE` endpoint. |
-| `ERR_ENDPOINT_NOT_HTTP` | `semantic` | A probe or a platform default resolves to an endpoint whose protocol is not in the HTTP family. |
+| `ERR_ENDPOINT_NOT_HTTP` | `semantic` | A probe, or a platform default deriving from a URL, resolves to an endpoint whose protocol is not in the HTTP family. |
+| `ERR_ENDPOINT_NOT_L4` | `semantic` | A platform default deriving an edge address resolves to an endpoint whose protocol is in the HTTP family. |
 | `ERR_VERSION_NOT_MONOTONIC` | `capability` | A published component version is not greater than the lineage's current version. |
 
 The `parser` and `structural` rows are the shared envelope registry: the

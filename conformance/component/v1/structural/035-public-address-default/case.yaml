@@ -1,0 +1,31 @@
+# The edge address, referenced. A PUBLIC TCP endpoint publishes host:port
+# (§5.2), and PUBLIC_ADDRESS is the source that derives it — the case a sibling
+# needing a database's edge address at install time could not express before.
+#
+# No readiness probe: §5.4 compels one only on a PUBLIC HTTP-family endpoint.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: postgres:17.10-alpine
+    endpoints:
+      db:
+        containerPort: 5432
+        protocol: TCP
+        visibility: PUBLIC
+  contract:
+    inputs:
+      databaseAddress:
+        schema:
+          type: STRING
+        ui:
+          label: Database address
+        platformDefault:
+          source: PUBLIC_ADDRESS
+          endpoint: db
+    outputs: {}

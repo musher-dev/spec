@@ -11,3 +11,8 @@ spec:
     source:
       type: IMAGE
       ref: localhost:5000/musher-dev/api@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    endpoints:
+      api:
+        containerPort: 8080
+        protocol: HTTP
+        visibility: PRIVATE

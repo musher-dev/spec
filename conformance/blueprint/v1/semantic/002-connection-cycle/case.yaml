@@ -1,12 +1,10 @@
-# Mutual discovery: `api` reads `web`'s address and `web` reads `api`'s. Every
-# output here is a function of its own node, so a two-pass resolver would
-# settle this without complaint — the graph is rejected because a
-# specification that permits cycles obliges every implementation to be that
-# resolver, and forecloses any later rule needing an order.
+# Mutual discovery: `api` reads `web`'s address and `web` reads `api`'s. This
+# is the composition §4.2 exists to permit, and the regression pin for it.
 #
-# The walk is reported from `api`, the lexicographically smallest node in the
-# cycle, so that two implementations finding this cycle name it identically:
-# api -> web -> api.
+# Every output here is a function of its own node — component §6.2 — so both
+# are resolvable before either edge is bound, and the cycle costs an
+# implementation nothing. Reintroducing an acyclicity rule rejects this
+# document, which is why doing so after publication is a major version.
 specVersion: v1
 kind: BLUEPRINT
 metadata:

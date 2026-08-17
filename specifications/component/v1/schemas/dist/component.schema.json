@@ -636,10 +636,13 @@
           "default": null
         },
         "source": {
-          "description": "What is derived: PUBLIC_HOSTNAME for the endpoint's hostname alone, PUBLIC_URL for its full URL.",
+          "description": "What is derived. PUBLIC_HOSTNAME for the endpoint's hostname alone and PUBLIC_URL for its full URL, both from the URL an HTTP-family endpoint publishes; PUBLIC_ADDRESS for the full host:port and PUBLIC_PORT for the port alone, both from the edge address a TCP or UDP endpoint publishes.",
+          "$comment": "spec.md §6.1. Each source pairs with one of §5.2's two address forms, and the pairing is exclusive: the first two require an HTTP-family endpoint, the last two a TCP or UDP one. Which is why the mismatch carries two codes rather than one.",
           "enum": [
             "PUBLIC_HOSTNAME",
-            "PUBLIC_URL"
+            "PUBLIC_URL",
+            "PUBLIC_ADDRESS",
+            "PUBLIC_PORT"
           ],
           "type": "string"
         }
@@ -918,6 +921,29 @@
                 "maxProperties": 0
               }
             }
+          }
+        },
+        {
+          "$comment": "spec.md §5. The converse of the branch above: a SERVICE is the kind that serves, so it declares at least one endpoint. An absent block is a missing field and an empty one is an invalid value, which is the same two-spelling distinction the forbidden direction already makes.",
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "SERVICE"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "endpoints": {
+                "minProperties": 1
+              }
+            },
+            "required": [
+              "endpoints"
+            ]
           }
         },
         {

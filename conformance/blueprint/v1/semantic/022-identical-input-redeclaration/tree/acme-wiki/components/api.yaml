@@ -1,0 +1,28 @@
+# `api` sorts first, so this is the declaration that stands. It leaves every
+# schema default implicit.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: postgres:17.10-alpine
+    endpoints:
+      primary:
+        containerPort: 5432
+        protocol: TCP
+        visibility: PRIVATE
+  contract:
+    inputs:
+      adminPassword:
+        schema:
+          type: STRING
+          isSensitive: true
+        suppliedBy: USER
+        isRequired: true
+        ui:
+          label: Administrator password
+    outputs: {}

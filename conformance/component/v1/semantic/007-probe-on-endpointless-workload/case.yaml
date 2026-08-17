@@ -1,14 +1,18 @@
-# Section 5 permits a SERVICE to declare no endpoint. A probe on one polls a
-# port that does not exist: the election finds no primary here for the
-# opposite reason it finds none among two PUBLIC endpoints, and rejects it
-# just the same.
+# A probe on a workload that declares no endpoint polls a port that does not
+# exist: the election finds no primary here for the opposite reason it finds
+# none among two PUBLIC endpoints, and rejects it just the same.
+#
+# The kind is WORKER because §5 now puts this shape beyond a SERVICE, which
+# must declare at least one endpoint. The other three kinds declare none and
+# may still carry a probe, so the case survives there — which is the whole
+# reason §5.2 still has to say what happens when nothing is elected.
 specVersion: v1
 kind: COMPONENT
 metadata:
   version: 1
 spec:
   workload:
-    kind: SERVICE
+    kind: WORKER
     source:
       type: IMAGE
       ref: nginx:1.29.4-alpine

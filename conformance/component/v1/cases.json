@@ -183,6 +183,31 @@
       "path": "structural/032-env-var-key-not-uppercase"
     },
     {
+      "id": "structural-033-service-without-endpoints",
+      "phase": "structural",
+      "path": "structural/033-service-without-endpoints"
+    },
+    {
+      "id": "structural-034-service-with-empty-endpoints",
+      "phase": "structural",
+      "path": "structural/034-service-with-empty-endpoints"
+    },
+    {
+      "id": "structural-035-public-address-default",
+      "phase": "structural",
+      "path": "structural/035-public-address-default"
+    },
+    {
+      "id": "structural-036-public-port-on-udp-endpoint",
+      "phase": "structural",
+      "path": "structural/036-public-port-on-udp-endpoint"
+    },
+    {
+      "id": "structural-037-public-hostname-default",
+      "phase": "structural",
+      "path": "structural/037-public-hostname-default"
+    },
+    {
       "id": "semantic-001-floating-tag-image-reference",
       "phase": "semantic",
       "path": "semantic/001-floating-tag-image-reference"
@@ -236,6 +261,16 @@
       "id": "semantic-011-env-key-claimed-twice",
       "phase": "semantic",
       "path": "semantic/011-env-key-claimed-twice"
+    },
+    {
+      "id": "semantic-012-public-address-on-http-endpoint",
+      "phase": "semantic",
+      "path": "semantic/012-public-address-on-http-endpoint"
+    },
+    {
+      "id": "semantic-013-platform-default-elects-primary",
+      "phase": "semantic",
+      "path": "semantic/013-platform-default-elects-primary"
     }
   ]
 }

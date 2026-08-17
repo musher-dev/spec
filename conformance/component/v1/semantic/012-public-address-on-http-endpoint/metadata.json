@@ -1,0 +1,7 @@
+{
+  "id": "semantic-012-public-address-on-http-endpoint",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#inputs",
+  "summary": "PUBLIC_ADDRESS naming an HTTP-family endpoint has no edge port to derive."
+}

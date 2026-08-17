@@ -1,0 +1,7 @@
+{
+  "id": "structural-037-public-hostname-default",
+  "phase": "structural",
+  "expected": "pass",
+  "clause": "specifications/component/v1/spec.md#inputs",
+  "summary": "PUBLIC_HOSTNAME derives the hostname of a PUBLIC HTTP-family endpoint."
+}
