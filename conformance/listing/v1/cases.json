@@ -101,6 +101,11 @@
       "id": "semantic-006-well-formed-item",
       "phase": "semantic",
       "path": "semantic/006-well-formed-item"
+    },
+    {
+      "id": "semantic-007-component-item-version-independent",
+      "phase": "semantic",
+      "path": "semantic/007-component-item-version-independent"
     }
   ]
 }

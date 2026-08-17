@@ -1,0 +1,8 @@
+{
+  "id": "semantic-007-component-item-version-independent",
+  "phase": "semantic",
+  "expected": "pass",
+  "clause": "specifications/listing/v1/spec.md#component-item",
+  "summary": "A COMPONENT item's listing version is bound to no component document's.",
+  "document": "pgvector/listing.yaml"
+}
