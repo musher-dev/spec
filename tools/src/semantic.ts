@@ -140,9 +140,24 @@ function primaryEndpoint(endpoints: Json | undefined): string | undefined {
 }
 
 /**
+ * Which of §5.2's two address forms a reference reads. A probe and the two
+ * URL-derived platform-default sources need `http`; the two edge-address
+ * sources need `l4`.
+ */
+type AddressForm = 'http' | 'l4'
+
+/** §6.1 — the address form each platform-default source reads. */
+const SOURCE_ADDRESS_FORM: Record<string, AddressForm> = {
+  PUBLIC_URL: 'http',
+  PUBLIC_HOSTNAME: 'http',
+  PUBLIC_ADDRESS: 'l4',
+  PUBLIC_PORT: 'l4',
+}
+
+/**
  * One place a document names an endpoint: a probe's `endpoint` (§5.4) or a
- * platform default's (§6.1). `mustBePublic` is what separates them — both
- * platform-default sources derive an externally reachable address.
+ * platform default's (§6.1). `mustBePublic` is what separates them — every
+ * platform-default source derives an externally reachable address.
  */
 interface EndpointReference {
   /** The raw value, so an explicit null and an absent key are one case. */
@@ -150,6 +165,13 @@ interface EndpointReference {
   readonly path: string
   readonly subject: string
   readonly mustBePublic: boolean
+  /**
+   * The address form this reference reads, or undefined where the document
+   * named a source the schema does not define — the structural phase has
+   * already rejected that, and guessing a form here would report a second
+   * diagnostic about it.
+   */
+  readonly addressForm: AddressForm | undefined
 }
 
 /**
@@ -188,17 +210,29 @@ function checkEndpointReference(
     return
   }
 
-  // §5.4 and §6.1 — a probe polls an HTTP path and both platform-default
-  // sources derive from a URL. A TCP or UDP endpoint publishes a host:port
-  // address instead, and has neither to give.
+  // §5.4 and §6.1 — a reference reads one of §5.2's two address forms, and the
+  // endpoint has to publish that one. A probe polls an HTTP path; PUBLIC_URL
+  // and PUBLIC_HOSTNAME take a URL; PUBLIC_ADDRESS and PUBLIC_PORT take the
+  // edge address only a TCP or UDP endpoint is allocated.
   const protocol = asString(child(declared, 'protocol'))
-  if (protocol !== undefined && !HTTP_FAMILY.has(protocol)) {
-    out.push({
-      code: 'ERR_ENDPOINT_NOT_HTTP',
-      path: reference.path,
-      message: `${reference.subject} resolves to endpoint "${selected}", which serves ${protocol}`,
-    })
-    return
+  if (protocol !== undefined && reference.addressForm !== undefined) {
+    const isHttp = HTTP_FAMILY.has(protocol)
+    if (reference.addressForm === 'http' && !isHttp) {
+      out.push({
+        code: 'ERR_ENDPOINT_NOT_HTTP',
+        path: reference.path,
+        message: `${reference.subject} resolves to endpoint "${selected}", which serves ${protocol}`,
+      })
+      return
+    }
+    if (reference.addressForm === 'l4' && isHttp) {
+      out.push({
+        code: 'ERR_ENDPOINT_NOT_L4',
+        path: reference.path,
+        message: `${reference.subject} resolves to endpoint "${selected}", which serves ${protocol} and is allocated no edge port`,
+      })
+      return
+    }
   }
 
   if (reference.mustBePublic && child(declared, 'visibility') !== 'PUBLIC') {
@@ -223,17 +257,20 @@ function endpointReferences(document: Json): EndpointReference[] {
       path: `/spec/workload/health/${token(probe)}/endpoint`,
       subject: `${probe} probe`,
       mustBePublic: false,
+      addressForm: 'http',
     })
   }
 
   for (const input of keysOf(inputs)) {
     const platformDefault = child(child(inputs, input), 'platformDefault')
     if (!isObject(platformDefault)) continue
+    const source = asString(child(platformDefault, 'source'))
     references.push({
       value: child(platformDefault, 'endpoint'),
       path: `/spec/contract/inputs/${token(input)}/platformDefault/endpoint`,
       subject: `platform default on input "${input}"`,
       mustBePublic: true,
+      addressForm: source === undefined ? undefined : SOURCE_ADDRESS_FORM[source],
     })
   }
 

@@ -636,10 +636,13 @@
           "default": null
         },
         "source": {
-          "description": "What is derived: PUBLIC_HOSTNAME for the endpoint's hostname alone, PUBLIC_URL for its full URL.",
+          "description": "What is derived. PUBLIC_HOSTNAME for the endpoint's hostname alone and PUBLIC_URL for its full URL, both from the URL an HTTP-family endpoint publishes; PUBLIC_ADDRESS for the full host:port and PUBLIC_PORT for the port alone, both from the edge address a TCP or UDP endpoint publishes.",
+          "$comment": "spec.md §6.1. Each source pairs with one of §5.2's two address forms, and the pairing is exclusive: the first two require an HTTP-family endpoint, the last two a TCP or UDP one. Which is why the mismatch carries two codes rather than one.",
           "enum": [
             "PUBLIC_HOSTNAME",
-            "PUBLIC_URL"
+            "PUBLIC_URL",
+            "PUBLIC_ADDRESS",
+            "PUBLIC_PORT"
           ],
           "type": "string"
         }
