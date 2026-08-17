@@ -3,5 +3,8 @@
   "phase": "structural",
   "expected": "fail",
   "clause": "specifications/blueprint/v1/spec.md#envelope",
+  "requirements": [
+    "COMP-ENV-005"
+  ],
   "summary": "An undefined top-level property is rejected rather than ignored."
 }

@@ -3,5 +3,8 @@
   "phase": "structural",
   "expected": "fail",
   "clause": "specifications/blueprint/v1/spec.md#envelope",
+  "requirements": [
+    "COMP-ENV-006"
+  ],
   "summary": "An unsupported specVersion is rejected outright."
 }

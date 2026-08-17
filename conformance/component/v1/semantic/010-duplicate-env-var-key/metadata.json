@@ -3,5 +3,8 @@
   "phase": "semantic",
   "expected": "fail",
   "clause": "specifications/component/v1/spec.md#env-vars",
+  "requirements": [
+    "COMP-ENVVAR-001"
+  ],
   "summary": "Two envVars entries declaring the same key are rejected."
 }

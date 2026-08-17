@@ -58,6 +58,16 @@
       "path": "parser/011-document-too-large"
     },
     {
+      "id": "parser-012-byte-order-mark",
+      "phase": "parser",
+      "path": "parser/012-byte-order-mark"
+    },
+    {
+      "id": "parser-013-crlf-line-endings",
+      "phase": "parser",
+      "path": "parser/013-crlf-line-endings"
+    },
+    {
       "id": "structural-001-minimal-valid",
       "phase": "structural",
       "path": "structural/001-minimal-valid"

@@ -3,5 +3,8 @@
   "phase": "structural",
   "expected": "fail",
   "clause": "specifications/component/v1/spec.md#envelope",
+  "requirements": [
+    "COMP-ENV-005"
+  ],
   "summary": "An undefined property nested below the envelope is rejected, not silently dropped."
 }

@@ -3,6 +3,9 @@
   "phase": "semantic",
   "expected": "fail",
   "clause": "specifications/blueprint/v1/spec.md#identity",
+  "requirements": [
+    "BP-ID-003"
+  ],
   "summary": "A component document in the item that no node references is rejected.",
   "document": "acme-wiki/blueprint.yaml"
 }

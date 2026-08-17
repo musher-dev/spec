@@ -3,5 +3,8 @@
   "phase": "structural",
   "expected": "fail",
   "clause": "specifications/component/v1/spec.md#envelope",
+  "requirements": [
+    "COMP-ENV-002"
+  ],
   "summary": "A document declaring kind BLUEPRINT is rejected by the component schema."
 }

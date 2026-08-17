@@ -3,5 +3,8 @@
   "phase": "semantic",
   "expected": "fail",
   "clause": "specifications/listing/v1/spec.md#media",
+  "requirements": [
+    "LIST-MEDIA-003"
+  ],
   "summary": "Two screenshots sharing a basename under different directories are rejected."
 }

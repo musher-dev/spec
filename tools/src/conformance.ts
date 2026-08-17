@@ -48,6 +48,15 @@ interface CaseMetadata {
   readonly phase: Phase
   readonly expected: 'pass' | 'fail'
   readonly clause?: string
+  /**
+   * Stable requirement identifiers this case exercises, e.g. `COMP-ENV-002`.
+   *
+   * `clause` names a section; a section states several rules. 27 cases cite
+   * `#envelope`, which covers `specVersion`, `kind`, unknown fields, and an
+   * unsupported version — so the citation says where to look and not what is
+   * being pinned. An ID says which rule, and survives a heading being renamed.
+   */
+  readonly requirements?: string[]
   readonly summary?: string
   /**
    * Tree cases only (ADR 0002). Path of the document under test, relative to
@@ -143,6 +152,41 @@ function specIndex(path: string): SpecIndex | undefined {
     index = { codes, anchors }
   }
   specIndexCache.set(path, index)
+  return index
+}
+
+/** A stable requirement identifier: `COMP-ENV-001`, `BP-REF-003`. */
+const REQUIREMENT_ID = /^[A-Z]{2,6}-[A-Z0-9]{2,12}-\d{3}$/
+
+let requirementCache: Map<string, string> | undefined
+
+/**
+ * Every requirement ID declared across the three specifications, mapped to the
+ * document that declares it.
+ *
+ * IDs are global rather than per-family on purpose: a blueprint fixture cites
+ * component's envelope requirements, and the prefix already says which document
+ * to open. Two documents declaring the same ID is a defect — the same name
+ * would mean two rules.
+ */
+function requirementIndex(): Map<string, string> {
+  if (requirementCache !== undefined) return requirementCache
+  const index = new Map<string, string>()
+  for (const family of discoverFamilies()) {
+    const anchors = specIndex(family.specPath)?.anchors ?? new Set<string>()
+    for (const anchor of anchors) {
+      if (!REQUIREMENT_ID.test(anchor)) continue
+      const previous = index.get(anchor)
+      if (previous !== undefined && previous !== family.specPath) {
+        throw new Error(
+          `${anchor} is declared in both ${relativeToRepo(previous)} and ` +
+            `${relativeToRepo(family.specPath)} — one ID names one rule`,
+        )
+      }
+      index.set(anchor, family.specPath)
+    }
+  }
+  requirementCache = index
   return index
 }
 
@@ -308,6 +352,24 @@ function checkCaseShape(
     }
   }
 
+  // A requirement ID must resolve to an anchor in a spec.md, exactly as a
+  // clause does. An ID that resolves nowhere is worse than no ID: it reads as
+  // traceability and provides none.
+  for (const requirement of metadata.requirements ?? []) {
+    if (!REQUIREMENT_ID.test(requirement)) {
+      failures.add(`${label}: "${requirement}" is not a requirement ID (<FAM>-<SECTION>-<NNN>)`)
+      ok = false
+      continue
+    }
+    if (!requirementIndex().has(requirement)) {
+      failures.add(
+        `${label}: requirement ${requirement} is not declared in any spec.md. ` +
+          'Declare it beside the rule it names, or cite one that exists.',
+      )
+      ok = false
+    }
+  }
+
   if (metadata.expected === 'pass') return ok ? [] : null
 
   const diagnosticsPath = join(caseDir, 'diagnostics.json')
@@ -377,6 +439,8 @@ function runCase(
   failures: Failures,
   /** Collects every code the corpus declares, for the coverage check. */
   exercised: Set<string>,
+  /** Collects every requirement ID the corpus cites, for the same reason. */
+  citedRequirements: Set<string>,
 ): 'ran' | 'skipped' | 'failed' {
   const caseDir = join(family.conformanceDir, entry.path)
   const label = `${family.name}/${family.major}/${entry.id}`
@@ -400,6 +464,7 @@ function runCase(
   const declared = checkCaseShape(family, entry, caseDir, label, metadata, failures)
   if (declared === null) return 'failed'
   for (const item of declared) exercised.add(item.code)
+  for (const requirement of metadata.requirements ?? []) citedRequirements.add(requirement)
 
   if (!IMPLEMENTED_PHASES.has(metadata.phase)) {
     console.log(`  · ${label}: ${metadata.phase} phase not implemented here — skipped`)
@@ -497,6 +562,44 @@ function checkCoverage(family: Family, exercised: ReadonlySet<string>, failures:
 }
 
 /**
+ * Requirements no fixture pins, and why that is allowed.
+ *
+ * The same shape as `UNCOVERED` and for the same reason: a requirement without
+ * a fixture goes untested only when someone writes down why, in a diff a
+ * reviewer sees. Most entries here are rules about what an *implementation*
+ * does — network access, what it prints — which a document cannot exercise.
+ */
+const UNPINNED: ReadonlyMap<string, string> = new Map([
+  [
+    'COMP-ENV-001',
+    'A fixture cannot omit specVersion and still declare which family it belongs ' +
+      'to; the rule is exercised indirectly by every case in the corpus',
+  ],
+  [
+    'COMP-ENV-003',
+    'metadata is required by every fixture in the corpus, so no single case pins it',
+  ],
+  ['COMP-ENV-004', 'spec is required by every fixture in the corpus, so no single case pins it'],
+])
+
+/**
+ * Every declared requirement is pinned by a fixture, or excused in `UNPINNED`.
+ *
+ * This is the same bidirectional gate `checkCoverage` applies to diagnostic
+ * codes, for the same reason: without it, a rule can be written into the
+ * specification and never tested, and CI stays green because nothing asked.
+ */
+function checkRequirementCoverage(cited: ReadonlySet<string>, failures: Failures): void {
+  for (const [requirement, specPath] of requirementIndex()) {
+    if (cited.has(requirement) || UNPINNED.has(requirement)) continue
+    failures.add(
+      `${requirement} is declared in ${relativeToRepo(specPath)} but no case cites it. ` +
+        'Add "requirements" to a fixture, or record it in UNPINNED with a reason.',
+    )
+  }
+}
+
+/**
  * Case directories that no `cases.json` entry names. The index is the contract
  * and the runner never walks the filesystem, so an unindexed directory is not a
  * failing fixture — it is an invisible one, which is worse.
@@ -521,6 +624,11 @@ function main(): void {
   let ran = 0
   let skipped = 0
 
+  // Requirement IDs are global, so coverage is answered across the whole corpus
+  // rather than per family: a blueprint fixture may be the only thing pinning a
+  // component envelope rule.
+  const cited = new Set<string>()
+
   for (const family of discoverFamilies()) {
     const entries = loadIndex(family, failures)
     if (entries.length === 0) {
@@ -530,7 +638,7 @@ function main(): void {
 
     const exercised = new Set<string>()
     for (const entry of entries) {
-      const outcome = runCase(family, entry, failures, exercised)
+      const outcome = runCase(family, entry, failures, exercised, cited)
       if (outcome === 'ran') ran += 1
       if (outcome === 'skipped') skipped += 1
     }
@@ -539,12 +647,16 @@ function main(): void {
     checkOrphans(family, entries, failures)
   }
 
+  checkRequirementCoverage(cited, failures)
+
   const suffix = skipped > 0 ? ` (${skipped} skipped)` : ''
   const profile = profileFor(IMPLEMENTED_PHASES) ?? 'none'
+  const requirements = requirementIndex().size
   failures.report(
     ran === 0
       ? `No conformance cases executed${suffix}.`
-      : `${ran} conformance case(s) passed${suffix} — profile: ${profile}.`,
+      : `${ran} conformance case(s) passed${suffix} — profile: ${profile}; ` +
+          `${cited.size}/${requirements} requirement(s) pinned.`,
   )
 }
 

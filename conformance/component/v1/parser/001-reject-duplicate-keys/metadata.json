@@ -3,5 +3,8 @@
   "phase": "parser",
   "expected": "fail",
   "clause": "specifications/component/v1/spec.md#envelope",
+  "requirements": [
+    "COMP-YAML-006"
+  ],
   "summary": "A document repeating a mapping key is rejected before structural validation."
 }

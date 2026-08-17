@@ -73,11 +73,11 @@ MUST NOT appear on a blueprint document, and a validator MUST reject them with
 Three rules bind the item together. All three are `semantic`, and all three
 are measured against the item root defined below.
 
-| Rule | Diagnostic |
-|---|---|
-| `metadata.slug` MUST equal the item directory name. | `ERR_SLUG_MISMATCH` |
-| `metadata.version` MUST equal the sibling listing's `metadata.version`. | `ERR_VERSION_MISMATCH` |
-| Every component document in the item MUST be referenced by some node. | `ERR_UNREFERENCED_COMPONENT` |
+| ID | Rule | Diagnostic |
+|---|---|---|
+| <a id="BP-ID-001"></a>`BP-ID-001` | `metadata.slug` MUST equal the item directory name. | `ERR_SLUG_MISMATCH` |
+| <a id="BP-ID-002"></a>`BP-ID-002` | `metadata.version` MUST equal the sibling listing's `metadata.version`. | `ERR_VERSION_MISMATCH` |
+| <a id="BP-ID-003"></a>`BP-ID-003` | Every component document in the item MUST be referenced by some node. | `ERR_UNREFERENCED_COMPONENT` |
 
 **An unreferenced component document is an error, not dead weight.** A
 component nothing references is not deployed, not checked against any node,

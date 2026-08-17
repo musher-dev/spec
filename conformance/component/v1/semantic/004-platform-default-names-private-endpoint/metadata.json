@@ -3,5 +3,8 @@
   "phase": "semantic",
   "expected": "fail",
   "clause": "specifications/component/v1/spec.md#inputs",
+  "requirements": [
+    "COMP-EP-004"
+  ],
   "summary": "A platform default deriving a public address from a PRIVATE endpoint is rejected."
 }

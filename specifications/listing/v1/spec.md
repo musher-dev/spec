@@ -57,10 +57,10 @@ format; `listingKind` identifies what the listing points at (`BLUEPRINT` or
 `metadata` carries `slug` and `version` — the same shape a blueprint carries.
 Where the item holds one, the two documents MUST agree.
 
-| Rule | Diagnostic |
-|---|---|
-| `metadata.slug` MUST equal the item directory name. | `ERR_SLUG_MISMATCH` |
-| Where the item holds a blueprint, `metadata.version` MUST equal its `metadata.version`. | `ERR_VERSION_MISMATCH` |
+| ID | Rule | Diagnostic |
+|---|---|---|
+| <a id="LIST-ID-001"></a>`LIST-ID-001` | `metadata.slug` MUST equal the item directory name. | `ERR_SLUG_MISMATCH` |
+| <a id="LIST-ID-002"></a>`LIST-ID-002` | Where the item holds a blueprint, `metadata.version` MUST equal its `metadata.version`. | `ERR_VERSION_MISMATCH` |
 
 Both are `semantic`, and both are measured against the item root —
 [blueprint §3.1](../../blueprint/v1/spec.md#item-directory) where the item
@@ -175,11 +175,11 @@ A listing is authored by a third party and rendered by the storefront, so
 the rules that make it safe to render. The reasoning is recorded in
 [ADR 0004](../../../docs/adr/0004-listing-description-trust-boundary.md).
 
-| Rule | Diagnostic |
-|---|---|
-| A description MUST NOT contain raw HTML — an *HTML block* ([CommonMark §4.6](https://spec.commonmark.org/0.31.2/#html-blocks)) or *raw HTML* inline ([§6.6](https://spec.commonmark.org/0.31.2/#raw-html)). | `ERR_RAW_HTML` |
-| A link destination MUST use the `https`, `http`, or `mailto` scheme, or be a fragment beginning `#`. | `ERR_DISALLOWED_SCHEME` |
-| An image destination MUST be a media path as defined by [§5](#media). | `ERR_IMAGE_NOT_LOCAL` |
+| ID | Rule | Diagnostic |
+|---|---|---|
+| <a id="LIST-MD-001"></a>`LIST-MD-001` | A description MUST NOT contain raw HTML — an *HTML block* ([CommonMark §4.6](https://spec.commonmark.org/0.31.2/#html-blocks)) or *raw HTML* inline ([§6.6](https://spec.commonmark.org/0.31.2/#raw-html)). | `ERR_RAW_HTML` |
+| <a id="LIST-MD-002"></a>`LIST-MD-002` | A link destination MUST use the `https`, `http`, or `mailto` scheme, or be a fragment beginning `#`. | `ERR_DISALLOWED_SCHEME` |
+| <a id="LIST-MD-003"></a>`LIST-MD-003` | An image destination MUST be a media path as defined by [§5](#media). | `ERR_IMAGE_NOT_LOCAL` |
 
 All three are `semantic`. Finding a link destination means parsing the document,
 which no JSON Schema pattern can do — this is the same line
@@ -278,11 +278,11 @@ walking the document to work out what to take.
 
 Three rules need the filesystem and are therefore `semantic`:
 
-| Rule | Diagnostic |
-|---|---|
-| The path MUST resolve to a file that exists. | `ERR_MEDIA_NOT_FOUND` |
-| The resolved target MUST lie inside the item root. | `ERR_PATH_ESCAPE` |
-| Two screenshots MUST NOT share a basename. | `ERR_DUPLICATE_MEDIA_BASENAME` |
+| ID | Rule | Diagnostic |
+|---|---|---|
+| <a id="LIST-MEDIA-001"></a>`LIST-MEDIA-001` | The path MUST resolve to a file that exists. | `ERR_MEDIA_NOT_FOUND` |
+| <a id="LIST-MEDIA-002"></a>`LIST-MEDIA-002` | The resolved target MUST lie inside the item root. | `ERR_PATH_ESCAPE` |
+| <a id="LIST-MEDIA-003"></a>`LIST-MEDIA-003` | Two screenshots MUST NOT share a basename. | `ERR_DUPLICATE_MEDIA_BASENAME` |
 
 **`ERR_PATH_ESCAPE` outlives the grammar.** The pattern above makes `..`
 unspellable, so no path can escape by traversal any more. One can still escape

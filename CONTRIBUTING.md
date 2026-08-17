@@ -61,7 +61,8 @@ and a `tree/` when it is decided by reading the item the document sits in —
 a slug against its directory, a reference against a file. See
 [conformance/README.md](conformance/README.md#case-trees).
 
-Adding a diagnostic code to a `spec.md` obliges you to add a case for it.
+Adding a diagnostic code or a requirement ID to a `spec.md` obliges you to add a
+case for it.
 `check:conformance` fails otherwise, and the only way out is an entry in the
 runner's `UNCOVERED` list saying why the code cannot be exercised.
 
@@ -74,9 +75,14 @@ runner's `UNCOVERED` list saying why the code cannot be exercised.
 | `check:schema` | Every `src/` module is valid JSON Schema 2020-12; `$id`s are unique and canonical; no remote `$ref` |
 | `check:drift` | The committed `dist/` bundle matches a fresh compile of `src/` |
 | `check:examples` | Every file in `examples/` validates against its family's bundle |
-| `check:conformance` | Every conformance case produces its declared outcome; every declared diagnostic code has a case; every case directory is indexed |
+| `check:conformance` | Every conformance case produces its declared outcome; every declared diagnostic code and requirement ID has a case; every case directory is indexed |
+| `check:standards` | An independent JSON Schema toolchain accepts every module and bundle |
+| `check:parity` | Ajv and Blaze agree on every structural verdict |
 | `check:published` | Every released version still hashes to what `published.json` recorded |
+| `check:compat` | No released version's accepted documents are rejected by the candidate schema |
 | `check:test` | The tooling test suite, including the publication-immutability regressions |
+| `check:links` | Every internal Markdown link and anchor resolves |
+| `check:spelling` | Prose, tooling, and schema descriptions spell-check clean |
 | `check:shell` | ShellCheck over `.devcontainer/scripts` |
 | `check:workflow` | actionlint over `.github/workflows` |
 

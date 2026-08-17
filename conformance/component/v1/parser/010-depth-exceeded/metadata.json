@@ -3,5 +3,8 @@
   "phase": "parser",
   "expected": "fail",
   "clause": "specifications/component/v1/spec.md#yaml-profile",
+  "requirements": [
+    "COMP-YAML-011"
+  ],
   "summary": "A document nesting deeper than the bound is rejected."
 }

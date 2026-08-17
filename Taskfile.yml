@@ -55,6 +55,13 @@ tasks:
     cmds:
       - bun run src/bundle.ts
       - bun run src/catalog.ts
+      - bun run src/traceability.ts
+
+  traceability:
+    desc: Regenerate the requirement traceability matrix
+    dir: '{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/traceability.ts
 
   catalog:
     desc: Regenerate the SchemaStore catalog index

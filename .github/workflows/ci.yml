@@ -97,6 +97,15 @@ jobs:
       - name: Schema, drift, examples, conformance
         run: task ci:test
 
+      - name: Traceability matrix is current
+        run: |
+          task traceability
+          if ! git diff --quiet -- docs/traceability.md; then
+            echo "::error file=docs/traceability.md::stale. Run 'task traceability' and commit." >&2
+            git --no-pager diff -- docs/traceability.md
+            exit 1
+          fi
+
       - name: Catalog is current
         run: |
           task catalog

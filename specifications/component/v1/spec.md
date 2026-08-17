@@ -52,22 +52,24 @@ metadata: { … }
 spec: { … }
 ```
 
-| Field | Requirement |
-|---|---|
-| `specVersion` | REQUIRED. Declares the document-format compatibility family, independent of any API URL version. |
-| `kind` | REQUIRED. MUST be `COMPONENT` for this family. |
-| `metadata` | REQUIRED. Identity. |
-| `spec` | REQUIRED. The definition itself. |
+| ID | Field | Requirement |
+|---|---|---|
+| <a id="COMP-ENV-001"></a>`COMP-ENV-001` | `specVersion` | REQUIRED. Declares the document-format compatibility family, independent of any API URL version. |
+| <a id="COMP-ENV-002"></a>`COMP-ENV-002` | `kind` | REQUIRED. MUST be `COMPONENT` for this family. |
+| <a id="COMP-ENV-003"></a>`COMP-ENV-003` | `metadata` | REQUIRED. Identity. |
+| <a id="COMP-ENV-004"></a>`COMP-ENV-004` | `spec` | REQUIRED. The definition itself. |
 
-Unknown properties MUST be rejected with `ERR_UNKNOWN_FIELD` at every level, not
-only at the root of the envelope. A misspelled field is an error, never a
-silently ignored one — including when the misspelled field is optional, where
-ignoring it would silently substitute the default. A property that *is* defined,
-by a schema release the validator does not hold, is the same error for a reason
+<a id="COMP-ENV-005"></a>**`COMP-ENV-005`** — Unknown properties MUST be
+rejected with `ERR_UNKNOWN_FIELD` at every level, not only at the root of the
+envelope. A misspelled field is an error, never a silently ignored one —
+including when the misspelled field is optional, where ignoring it would
+silently substitute the default. A property that *is* defined, by a schema
+release the validator does not hold, is the same error for a reason
 [§3](#compatibility) gives.
 
-A validator encountering a `specVersion` it does not support MUST reject the
-document with `ERR_UNSUPPORTED_SPEC_VERSION` and MUST NOT attempt a best-effort
+<a id="COMP-ENV-006"></a>**`COMP-ENV-006`** — A validator encountering a
+`specVersion` it does not support MUST reject the document with
+`ERR_UNSUPPORTED_SPEC_VERSION` and MUST NOT attempt a best-effort
 interpretation.
 
 > **Note.** This envelope is deliberately not a Kubernetes-style
@@ -268,7 +270,7 @@ A reference MUST carry a tag or a digest. A bare name — an implicit `:latest` 
 is rejected in the `structural` phase with `ERR_INVALID_VALUE`. That is a
 grammar, so the schema carries it.
 
-A reference MUST NOT carry a floating tag. The floating set is `latest`,
+<a id="COMP-SRC-001"></a>A reference MUST NOT carry a floating tag. The floating set is `latest`,
 `main`, `main-stable`, `master`, `stable`, `edge`, `nightly`, `dev`, and
 `rolling`, compared case-insensitively; a reference whose tag is one of them is
 rejected in the `semantic` phase with `ERR_UNPINNED_IMAGE`.
@@ -368,7 +370,7 @@ endpoint is what null selects. It is:
 2. its sole `PUBLIC` endpoint, where it declares exactly one; failing that
 3. nothing.
 
-Where it is nothing, a reference that omits the endpoint is rejected in the
+<a id="COMP-EP-001"></a>Where it is nothing, a reference that omits the endpoint is rejected in the
 `semantic` phase with `ERR_AMBIGUOUS_ENDPOINT`. The schema cannot express this
 for the reason [§5.4](#health) gives: the endpoint names are mapping keys
 elsewhere in the document.
@@ -419,13 +421,13 @@ is not portably settable by the thing that has to set it. The rule is
 | `LITERAL` | `value`, and OPTIONAL `isSensitive` | The value itself. An empty string is permitted. |
 | `CONFIG_REF` | `configKey` | A reference. The document never holds the value. |
 
-**A key is declared once.** Two entries sharing a key are rejected in the
+<a id="COMP-ENVVAR-001"></a>**A key is declared once.** Two entries sharing a key are rejected in the
 `semantic` phase with `ERR_DUPLICATE_ENV_KEY`, anchored at the **later** of the
 two — the first declaration is the one that stands, so the second is the one an
 author has to change. Without this rule the sequence shape would make a repeated
 key mean whatever an implementation's last write happened to be.
 
-**A key is claimed by one declaration.** An input's
+<a id="COMP-ENVVAR-002"></a>**A key is claimed by one declaration.** An input's
 [`target.envVarKey`](#inputs) binds a resolved value into the environment, so it
 competes for the same namespace these entries do. Two declarations of one key
 are rejected in the `semantic` phase with `ERR_CONFLICTING_ENV_KEY`, in both
@@ -480,7 +482,7 @@ polls an HTTP path.
 `initialDelaySeconds: 10`, `periodSeconds: 10`, `timeoutSeconds: 5`,
 `successThreshold: 1`, `failureThreshold: 3`.
 
-`endpoint` names the endpoint whose port the probe targets; null selects the
+<a id="COMP-EP-002"></a>`endpoint` names the endpoint whose port the probe targets; null selects the
 primary endpoint [§5.2](#endpoints) elects, and is rejected with
 `ERR_AMBIGUOUS_ENDPOINT` where that section elects none. A probe naming an
 endpoint the workload does not declare is rejected with `ERR_UNKNOWN_ENDPOINT`.
@@ -489,7 +491,7 @@ mapping keys elsewhere in the document, and JSON Schema cannot constrain a value
 against a sibling's keys.
 
 **A probe MUST name an endpoint in the HTTP family.** Every probe polls an HTTP
-path, so an endpoint whose `protocol` is `TCP` or `UDP` has nothing for one to
+<a id="COMP-EP-003"></a>path, so an endpoint whose `protocol` is `TCP` or `UDP` has nothing for one to
 poll. A probe resolving to such an endpoint — by naming it, or by having the
 primary election select it — is rejected in the `semantic` phase with
 `ERR_ENDPOINT_NOT_HTTP`. The rule is `semantic` for the same reason as the two
@@ -588,7 +590,7 @@ already composed.
 endpoints, one that does MUST name the endpoint here: null elects nothing there
 and is rejected with `ERR_AMBIGUOUS_ENDPOINT`.
 
-Three further rules follow the name, all `semantic`. An endpoint the workload
+<a id="COMP-EP-004"></a>Three further rules follow the name, all `semantic`. An endpoint the workload
 does not declare is `ERR_UNKNOWN_ENDPOINT` — the same code and the same reason
 as a probe's. An endpoint that is declared but `PRIVATE` is
 `ERR_ENDPOINT_NOT_PUBLIC`: every source derives an externally reachable
@@ -704,25 +706,25 @@ unusual.
 
 **Encoding and framing**
 
-| Rule | Diagnostic |
-|---|---|
-| A document MUST be encoded in UTF-8. Malformed UTF-8 is rejected. | `ERR_INVALID_YAML` |
-| A document MAY begin with a UTF-8 byte order mark. It carries no meaning and MUST be ignored. | — |
-| Line endings MAY be LF or CRLF, and carry no meaning. | — |
-| A file MUST contain exactly one YAML document. The `---` and `...` markers MAY be present; a stream carrying more than one document is rejected. | `ERR_MULTIPLE_DOCUMENTS` |
+| ID | Rule | Diagnostic |
+|---|---|---|
+| <a id="COMP-YAML-001"></a>`COMP-YAML-001` | A document MUST be encoded in UTF-8. Malformed UTF-8 is rejected. | `ERR_INVALID_YAML` |
+| <a id="COMP-YAML-002"></a>`COMP-YAML-002` | A document MAY begin with a UTF-8 byte order mark. It carries no meaning and MUST be ignored. | — |
+| <a id="COMP-YAML-003"></a>`COMP-YAML-003` | Line endings MAY be LF or CRLF, and carry no meaning. | — |
+| <a id="COMP-YAML-004"></a>`COMP-YAML-004` | A file MUST contain exactly one YAML document. The `---` and `...` markers MAY be present; a stream carrying more than one document is rejected. | `ERR_MULTIPLE_DOCUMENTS` |
 
 A file holding two documents has no answer to "which one is the component",
 and picking the first silently discards a thing the author wrote.
 
 **Structure**
 
-| Rule | Diagnostic |
-|---|---|
-| Every mapping key MUST be a string. A numeric, boolean, null, or complex key is rejected. | `ERR_NON_STRING_KEY` |
-| A mapping key MUST NOT appear twice. | `ERR_DUPLICATE_KEY` |
-| A document MUST NOT declare an anchor or an alias. | `ERR_ANCHOR_OR_ALIAS` |
-| A document MUST NOT use a merge key (`<<`). | `ERR_MERGE_KEY` |
-| A node MUST NOT carry an explicit tag — neither a custom tag (`!secret`) nor a core-schema tag (`!!str`). | `ERR_EXPLICIT_TAG` |
+| ID | Rule | Diagnostic |
+|---|---|---|
+| <a id="COMP-YAML-005"></a>`COMP-YAML-005` | Every mapping key MUST be a string. A numeric, boolean, null, or complex key is rejected. | `ERR_NON_STRING_KEY` |
+| <a id="COMP-YAML-006"></a>`COMP-YAML-006` | A mapping key MUST NOT appear twice. | `ERR_DUPLICATE_KEY` |
+| <a id="COMP-YAML-007"></a>`COMP-YAML-007` | A document MUST NOT declare an anchor or an alias. | `ERR_ANCHOR_OR_ALIAS` |
+| <a id="COMP-YAML-008"></a>`COMP-YAML-008` | A document MUST NOT use a merge key (`<<`). | `ERR_MERGE_KEY` |
+| <a id="COMP-YAML-009"></a>`COMP-YAML-009` | A node MUST NOT carry an explicit tag — neither a custom tag (`!secret`) nor a core-schema tag (`!!str`). | `ERR_EXPLICIT_TAG` |
 
 Mapping keys are property names in every schema this repository publishes, and
 `1:` resolving to the integer one on one parser and the string `"1"` on another
@@ -753,11 +755,11 @@ both is two different documents.
 An implementation MUST reject a document exceeding any of these, and MUST accept
 one that does not:
 
-| Bound | Limit | Diagnostic |
-|---|---|---|
-| Document size | 1 MiB (1 048 576 bytes) | `ERR_DOCUMENT_TOO_LARGE` |
-| Nesting depth | 64 levels | `ERR_DEPTH_EXCEEDED` |
-| Scalar length | 64 KiB (65 536 bytes) | `ERR_SCALAR_TOO_LONG` |
+| ID | Bound | Limit | Diagnostic |
+|---|---|---|---|
+| <a id="COMP-YAML-010"></a>`COMP-YAML-010` | Document size | 1 MiB (1 048 576 bytes) | `ERR_DOCUMENT_TOO_LARGE` |
+| <a id="COMP-YAML-011"></a>`COMP-YAML-011` | Nesting depth | 64 levels | `ERR_DEPTH_EXCEEDED` |
+| <a id="COMP-YAML-012"></a>`COMP-YAML-012` | Scalar length | 64 KiB (65 536 bytes) | `ERR_SCALAR_TOO_LONG` |
 
 The bounds are stated rather than left to implementations because "be sensible"
 is not a bound: a document one validator accepts and another refuses on size is

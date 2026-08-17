@@ -3,5 +3,8 @@
   "phase": "parser",
   "expected": "fail",
   "clause": "specifications/component/v1/spec.md#yaml-profile",
+  "requirements": [
+    "COMP-YAML-008"
+  ],
   "summary": "A merge key is rejected, and says so in its own terms rather than as an alias."
 }

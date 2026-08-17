@@ -3,5 +3,8 @@
   "phase": "parser",
   "expected": "fail",
   "clause": "specifications/component/v1/spec.md#yaml-profile",
+  "requirements": [
+    "COMP-YAML-012"
+  ],
   "summary": "A scalar over the length bound is rejected."
 }

@@ -69,9 +69,37 @@ directory without indexing it is a no-op — index entries are the contract.
 | `phase` | REQUIRED. One of `parser`, `structural`, `semantic`, `capability`. |
 | `expected` | REQUIRED. `pass` or `fail`. |
 | `clause` | RECOMMENDED. Link to the normative clause the case exercises. Every case should trace to prose. |
+| `requirements` | RECOMMENDED. Stable requirement IDs this case pins, e.g. `["COMP-ENV-002"]`. Each MUST resolve to an anchor in a `spec.md`. |
 | `summary` | RECOMMENDED. One sentence, present tense. |
 | `document` | REQUIRED for a tree case, forbidden otherwise. Path of the document under test, relative to `tree/`. |
 | `symlinks` | OPTIONAL, tree cases only. Link path → link target, both verbatim. |
+
+### <a id="requirements"></a>Requirement IDs
+
+`clause` names a section; a section states several rules. Twenty-seven cases
+cite `#envelope`, which covers `specVersion`, `kind`, unknown fields, and an
+unsupported version — so the citation says where to look and not what is being
+pinned. `requirements` says which rule.
+
+```json
+{ "clause": "specifications/component/v1/spec.md#envelope",
+  "requirements": ["COMP-ENV-002"] }
+```
+
+An ID is `<FAMILY>-<SECTION>-<NNN>`, is declared beside the rule it names, and
+is stable: renaming a heading moves the anchor a `clause` points at, and leaves
+the ID alone.
+
+**An ID names a rule a document can violate.** That is what makes the coverage
+gate meaningful — every declared ID must be pinned by a case or recorded in the
+runner's `UNPINNED` list with a reason, exactly as diagnostic codes are. Rules
+about what an *implementation* does rather than what a document contains — that
+a validator MUST NOT reach the network, MUST NOT echo a value in a diagnostic —
+are normative prose and carry no ID, because an identifier whose permanent
+state is "excused" documents nothing.
+
+[`docs/traceability.md`](../docs/traceability.md) is generated from these and
+shows every requirement against the clause stating it and the cases pinning it.
 
 ## <a id="case-trees"></a>Case trees
 

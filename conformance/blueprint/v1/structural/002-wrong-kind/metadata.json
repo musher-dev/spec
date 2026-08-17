@@ -3,5 +3,8 @@
   "phase": "structural",
   "expected": "fail",
   "clause": "specifications/blueprint/v1/spec.md#envelope",
+  "requirements": [
+    "COMP-ENV-002"
+  ],
   "summary": "A document declaring kind LISTING is rejected by the blueprint schema."
 }

@@ -3,5 +3,8 @@
   "phase": "semantic",
   "expected": "fail",
   "clause": "specifications/component/v1/spec.md#endpoints",
+  "requirements": [
+    "COMP-EP-001"
+  ],
   "summary": "A reference omitting the endpoint is rejected where the workload elects no primary."
 }

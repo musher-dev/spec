@@ -1,0 +1,10 @@
+{
+  "id": "parser-013-crlf-line-endings",
+  "phase": "parser",
+  "expected": "pass",
+  "clause": "specifications/component/v1/spec.md#yaml-profile",
+  "requirements": [
+    "COMP-YAML-003"
+  ],
+  "summary": "A document using CRLF line endings is accepted, and the ending carries no meaning."
+}

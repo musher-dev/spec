@@ -3,6 +3,9 @@
   "phase": "semantic",
   "expected": "fail",
   "clause": "specifications/listing/v1/spec.md#media",
+  "requirements": [
+    "LIST-MEDIA-001"
+  ],
   "summary": "A media path naming a file the item does not ship is rejected.",
   "document": "acme-wiki/listing.yaml"
 }

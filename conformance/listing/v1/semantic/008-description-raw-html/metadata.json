@@ -3,5 +3,8 @@
   "phase": "semantic",
   "expected": "fail",
   "clause": "specifications/listing/v1/spec.md#description-markdown",
+  "requirements": [
+    "LIST-MD-001"
+  ],
   "summary": "A description containing raw HTML is rejected."
 }

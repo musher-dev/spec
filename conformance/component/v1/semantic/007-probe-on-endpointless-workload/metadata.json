@@ -3,5 +3,8 @@
   "phase": "semantic",
   "expected": "fail",
   "clause": "specifications/component/v1/spec.md#endpoints",
+  "requirements": [
+    "COMP-EP-001"
+  ],
   "summary": "A probe on a workload declaring no endpoint has no port to poll."
 }

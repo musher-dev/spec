@@ -1,0 +1,19 @@
+﻿# This file begins with a UTF-8 byte order mark. Editors on Windows add one
+# without being asked, so rejecting it would fail documents whose only fault is
+# the tool that saved them. It is ignored rather than tolerated: nothing about
+# the document's meaning changes.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+    endpoints:
+      web:
+        containerPort: 8080
+        protocol: HTTP
+        visibility: PRIVATE

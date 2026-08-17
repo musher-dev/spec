@@ -3,5 +3,8 @@
   "phase": "parser",
   "expected": "fail",
   "clause": "specifications/component/v1/spec.md#yaml-profile",
+  "requirements": [
+    "COMP-YAML-005"
+  ],
   "summary": "A mapping key that resolves to a non-string is rejected."
 }
