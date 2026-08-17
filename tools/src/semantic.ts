@@ -83,9 +83,10 @@ const FLOATING_TAGS = new Set([
 
 /**
  * Component §5.2 — the protocols whose `PUBLIC` form publishes a URL. A `TCP` or
- * `UDP` endpoint publishes a `host:port` address instead, which is why §5.4's
- * probes and §6.1's platform defaults may not resolve to one: a probe polls an
- * HTTP path, and both platform-default sources take their value from a URL.
+ * `UDP` endpoint publishes a `host:port` address instead, and every reference
+ * reads one form or the other: §5.4's probes and §6.1's PUBLIC_URL and
+ * PUBLIC_HOSTNAME need this set, PUBLIC_ADDRESS and PUBLIC_PORT need its
+ * complement.
  */
 const HTTP_FAMILY = new Set(['HTTP', 'HTTPS', 'WS', 'GRPC'])
 

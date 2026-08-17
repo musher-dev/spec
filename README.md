@@ -109,10 +109,17 @@ overwritten.
 
 ## Status
 
-`v1` is **pre-stable**. The schemas here were seeded from the platform's
-generated catalog schemas and are being brought up to specification quality.
-The `$defs` names are now settled; the normative prose is not — see the `TODO`
-sections in each `spec.md`, and the open issues.
+`v1` is **pre-stable**, and nothing has been released — no tag exists and every
+family reads `0.0.0`. The schemas here were seeded from the platform's
+generated catalog schemas and have been brought up to specification quality:
+the `$defs` names are settled, no `spec.md` carries a `TODO` section, and every
+rule each one states is stated in prose with the schema implementing it.
+
+What remains is recorded rather than outstanding. Each family's **Known debt**
+section names its own gaps, and
+[ADR 0005](docs/adr/0005-platform-divergence-reconciliation.md) §1 sets out the
+window — open only until a family's first tag — in which a rule that rejects a
+previously valid document can still be added without a new major.
 
 ## License
 

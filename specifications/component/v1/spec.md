@@ -332,9 +332,10 @@ two rules below turn on:
 Nothing here is `structural`: a `PUBLIC` `TCP` endpoint is a database, a game
 server, an MQTT broker or an SMTP relay exposed to the internet, and rejecting
 it would make a working capability inexpressible. What the split does decide is
-which references may name such an endpoint — [§5.4](#health) for a probe and
-[§6.1](#inputs) for a platform default, both of which derive something only a
-URL-published endpoint has.
+which references may name such an endpoint. [§5.4](#health)'s probe reads a URL
+and may name only the first row. [§6.1](#inputs)'s platform default reads
+either, and each of its four sources is tied to the row it takes its value
+from.
 
 **A component MAY declare more than one `PUBLIC` endpoint**, and each one
 publishes its own address. A component fronting an API on one port and a console
