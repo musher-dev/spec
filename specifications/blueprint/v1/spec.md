@@ -440,6 +440,13 @@ integers. Both are grammar, both are `structural`, and a violation is
 contract closes, because `shared` and `dedicated` are the whole of the concept
 and a third value would be a different one.
 
+**The two terms are not symmetric in effect.** `dedicated` narrows placement to
+hosts that dedicate the vCPU the profile names; `shared` is that constraint's
+absence written down, and selects the same hosts as leaving the pin unset. It is
+spelled anyway because an author who has considered the question should be able
+to record what they concluded, and because a platform that later offers a host
+which must be shared can give the term force without touching this grammar.
+
 **What v1 does not constrain.** No vocabulary is published for the other eight
 pins — not by this repository and not, today, by the platform. `local-nvme` is
 an example rather than a member, and nothing here says what the permitted
