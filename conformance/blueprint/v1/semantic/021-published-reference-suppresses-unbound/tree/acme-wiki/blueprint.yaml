@@ -1,0 +1,35 @@
+# The regression pin for §5.3's third rule degrading.
+#
+# `api` names its component by UUID, so its inputs belong to the capability
+# phase and this phase never sees them. `apiKey` is the input it declares and
+# the parameter that binds it — but a validator reading only the repo-local
+# half has no way to know that, and the key matches nothing in `db`.
+#
+# Reporting ERR_UNBOUND_PARAMETER here would be a claim about inputs the
+# implementation was never given the means to read. The other two rules already
+# degrade on their own: `db`'s one input is optional and defaulted, so nothing
+# has to be covered, and there is no readable input to compare a type against.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  version: 1
+spec:
+  components:
+    api:
+      component: 018f6b3a-4c21-7b8e-9d5f-2a1c6e0b4d73
+      componentVersion: 3
+      size: general.standard.small
+      connections: {}
+    db:
+      component: ./components/postgres.yaml
+      size: general.standard.small
+      connections: {}
+  parameters:
+    apiKey:
+      schema:
+        type: STRING
+        isSensitive: true
+      isRequired: true
+      ui:
+        label: API key

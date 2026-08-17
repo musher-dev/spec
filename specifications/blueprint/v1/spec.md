@@ -440,6 +440,13 @@ integers. Both are grammar, both are `structural`, and a violation is
 contract closes, because `shared` and `dedicated` are the whole of the concept
 and a third value would be a different one.
 
+**The two terms are not symmetric in effect.** `dedicated` narrows placement to
+hosts that dedicate the vCPU the profile names; `shared` is that constraint's
+absence written down, and selects the same hosts as leaving the pin unset. It is
+spelled anyway because an author who has considered the question should be able
+to record what they concluded, and because a platform that later offers a host
+which must be shared can give the term force without touching this grammar.
+
 **What v1 does not constrain.** No vocabulary is published for the other eight
 pins — not by this repository and not, today, by the platform. `local-nvme` is
 an example rather than a member, and nothing here says what the permitted
@@ -624,6 +631,18 @@ referenced component's inputs, so a node naming its component by UUID
 contributes none of them ([§4.1](#component-reference)). A blueprint mixing the
 two forms is checked against the repo-local half and no further, and an
 implementation MUST NOT report an input it was never given the means to read.
+
+**And one of the three stops being decidable.** The coverage and type rules read
+only the inputs in front of them, so an unreadable node subtracts from what they
+check and does nothing else. `ERR_UNBOUND_PARAMETER` is the mirror image: it
+asserts that *no* node declares the key, which is a claim about every node's
+inputs. Where any node's component is unreadable — a published reference, or a
+repo-local one already rejected as naming no document or as escaping the item
+root — an implementation MUST NOT report `ERR_UNBOUND_PARAMETER` for any
+parameter. The claim becomes decidable again only when every node's inputs were
+readable, and a diagnostic an implementation cannot substantiate is worse than a
+silence, which is the trade [§3](#identity) already makes for a document handed
+over without a directory.
 
 ## <a id="validation-layers"></a>6. Validation layers
 

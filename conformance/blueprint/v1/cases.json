@@ -236,6 +236,11 @@
       "id": "semantic-020-authored-override-well-formed",
       "phase": "semantic",
       "path": "semantic/020-authored-override-well-formed"
+    },
+    {
+      "id": "semantic-021-published-reference-suppresses-unbound",
+      "phase": "semantic",
+      "path": "semantic/021-published-reference-suppresses-unbound"
     }
   ]
 }
