@@ -1,0 +1,7 @@
+{
+  "id": "parser-011-document-too-large",
+  "phase": "parser",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#yaml-profile",
+  "summary": "A document over the size bound is rejected before it is parsed."
+}

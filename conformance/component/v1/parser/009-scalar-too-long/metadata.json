@@ -1,0 +1,7 @@
+{
+  "id": "parser-009-scalar-too-long",
+  "phase": "parser",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#yaml-profile",
+  "summary": "A scalar over the length bound is rejected."
+}

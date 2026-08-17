@@ -1,0 +1,7 @@
+{
+  "id": "parser-010-depth-exceeded",
+  "phase": "parser",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#yaml-profile",
+  "summary": "A document nesting deeper than the bound is rejected."
+}

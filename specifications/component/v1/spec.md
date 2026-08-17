@@ -646,7 +646,7 @@ pass.
 
 | Phase | Enforces | Where it runs |
 |---|---|---|
-| `parser` | Strict YAML 1.2. Duplicate keys MUST be rejected. Anchors and aliases MUST be rejected. | Client and server |
+| `parser` | The Musher YAML profile — [§7.1](#yaml-profile). | Client and server |
 | `structural` | This family's JSON Schema 2020-12 document. | Client and server |
 | `semantic` | Rules JSON Schema cannot express — reference resolution, path containment, uniqueness across collections. | Client and server |
 | `capability` | Account, region, and quota checks. | Server only |
@@ -674,6 +674,98 @@ it can measure has no way to refuse cheaply.
 different things to an author. One means the document is malformed; the other
 means it is well-formed and uses something this contract withholds.
 
+### <a id="yaml-profile"></a>7.1 The Musher YAML profile
+
+Musher documents are written in a **restricted profile of
+[YAML 1.2.2](https://yaml.org/spec/1.2.2/)**, not in unrestricted YAML. This
+section is that profile, and it governs all three families — the
+[blueprint](../../blueprint/v1/spec.md) and [listing](../../listing/v1/spec.md)
+specifications inherit it rather than restating it.
+
+Every restriction below withholds something YAML 1.2.2 permits. The reason is
+uniform, and it is the one [§2](#envelope) gives for rejecting a misspelled
+optional field: a document that means different things to different readers, or
+that cannot be judged without unbounded work, is not a contract. A feature is
+therefore withheld when it is *legal but ambiguous*, not when it is merely
+unusual.
+
+**Encoding and framing**
+
+| Rule | Diagnostic |
+|---|---|
+| A document MUST be encoded in UTF-8. Malformed UTF-8 is rejected. | `ERR_INVALID_YAML` |
+| A document MAY begin with a UTF-8 byte order mark. It carries no meaning and MUST be ignored. | — |
+| Line endings MAY be LF or CRLF, and carry no meaning. | — |
+| A file MUST contain exactly one YAML document. The `---` and `...` markers MAY be present; a stream carrying more than one document is rejected. | `ERR_MULTIPLE_DOCUMENTS` |
+
+A file holding two documents has no answer to "which one is the component",
+and picking the first silently discards a thing the author wrote.
+
+**Structure**
+
+| Rule | Diagnostic |
+|---|---|
+| Every mapping key MUST be a string. A numeric, boolean, null, or complex key is rejected. | `ERR_NON_STRING_KEY` |
+| A mapping key MUST NOT appear twice. | `ERR_DUPLICATE_KEY` |
+| A document MUST NOT declare an anchor or an alias. | `ERR_ANCHOR_OR_ALIAS` |
+| A document MUST NOT use a merge key (`<<`). | `ERR_MERGE_KEY` |
+| A node MUST NOT carry an explicit tag — neither a custom tag (`!secret`) nor a core-schema tag (`!!str`). | `ERR_EXPLICIT_TAG` |
+
+Mapping keys are property names in every schema this repository publishes, and
+`1:` resolving to the integer one on one parser and the string `"1"` on another
+is the duplicate-key problem wearing a different hat.
+
+A merge key is an alias by another name and is withheld for the same reason.
+It is named separately because `<<` reads as a key rather than as a reference,
+so an author who writes one is not told about aliases; they are told about `<<`.
+
+An explicit tag overrides scalar resolution, and scalar resolution is exactly
+what this profile fixes below. `!!str 5` and `5` differ only in a tag, and a
+contract in which the type of a value depends on an annotation beside it has no
+stable reading.
+
+**Scalar resolution**
+
+Scalars resolve by the **YAML 1.2 core schema**, and by nothing else. `true`
+and `false` are booleans; `null` and `~` are null; `on`, `off`, `yes`, and `no`
+are strings, as YAML 1.2 requires and YAML 1.1 did not. A value whose intended
+type is not the resolved one MUST be quoted.
+
+This is the one place where naming the version does real work: a YAML 1.1
+parser reads `no` as boolean false, and a `country: no` in a document read by
+both is two different documents.
+
+**Bounds**
+
+An implementation MUST reject a document exceeding any of these, and MUST accept
+one that does not:
+
+| Bound | Limit | Diagnostic |
+|---|---|---|
+| Document size | 1 MiB (1 048 576 bytes) | `ERR_DOCUMENT_TOO_LARGE` |
+| Nesting depth | 64 levels | `ERR_DEPTH_EXCEEDED` |
+| Scalar length | 64 KiB (65 536 bytes) | `ERR_SCALAR_TOO_LONG` |
+
+The bounds are stated rather than left to implementations because "be sensible"
+is not a bound: a document one validator accepts and another refuses on size is
+not one contract, and an author has no way to discover the limit except by
+exceeding it somewhere.
+
+Each is far above any document a person writes and far below what makes a
+parser a denial-of-service surface. Document size MUST be measured before
+parsing — a limit a parser can apply only after building the tree is not a limit
+on the work it does. The alias ban already removes the billion-laughs shape;
+these bound the cases it does not cover.
+
+**What carries no meaning**
+
+Key order, comments, indentation width, quoting style, and flow-versus-block
+form are all presentation. Two documents differing only in these are the same
+document, and an implementation MUST NOT derive meaning from any of them.
+
+Because YAML 1.2 is a superset of JSON, a document written as JSON is a valid
+Musher document and is read identically.
+
 ## <a id="diagnostics"></a>8. Diagnostics
 
 Diagnostic **codes** and the **phase** at which validation fails are normative.
@@ -682,9 +774,16 @@ different text and that is expected.
 
 | Code | Phase | Meaning |
 |---|---|---|
-| `ERR_INVALID_YAML` | `parser` | The document is not well-formed YAML 1.2. |
+| `ERR_INVALID_YAML` | `parser` | The document is not well-formed YAML 1.2, or is not valid UTF-8. |
 | `ERR_DUPLICATE_KEY` | `parser` | The same mapping key appears twice. |
 | `ERR_ANCHOR_OR_ALIAS` | `parser` | The document declares a YAML anchor or an alias. |
+| `ERR_MULTIPLE_DOCUMENTS` | `parser` | The file carries more than one YAML document. |
+| `ERR_NON_STRING_KEY` | `parser` | A mapping key is not a string. |
+| `ERR_MERGE_KEY` | `parser` | The document uses a merge key (`<<`). |
+| `ERR_EXPLICIT_TAG` | `parser` | A node carries an explicit YAML tag. |
+| `ERR_DOCUMENT_TOO_LARGE` | `parser` | The document exceeds the size bound in [§7.1](#yaml-profile). |
+| `ERR_DEPTH_EXCEEDED` | `parser` | The document nests deeper than [§7.1](#yaml-profile) permits. |
+| `ERR_SCALAR_TOO_LONG` | `parser` | A scalar exceeds the length bound in [§7.1](#yaml-profile). |
 | `ERR_UNSUPPORTED_SPEC_VERSION` | `structural` | `specVersion` is not a supported value. |
 | `ERR_WRONG_KIND` | `structural` | `kind` does not match the family being validated. |
 | `ERR_UNKNOWN_FIELD` | `structural` | A property not defined by the schema is present. |

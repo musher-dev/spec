@@ -1,0 +1,14 @@
+# `!!str 1` and `"1"` denote the same value, and `!!str` is a core-schema tag
+# rather than an exotic one. It is rejected anyway: a tag overrides scalar
+# resolution, and fixed scalar resolution is what makes a document read the same
+# way twice. A value whose type is not the resolved one is quoted, not tagged.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: !!str nginx:1.29.4-alpine

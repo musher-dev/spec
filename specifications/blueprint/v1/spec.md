@@ -645,7 +645,9 @@ over without a directory.
 
 ## <a id="validation-layers"></a>6. Validation layers
 
-As defined in [component §7](../../component/v1/spec.md#validation-layers).
+As defined in [component §7](../../component/v1/spec.md#validation-layers), and
+written in the YAML profile
+[component §7.1](../../component/v1/spec.md#yaml-profile) states.
 Blueprint documents exercise the `semantic` phase more heavily than any other
 family — repo-local reference resolution, connection compatibility, and the
 parameter merge all live there.

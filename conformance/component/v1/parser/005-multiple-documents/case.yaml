@@ -1,0 +1,25 @@
+# Both documents below are well-formed, and the second is a complete component.
+# Reading only the first would silently discard it; reading only the second
+# would silently discard the first. There is no answer to "which one is the
+# component", so the file is rejected instead of one being guessed at.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+---
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 2
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.5-alpine

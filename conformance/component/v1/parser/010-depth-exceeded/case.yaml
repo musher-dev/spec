@@ -1,0 +1,85 @@
+# 70 levels of nesting, past the 64-level bound. Nothing here is
+# malformed — the document is rejected for how deep it is, so that a validator
+# can refuse without first walking to the bottom.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+  deep:
+  k:
+    k:
+      k:
+        k:
+          k:
+            k:
+              k:
+                k:
+                  k:
+                    k:
+                      k:
+                        k:
+                          k:
+                            k:
+                              k:
+                                k:
+                                  k:
+                                    k:
+                                      k:
+                                        k:
+                                          k:
+                                            k:
+                                              k:
+                                                k:
+                                                  k:
+                                                    k:
+                                                      k:
+                                                        k:
+                                                          k:
+                                                            k:
+                                                              k:
+                                                                k:
+                                                                  k:
+                                                                    k:
+                                                                      k:
+                                                                        k:
+                                                                          k:
+                                                                            k:
+                                                                              k:
+                                                                                k:
+                                                                                  k:
+                                                                                    k:
+                                                                                      k:
+                                                                                        k:
+                                                                                          k:
+                                                                                            k:
+                                                                                              k:
+                                                                                                k:
+                                                                                                  k:
+                                                                                                    k:
+                                                                                                      k:
+                                                                                                        k:
+                                                                                                          k:
+                                                                                                            k:
+                                                                                                              k:
+                                                                                                                k:
+                                                                                                                  k:
+                                                                                                                    k:
+                                                                                                                      k:
+                                                                                                                        k:
+                                                                                                                          k:
+                                                                                                                            k:
+                                                                                                                              k:
+                                                                                                                                k:
+                                                                                                                                  k:
+                                                                                                                                    k:
+                                                                                                                                      k:
+                                                                                                                                        k:
+                                                                                                                                          k:
+                                                                                                                                            k:
+                                                                                                                                              leaf

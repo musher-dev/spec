@@ -294,7 +294,9 @@ change.
 
 ## <a id="validation-layers"></a>6. Validation layers
 
-As defined in [component §7](../../component/v1/spec.md#validation-layers).
+As defined in [component §7](../../component/v1/spec.md#validation-layers), and
+written in the YAML profile
+[component §7.1](../../component/v1/spec.md#yaml-profile) states.
 
 ## <a id="diagnostics"></a>7. Diagnostics
 
