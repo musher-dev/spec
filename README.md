@@ -94,7 +94,13 @@ conformance/<family>/v<major>/
   <phase>/<case-id>/   metadata.json, case.yaml, diagnostics.json
 tools/                 non-normative build and validation scripts (Bun + TypeScript)
 docs/adr/              architecture decision records
+docs/traceability.md   generated: every requirement, its clause, and its cases
+published.json         the checksum of every version ever released
 ```
+
+[`docs/traceability.md`](docs/traceability.md) is the map from a requirement
+identifier to the clause stating it and the conformance cases pinning it. It is
+generated, so it cannot drift from either.
 
 `schemas/dist/` is generated. Never edit it by hand — CI regenerates it and
 fails the build if your commit does not match.

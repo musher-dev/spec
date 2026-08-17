@@ -81,6 +81,7 @@ runner's `UNCOVERED` list saying why the code cannot be exercised.
 | `check:published` | Every released version still hashes to what `published.json` recorded |
 | `check:compat` | No released version's accepted documents are rejected by the candidate schema |
 | `check:test` | The tooling test suite, including the publication-immutability regressions |
+| `check:commits` | The Conventional Commits vocabulary agrees across its three copies |
 | `check:links` | Every internal Markdown link and anchor resolves |
 | `check:spelling` | Prose, tooling, and schema descriptions spell-check clean |
 | `check:shell` | ShellCheck over `.devcontainer/scripts` |

@@ -163,10 +163,20 @@ each key, upload only what is absent. Write-once falls straight out.
 ## Follow-ups
 
 1. Record the Cloudflare cache rule for the versioned path shape in this
-   repository. ADR 0001 §5 names it; nothing here verifies it exists.
-2. `.github/rulesets/RULESETS.md` claims tag creation is restricted to
-   administrators and the release workflow. `release-tags.json` carries no
-   `creation` rule — add it or stop claiming it.
-3. Narrow the `OrganizationAdmin` bypass on `release-tags.json` to a named
-   emergency path. The ledger makes a rewritten tag visible; it does not
-   prevent one.
+   repository. ADR 0001 §5 names it and ADR 0001 follow-up 1 assigns it to
+   `musher-dev/infra`; nothing here verifies it exists. Until it does, the
+   immutability of a pinned URL's *bytes* is enforced here while the
+   immutability of its *caching* is enforced somewhere this repository cannot
+   see.
+
+Two follow-ups this decision opened were closed before it was accepted, and are
+recorded here rather than left to read as open:
+
+- `.github/rulesets/RULESETS.md` claimed tag creation was restricted to
+  administrators and the release workflow, and `release-tags.json` carried no
+  `creation` rule. The claim is gone and the file now states why creation is
+  deliberately unrestricted: `published.json` is the control that matters, since
+  a tag with no ledger entry fails the deploy.
+- `release-tags.json` no longer allows `OrganizationAdmin` bypass. An escape
+  hatch nobody may legitimately use is one an attacker inherits; disabling the
+  ruleset outright remains possible and is a visible, logged act.

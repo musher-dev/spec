@@ -877,20 +877,28 @@ and `tools/src/lint.ts` now rejects both. No section of this document is marked
 TODO any longer: every rule it states is stated in prose, and the schema
 implements the prose rather than standing in for it.
 
-One debt remains, and it MUST be resolved before v1 is declared stable. Some
-schema `description` fields still speak the platform's vocabulary rather than
-this contract's — "resolved server-side at snapshot compute" names a pipeline
-stage a reader outside `musher-dev/platform` cannot look up. Descriptions are
-explanatory rather than normative, so nothing in this document turns on them; a
-reader who cannot resolve the words is still being told to go somewhere they
-cannot reach.
+**The vocabulary debt is closed.** Schema `description` fields no longer speak
+the platform's vocabulary. The phrase that named it — "resolved server-side at
+snapshot compute" — described a pipeline stage a reader outside
+`musher-dev/platform` could not look up, and it is gone: a `CONFIG_REF` is now
+described as this document describes it, a name whose value is resolved
+elsewhere and never appears in the file ([§5.3](#env-vars)). Descriptions are
+explanatory rather than normative, so nothing here turned on them; a reader who
+could not resolve the words was still being sent somewhere they could not reach.
 
-The Compute Profile half of that debt is closed.
-[Blueprint §4.3](../../blueprint/v1/spec.md#node-compute) now carries the slug
+The Compute Profile half closed earlier.
+[Blueprint §4.3](../../blueprint/v1/spec.md#node-compute) carries the slug
 grammar and names where the offered profiles are published, so a slug like
 `general.standard.small` resolves for a reader outside the platform.
 [ADR 0003](../../../docs/adr/0003-controlled-vocabulary-placement.md) records
 the rule that decided it.
+
+What remains for this family is not a gap in the prose. `capability` rules —
+`ERR_UNKNOWN_COMPONENT`, `ERR_VERSION_NOT_MONOTONIC`,
+`ERR_COMPONENT_NOT_PUBLISHED`, `ERR_UNKNOWN_COMPUTE_PROFILE` — carry no
+conformance fixture, because deciding any of them needs the catalog and no phase
+a client runs may reach the network. Each is recorded with that reason in the
+runner's `UNCOVERED` list rather than left to be assumed tested.
 
 ## <a id="security"></a>11. Security considerations
 

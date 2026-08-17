@@ -93,6 +93,7 @@ tasks:
       - task: check:published
       - task: check:compat
       - task: check:test
+      - task: check:commits
       - task: check:links
       - task: check:spelling
       - task: check:shell
@@ -127,6 +128,12 @@ tasks:
     dir: '{{.TOOLS_DIR}}'
     cmds:
       - bun run src/compat.ts
+
+  check:commits:
+    desc: Hold the Conventional Commits vocabulary in step across its three copies
+    dir: '{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/commits.ts
 
   check:links:
     desc: Resolve every internal Markdown link and anchor
@@ -261,6 +268,7 @@ tasks:
     desc: Lint suite as run in CI
     cmds:
       - task: check:format
+      - task: check:commits
       - task: check:links
       - task: check:spelling
       - task: check:shell

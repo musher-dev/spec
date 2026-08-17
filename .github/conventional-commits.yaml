@@ -1,7 +1,11 @@
 # Single source of truth for the Conventional Commits vocabulary.
 #
-# Consumed by .github/workflows/lint-pr.yml. The lefthook commit-msg hook
-# inlines the same type list — keep them in step.
+# Nothing reads this file at runtime and nothing can: the lint-pr.yml action
+# takes static YAML inputs, and the lefthook commit-msg hook is a POSIX regex.
+# Both therefore inline these lists. What makes this file the source of truth
+# rather than a third copy is `task check:commits`, which fails when any of the
+# three disagree — the enforced form of the "keep them in step" this comment
+# used to ask for politely.
 types:
   - feat
   - fix
