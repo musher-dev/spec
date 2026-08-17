@@ -471,4 +471,4 @@ function checkExtensionKeywords(doc: { [k: string]: Json }, rel: string, failure
   }
 }
 
-main()
+if (import.meta.main) main()

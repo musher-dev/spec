@@ -11,6 +11,7 @@
       },
       "devDependencies": {
         "@biomejs/biome": "2.5.8",
+        "@sourcemeta/jsonschema": "^16.7.0",
         "@types/bun": "1.3.14",
         "@types/commonmark": "0.27.10",
         "cspell": "9",
@@ -180,6 +181,8 @@
     "@cspell/strong-weak-map": ["@cspell/strong-weak-map@9.8.0", "", {}, "sha512-HocksAqZ0JcWA5oWO7TIlOCftXVGkPGzbeFlCRRrjJpZmYQH+4NdeEXyQC6T89NGocp45td/CgyBcAaFMy1N9w=="],
 
     "@cspell/url": ["@cspell/url@9.8.0", "", {}, "sha512-LY1lFiZLTQF/ma1ilfKmRmFmEOw0RfYhyl0UMhY7/d93b+kiDMhxP/9Qir4+5LyiRncaE3++ZcWno9Hya+ssRg=="],
+
+    "@sourcemeta/jsonschema": ["@sourcemeta/jsonschema@16.7.0", "", { "os": [ "linux", "win32", "darwin", ], "cpu": [ "x64", "arm64", ], "bin": { "jsonschema": "npm/cli.js" } }, "sha512-r+vFn/wfOvDO04k44WBAPB6RwiT09yca2xH3LbcKAQ0RdoudeTli4dzOcNIWdUytqWPw9nZMBd4Y83YEU8dyzA=="],
 
     "@types/bun": ["@types/bun@1.3.14", "", { "dependencies": { "bun-types": "1.3.14" } }, "sha512-h1hFqFVcvAvD9j9K7ZW7vd82aSA+rTdznZa+5bwvCwqSB1jmmfLcbIWhOLx1/+boy/xmjgCs/OMUL8hRJSmnPw=="],
 

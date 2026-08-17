@@ -163,6 +163,24 @@ standard library, and saddles this repository with production security
 patching. Implementations conform to the prose and the fixtures — not to the
 behaviour of a blessed executable.
 
+## Tooling dependencies
+
+Everything under `tools/` is non-normative and is never published. A dependency
+there is a development and CI tool, not part of the contract, and nothing it
+produces is distributed.
+
+One is worth naming explicitly. [`@sourcemeta/jsonschema`](https://github.com/sourcemeta/jsonschema)
+is **AGPL-3.0**, and it is used to meta-validate the schemas and to cross-check
+every structural verdict against Blaze — a second, independent implementation of
+JSON Schema 2020-12. Two validators agreeing is the point: everything else here
+asks Ajv, so a schema Ajv reads differently from everyone else would pass every
+gate and fail in the SDKs.
+
+Using it as a CI tool does not place this repository's schemas or prose under
+the AGPL, and no artifact this repository publishes derives from it. A
+contributor without it sees the checks report themselves as skipped rather than
+passed.
+
 ## Security
 
 See [SECURITY.md](SECURITY.md).

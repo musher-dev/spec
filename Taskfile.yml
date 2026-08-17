@@ -81,6 +81,8 @@ tasks:
       - task: check:drift
       - task: check:examples
       - task: check:conformance
+      - task: check:standards
+      - task: check:parity
       - task: check:published
       - task: check:compat
       - task: check:test
@@ -88,6 +90,18 @@ tasks:
       - task: check:spelling
       - task: check:shell
       - task: check:workflow
+
+  check:standards:
+    desc: Meta-validate schemas with an independent JSON Schema toolchain
+    dir: '{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/standards.ts
+
+  check:parity:
+    desc: Require Ajv and Blaze to agree on every structural verdict
+    dir: '{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/parity.ts
 
   check:published:
     desc: Verify every released version against the publication ledger
@@ -252,6 +266,8 @@ tasks:
       - task: check:drift
       - task: check:examples
       - task: check:conformance
+      - task: check:standards
+      - task: check:parity
       - task: check:compat
       - task: check:test
 
