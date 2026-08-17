@@ -4,6 +4,14 @@ A language-neutral corpus of test vectors. An implementation conforms to a
 Musher specification family when it produces the declared outcome for every
 case in that family's tree.
 
+**Where this sits.** A family's `spec.md` defines its complete behaviour. This
+corpus is that prose's executable form for observable outcomes, as the JSON
+Schema bundle is its executable form for structural validity; all three are
+normative, and none is permitted to disagree with the others. A fixture that
+contradicts the prose is a defect in this repository — it blocks a release, and
+is never a licence to implement the fixture. What within a case is normative and
+what is not is set out in [What is normative](#what-is-normative) below.
+
 There is deliberately **no normative runner**. A reference implementation
 becomes the de facto standard, hides normative behaviour inside compiled code,
 and biases the specification toward one language's standard library. Each
@@ -135,7 +143,7 @@ declared phase** and produces **at least** the declared diagnostics. Producing
 additional diagnostics is permitted — a validator reporting every problem at
 once is more useful than one that stops at the first.
 
-## What is normative
+## <a id="what-is-normative"></a>What is normative
 
 | Normative | Not normative |
 |---|---|
@@ -152,7 +160,7 @@ identical corpus.
 
 | Phase | Enforces | Network |
 |---|---|---|
-| `parser` | Strict YAML 1.2 — duplicate keys, anchors and aliases rejected | Never |
+| `parser` | The Musher YAML profile — [component §7.1](../specifications/component/v1/spec.md#yaml-profile) | Never |
 | `structural` | The family's JSON Schema 2020-12 bundle | Never |
 | `semantic` | Reference resolution, path containment, dependency cycles | Never |
 | `capability` | Account, region, and quota checks | Server only |

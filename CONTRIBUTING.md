@@ -6,8 +6,17 @@ ordinary codebase.
 
 ## Ground rules
 
-1. **The schema is normative; implementations are downstream.** A change here
-   obligates the CLI, the API, and every SDK. Propose accordingly.
+1. **The prose is normative; the schema and the corpus are its executable
+   forms.** `spec.md` defines the complete behaviour of a family. The JSON
+   Schema bundle is its executable form for structural validity and the
+   conformance corpus is its executable form for observable outcomes — both
+   normative, and neither permitted to disagree with the prose or with the
+   other. Schema `description` fields, examples, and validator message text are
+   informative. A disagreement between two normative artifacts is a defect that
+   blocks a release, not something an implementation gets to resolve.
+
+   Implementations are downstream of all three. A change here obligates the CLI,
+   the API, and every SDK. Propose accordingly.
 2. **No schema change without conformance fixtures.** Every behavioural change
    must arrive with at least one positive and one negative fixture that would
    fail before the change and pass after it.

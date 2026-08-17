@@ -4,12 +4,25 @@
 **Family:** `blueprint`
 **Schema:** `https://schemas.musher.dev/blueprint/v1/blueprint.schema.json`
 
-The key words MUST, MUST NOT, REQUIRED, SHALL, SHALL NOT, SHOULD, SHOULD NOT,
-RECOMMENDED, MAY, and OPTIONAL in this document are to be interpreted as
-described in [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119).
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+"SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
+"OPTIONAL" in this document are to be interpreted as described in
+BCP 14 [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119) and
+[RFC 8174](https://www.rfc-editor.org/rfc/rfc8174) when, and only when, they
+appear in all capitals, as shown here.
 
-> **This document is normative.** Where it disagrees with a `description` field
-> in the JSON Schema, this document wins.
+> **What is normative.** This document defines the complete behaviour of the
+> specification. The JSON Schema bundle is its executable form for structural
+> validity, and the [conformance corpus](../../../conformance/README.md) is its
+> executable form for observable outcomes; both are normative, and neither is
+> permitted to disagree with this document or with the other. Schema
+> `description` fields, examples, generated documentation, and validator message
+> text are informative.
+>
+> A disagreement between two normative artifacts is a defect in this
+> specification and blocks a release. Until it is fixed this document governs —
+> but that is how to read a broken contract, not a licence for the schema to be
+> wrong.
 
 ---
 

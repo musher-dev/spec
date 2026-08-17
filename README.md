@@ -4,8 +4,15 @@ Canonical public contracts, normative schemas, and language-neutral conformance
 suites for the [Musher](https://musher.dev) platform.
 
 This repository is the source of truth. If an implementation disagrees with the
-schemas and conformance fixtures published here, the implementation is
-defective.
+prose, the schemas, or the conformance fixtures published here, the
+implementation is defective.
+
+Each family's `spec.md` defines its complete behaviour. The JSON Schema bundle
+is that prose's executable form for structural validity, and the conformance
+corpus is its executable form for observable outcomes; all three are normative.
+Schema `description` fields, examples, and validator message text are
+informative. A disagreement between two normative artifacts is a defect here
+that blocks a release, not a choice for an implementation.
 
 ## Specification families
 
