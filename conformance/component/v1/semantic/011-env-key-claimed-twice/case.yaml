@@ -12,6 +12,11 @@ spec:
     source:
       type: IMAGE
       ref: postgres:17.10-alpine
+    endpoints:
+      db:
+        containerPort: 5432
+        protocol: TCP
+        visibility: PRIVATE
     envVars:
       - key: DATABASE_URL
         value:

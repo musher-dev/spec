@@ -10,6 +10,11 @@ metadata:
 spec:
   workload:
     kind: SERVICE
+    endpoints:
+      web:
+        containerPort: 8080
+        protocol: HTTP
+        visibility: PRIVATE
     terminationGracePeriodSeconds: 30
     source:
       type: IMAGE

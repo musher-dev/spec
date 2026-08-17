@@ -921,6 +921,29 @@
           }
         },
         {
+          "$comment": "spec.md §5. The converse of the branch above: a SERVICE is the kind that serves, so it declares at least one endpoint. An absent block is a missing field and an empty one is an invalid value, which is the same two-spelling distinction the forbidden direction already makes.",
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "SERVICE"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "endpoints": {
+                "minProperties": 1
+              }
+            },
+            "required": [
+              "endpoints"
+            ]
+          }
+        },
+        {
           "if": {
             "properties": {
               "kind": {

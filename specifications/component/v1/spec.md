@@ -186,7 +186,7 @@ and the shape decides which of the remaining fields carry meaning.
 
 | Field | `SERVICE` | `WORKER` | `JOB` | `CRON` |
 |---|---|---|---|---|
-| `endpoints` | permitted | forbidden | forbidden | forbidden |
+| `endpoints` | REQUIRED, ≥ 1 | forbidden | forbidden | forbidden |
 | `command` | permitted | permitted | REQUIRED | REQUIRED |
 | `schedule` | forbidden | forbidden | forbidden | REQUIRED |
 | `health.readiness` | see [§5.4](#health) | permitted | permitted | permitted |
@@ -211,11 +211,22 @@ nothing to run without it, so it is REQUIRED on both. On a `SERVICE` or a
 `WORKER` it overrides the image's default command, which is meaningful rather
 than meaningless, so it stays permitted.
 
-**A `SERVICE` MAY declare no endpoint.** The smallest component that validates
-is a service running a pinned image and nothing else. A service exposing no
-endpoint and a worker are operationally much the same thing, so requiring at
-least one endpoint is a defensible rule. It is simply not this version's rule,
-and adopting it later rejects documents v1 accepts.
+**A `SERVICE` MUST declare at least one endpoint.** A service is the kind that
+serves, and one exposing nothing is a `WORKER` under another name. Permitting
+it would leave `kind` describing nothing: two documents would differ in the
+word they use for a workload that runs identically, and a reader could not tell
+from the `kind` whether anything could reach it.
+
+Both spellings of "none" are rejected, and they carry different codes because
+they read differently to an author. An absent `endpoints` block is
+`ERR_MISSING_FIELD` — the author has not said how the service is reached. A
+block written and left empty is `ERR_INVALID_VALUE` — the author has said, and
+said nothing. Both are `structural`.
+
+This is the one rule in this section where a workload that runs perfectly well
+is refused. A container that listens on no port and is meant to stay up is a
+real thing to want; it is a `WORKER`, and writing it as one costs an author a
+single word.
 
 Input and output keys are unique within a component because `contract.inputs`
 and `contract.outputs` are mappings. A repeated key is `ERR_DUPLICATE_KEY` in
@@ -351,9 +362,9 @@ elsewhere in the document.
 "Nothing" is reached two ways and both are rejected, though they read
 differently to an author. A workload declaring several candidates has too many
 and must choose. A workload declaring no endpoint at all has none, and a probe
-on it polls a port that does not exist — which [§5](#workload) permits the
-workload to be, since a `SERVICE` MAY declare no endpoint, but which no probe
-can survive.
+on it polls a port that does not exist. [§5](#workload) puts the second beyond
+a `SERVICE`, which MUST declare at least one endpoint — but the other three
+kinds declare none and may still carry a probe, so the case survives there.
 
 **Why that is an error rather than a tiebreak.** Electing the first name in sort
 order would give every document an answer, and would let a new endpoint called

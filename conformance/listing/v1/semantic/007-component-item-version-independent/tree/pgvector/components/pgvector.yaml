@@ -8,3 +8,8 @@ spec:
     source:
       type: IMAGE
       ref: pgvector/pgvector:0.8.1-pg17
+    endpoints:
+      db:
+        containerPort: 5432
+        protocol: TCP
+        visibility: PRIVATE

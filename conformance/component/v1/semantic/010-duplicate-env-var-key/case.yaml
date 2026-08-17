@@ -11,6 +11,11 @@ spec:
     source:
       type: IMAGE
       ref: nginx:1.29.4-alpine
+    endpoints:
+      web:
+        containerPort: 8080
+        protocol: HTTP
+        visibility: PRIVATE
     envVars:
       - key: LOG_LEVEL
         value:
