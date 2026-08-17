@@ -43,6 +43,27 @@ function main(): void {
       )
     }
 
+    // The bundler cannot yet embed a second module correctly. It keeps an
+    // embedded module's `$id`, which makes it a separate schema resource under
+    // 2020-12, while hoisting that module's `$defs` to the bundle root — so an
+    // internal `#/$defs/Foo` inside it would resolve against its own base URI
+    // and find nothing. `assertSelfContained` would not catch it either: that
+    // check is lexical and resolves against the root's `$defs`, where `Foo`
+    // does exist. The result would be a bundle that passes every gate and no
+    // validator can resolve.
+    //
+    // Lifting this needs the bundler fixed, a fixture exercising exactly that
+    // shape, and two independent validators agreeing on the output. Until then
+    // one module per family is the supported configuration, and saying so here
+    // is better than discovering it in a published bundle.
+    if (modules.length > 1) {
+      failures.add(
+        `${family.name}/${family.major}: ${modules.length} source modules, but the ` +
+          'bundler supports one. Embedding a second would hoist its $defs away from ' +
+          'the $id they resolve under. See tools/src/bundle.ts.',
+      )
+    }
+
     for (const path of modules) {
       moduleCount += 1
       const rel = relativeToRepo(path)
@@ -73,7 +94,10 @@ function main(): void {
       checkDefsPointers(doc, rel, failures)
       checkTitlePlacement(doc, rel, failures)
       checkExtensionKeywords(doc, rel, failures)
+      checkPatternPortability(doc, rel, failures)
+      checkNoUnfinishedText(doc, rel, failures)
       checkMetaValid(doc, rel, failures)
+      checkAnnotationsValidate(doc, rel, failures)
     }
   }
 
@@ -284,6 +308,146 @@ export function strictAjv(): Ajv2020 {
     ajv.addKeyword({ keyword, metaSchema: {} })
   }
   return ajv
+}
+
+/**
+ * Every `pattern` must compile everywhere, and in linear time.
+ *
+ * A published pattern is evaluated by validators this repository does not
+ * control, in languages whose regex engines do not agree. Go and Rust use RE2,
+ * which has no lookaround and no backreferences and refuses to compile one;
+ * JavaScript and Python have both, and both can be made to backtrack
+ * exponentially. A pattern using either is therefore two different rules — it
+ * rejects a document on one implementation and fails to compile on another —
+ * and it is the ReDoS surface SECURITY.md names.
+ *
+ * Several `$comment`s already assert a pattern is "lookahead-free, so it
+ * compiles under RE2 as well as ECMA-262". This is that assertion enforced
+ * rather than repeated.
+ */
+const LOOKAROUND = /\((\?=|\?!|\?<=|\?<!)/
+const BACKREFERENCE = /\\[1-9]/
+
+function checkPatternPortability(
+  doc: { [k: string]: Json },
+  rel: string,
+  failures: Failures,
+): void {
+  for (const { node, pointer } of walkObjects(doc)) {
+    for (const keyword of ['pattern', 'patternProperties'] as const) {
+      const value = node[keyword]
+      const patterns =
+        keyword === 'pattern'
+          ? typeof value === 'string'
+            ? [value]
+            : []
+          : isObject(value)
+            ? Object.keys(value)
+            : []
+
+      for (const pattern of patterns) {
+        const where = `${rel}: ${pointer || '<root>'}/${keyword}`
+        if (LOOKAROUND.test(pattern)) {
+          failures.add(
+            `${where} uses lookaround — ${pattern}. RE2 (Go, Rust) will not compile it, ` +
+              'so the rule would differ between implementations.',
+          )
+        }
+        if (BACKREFERENCE.test(pattern)) {
+          failures.add(
+            `${where} uses a backreference — ${pattern}. RE2 will not compile it, and ` +
+              'backtracking engines can be made to run exponentially on one.',
+          )
+        }
+        try {
+          new RegExp(pattern, 'u')
+        } catch (error) {
+          failures.add(`${where} is not a valid regular expression — ${(error as Error).message}`)
+        }
+      }
+    }
+  }
+}
+
+/**
+ * A released schema may not carry unfinished text.
+ *
+ * `description` is what an editor shows an author at the moment they are
+ * writing the field. A `TODO` there is this repository telling every user of
+ * every implementation that it has not decided yet, on a URL it has promised
+ * never to change.
+ */
+const UNFINISHED = /\b(TODO|TBD|FIXME|XXX)\b/
+
+function checkNoUnfinishedText(doc: { [k: string]: Json }, rel: string, failures: Failures): void {
+  for (const { node, pointer } of walkObjects(doc)) {
+    for (const keyword of ['title', 'description', '$comment'] as const) {
+      const value = node[keyword]
+      if (typeof value !== 'string' || !UNFINISHED.test(value)) continue
+      failures.add(
+        `${rel}: ${pointer || '<root>'}/${keyword} carries unfinished text — ` +
+          'a released schema states the rule or omits the field.',
+      )
+    }
+  }
+}
+
+/**
+ * Every `default` and `examples` entry must satisfy the schema it sits in.
+ *
+ * Neither keyword asserts anything: a validator collects them as annotations
+ * and never checks them, so a `default` that its own schema would reject is
+ * invisible forever. It is also the most misleading kind of wrong, because an
+ * editor offers it as a completion and generated documentation prints it as
+ * the value you get if you say nothing.
+ *
+ * Checked by compiling the module and asking Ajv for the subschema at each
+ * pointer, which is what makes a `$ref` into `$defs` resolve the same way it
+ * will for a consumer.
+ */
+function checkAnnotationsValidate(
+  doc: { [k: string]: Json },
+  rel: string,
+  failures: Failures,
+): void {
+  const id = typeof doc.$id === 'string' ? doc.$id : undefined
+  if (id === undefined) return
+
+  const ajv = strictAjv()
+  try {
+    ajv.compile(doc)
+  } catch {
+    // checkMetaValid already reported this; nothing further to say.
+    return
+  }
+
+  for (const { node, pointer } of walkObjects(doc)) {
+    const hasDefault = 'default' in node
+    const examples = Array.isArray(node.examples) ? node.examples : []
+    if (!hasDefault && examples.length === 0) continue
+
+    let validate: ReturnType<typeof ajv.getSchema>
+    try {
+      validate = ajv.getSchema(`${id}#${pointer}`)
+    } catch {
+      continue
+    }
+    if (validate === undefined) continue
+
+    if (hasDefault && !validate(node.default)) {
+      failures.add(
+        `${rel}: ${pointer || '<root>'}/default is ${JSON.stringify(node.default)}, which ` +
+          `its own schema rejects — ${ajv.errorsText(validate.errors)}`,
+      )
+    }
+    for (const [index, example] of examples.entries()) {
+      if (validate(example)) continue
+      failures.add(
+        `${rel}: ${pointer || '<root>'}/examples/${index} is ${JSON.stringify(example)}, ` +
+          `which its own schema rejects — ${ajv.errorsText(validate.errors)}`,
+      )
+    }
+  }
 }
 
 /**
