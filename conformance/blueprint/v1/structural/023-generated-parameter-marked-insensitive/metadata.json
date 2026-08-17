@@ -1,0 +1,7 @@
+{
+  "id": "structural-023-generated-parameter-marked-insensitive",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#authored-parameters",
+  "summary": "An authored parameter carrying a generator may not declare isSensitive false."
+}

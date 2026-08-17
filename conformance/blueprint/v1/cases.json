@@ -128,6 +128,16 @@
       "path": "structural/021-unknown-cpu-dedication"
     },
     {
+      "id": "structural-022-generated-parameter-not-sensitive",
+      "phase": "structural",
+      "path": "structural/022-generated-parameter-not-sensitive"
+    },
+    {
+      "id": "structural-023-generated-parameter-marked-insensitive",
+      "phase": "structural",
+      "path": "structural/023-generated-parameter-marked-insensitive"
+    },
+    {
       "id": "semantic-001-connection-names-unknown-role",
       "phase": "semantic",
       "path": "semantic/001-connection-names-unknown-role"
@@ -201,6 +211,31 @@
       "id": "semantic-015-required-connection-input-unwired",
       "phase": "semantic",
       "path": "semantic/015-required-connection-input-unwired"
+    },
+    {
+      "id": "semantic-016-parameter-covers-no-input",
+      "phase": "semantic",
+      "path": "semantic/016-parameter-covers-no-input"
+    },
+    {
+      "id": "semantic-017-required-input-uncovered",
+      "phase": "semantic",
+      "path": "semantic/017-required-input-uncovered"
+    },
+    {
+      "id": "semantic-018-optional-parameter-does-not-cover",
+      "phase": "semantic",
+      "path": "semantic/018-optional-parameter-does-not-cover"
+    },
+    {
+      "id": "semantic-019-parameter-type-disagrees",
+      "phase": "semantic",
+      "path": "semantic/019-parameter-type-disagrees"
+    },
+    {
+      "id": "semantic-020-authored-override-well-formed",
+      "phase": "semantic",
+      "path": "semantic/020-authored-override-well-formed"
     }
   ]
 }

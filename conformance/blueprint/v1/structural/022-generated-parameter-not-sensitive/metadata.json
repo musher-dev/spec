@@ -1,0 +1,7 @@
+{
+  "id": "structural-022-generated-parameter-not-sensitive",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#authored-parameters",
+  "summary": "An authored parameter carrying a generator must declare isSensitive rather than default it."
+}

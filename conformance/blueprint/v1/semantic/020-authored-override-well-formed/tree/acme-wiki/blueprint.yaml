@@ -1,0 +1,38 @@
+# The regression pin for §5.2's remedy.
+#
+# Both components declare `adminPassword` and their schemas differ — `api`
+# admits eight characters, `db` demands twelve. On the derivation path that is
+# ERR_CONFLICTING_INPUT_SCHEMA, and §5.2 sends the author here to resolve it.
+# The resolution only works if writing the override actually stops the merge
+# running, which is what this case pins: an override is used in place of
+# derivation, so there is nothing left to conflict.
+#
+# The override then answers to §5.3 instead, and satisfies all three rules. The
+# key names an input both nodes declare, so it is not unbound. It declares
+# `isRequired: true`, so it guarantees the value neither node can do without.
+# And its `type` agrees with both — the disagreement is over `pattern`, which
+# §5.3 does not compare, and which is why one parameter can reconcile the two.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  version: 1
+spec:
+  components:
+    api:
+      component: ./components/api.yaml
+      size: general.standard.small
+      connections: {}
+    db:
+      component: ./components/postgres.yaml
+      size: general.standard.small
+      connections: {}
+  parameters:
+    adminPassword:
+      schema:
+        type: STRING
+        pattern: ^.{12,}$
+        isSensitive: true
+      isRequired: true
+      ui:
+        label: Administrator password

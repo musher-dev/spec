@@ -637,9 +637,9 @@ function checkIdentity(family: Family, document: Json, itemRoot: string, out: Di
 }
 
 /**
- * Blueprint §4.1 and §4.2, plus §3's unreferenced-document rule and §5.2's
- * merge conflict. All four need the component documents the graph names, which
- * is what makes them item-scoped.
+ * Blueprint §4.1 and §4.2, plus §3's unreferenced-document rule and §5's two
+ * parameter paths. All of them need the component documents the graph names,
+ * which is what makes them item-scoped.
  */
 function checkGraphAgainstItem(
   document: Json,
@@ -648,6 +648,7 @@ function checkGraphAgainstItem(
   out: Diagnostic[],
 ): void {
   const components = child(child(document, 'spec'), 'components')
+  const parameters = child(child(document, 'spec'), 'parameters')
   const baseDir = dirname(documentPath)
   const referenced = new Set<string>()
   const resolved = new Map<string, Json>()
@@ -686,7 +687,17 @@ function checkGraphAgainstItem(
   checkConnectionInputs(components, resolved, out)
   checkRequiredConnections(components, resolved, out)
   checkConnectionCompatibility(components, resolved, out)
-  checkInputMerge(components, resolved, out)
+
+  // §5's two paths are exclusive. An authored override is used in place of
+  // derivation rather than merged with it (§5), so where one is written the
+  // merge does not run and §5.2's conflict has nothing to conflict — which is
+  // what makes §5.2's own remedy a remedy. §5.3 is what the override answers to
+  // instead.
+  if (keysOf(parameters).length === 0) {
+    checkInputMerge(components, resolved, out)
+  } else {
+    checkParameterBinding(parameters, components, resolved, out)
+  }
 }
 
 /** Blueprint §3 — every component document in the item MUST be referenced. */
@@ -911,6 +922,113 @@ function checkInputMerge(
         message: `input "${key}" is declared with a different schema by node "${earlier.node}"`,
       })
     }
+  }
+}
+
+/** Present and not null. An optional property spelled `null` sets nothing. */
+function isSet(value: Json | undefined): boolean {
+  return value !== undefined && value !== null
+}
+
+/**
+ * Blueprint §5.3 — the input side of the coverage test. An input has to be
+ * covered only when nothing else can supply it: a wire, a minted secret, a
+ * platform-derived address and a declared default each take it out of scope.
+ */
+function mustBeSupplied(input: Json | undefined): boolean {
+  if (child(input, 'suppliedBy') === 'CONNECTION') return false
+  // `isRequired` defaults to true on a component input, so an absent key is a
+  // required one — hence `=== false` rather than `!== true`.
+  if (child(input, 'isRequired') === false) return false
+  if (isSet(child(input, 'generator'))) return false
+  if (isSet(child(input, 'platformDefault'))) return false
+  return !isSet(child(child(input, 'schema'), 'default'))
+}
+
+/**
+ * Blueprint §5.3 — the parameter side. Naming the key is not enough; the
+ * parameter has to actually ask for a value.
+ *
+ * `isRequired` defaults to **false** here, the opposite of a component input,
+ * which is why this tests `=== true` where `mustBeSupplied` tests `=== false`.
+ * An override that copies a required input's key and says nothing else has made
+ * it optional, and that is the case this catches.
+ */
+function guaranteesValue(parameter: Json | undefined): boolean {
+  if (child(parameter, 'isRequired') === true) return true
+  if (isSet(child(parameter, 'generator'))) return true
+  return isSet(child(child(parameter, 'schema'), 'default'))
+}
+
+/**
+ * Blueprint §5.3 — an authored override binds to inputs by key, and the key is
+ * the whole of the correspondence: a parameter carries no `suppliedBy`, no node
+ * name and no `target`.
+ *
+ * Only reached when `parameters` is non-empty. The derived set is built from
+ * the inputs themselves, so none of these three rules can fail on that path.
+ */
+function checkParameterBinding(
+  parameters: Json | undefined,
+  components: Json | undefined,
+  resolved: Map<string, Json>,
+  out: Diagnostic[],
+): void {
+  // Input key → every USER declaration of it, in canonical node order. One key
+  // may be declared by several nodes; a parameter covers all of them.
+  const declared = new Map<string, Json[]>()
+
+  for (const node of keysOf(components).sort()) {
+    const component = resolved.get(node)
+    // A published reference resolves in the capability phase, so its inputs are
+    // unreadable here. §5.3: an implementation MUST NOT report an input it was
+    // never given the means to read.
+    if (component === undefined) continue
+
+    const inputs = inputsOf(component)
+    for (const key of keysOf(inputs)) {
+      const input = child(inputs, key)
+      if (input === undefined) continue
+      if (child(input, 'suppliedBy') === 'CONNECTION') continue
+      const seen = declared.get(key)
+      if (seen === undefined) declared.set(key, [input])
+      else seen.push(input)
+    }
+  }
+
+  for (const key of keysOf(parameters)) {
+    const pointer = `/spec/parameters/${token(key)}`
+    const covered = declared.get(key)
+    if (covered === undefined) {
+      out.push({
+        code: 'ERR_UNBOUND_PARAMETER',
+        path: pointer,
+        message: `parameter "${key}" names no USER input of any node`,
+      })
+      continue
+    }
+
+    // Only `type` is compared. §5.3 records the rest as silences, and `type` is
+    // REQUIRED on both sides, so this needs no defaulting pass.
+    const type = child(child(child(parameters, key), 'schema'), 'type')
+    const mismatch = covered.find((input) => child(child(input, 'schema'), 'type') !== type)
+    if (mismatch === undefined) continue
+    out.push({
+      code: 'ERR_INCOMPATIBLE_PARAMETER_TYPE',
+      path: `${pointer}/schema/type`,
+      message: `parameter "${key}" declares ${String(type)} where an input it covers declares ${String(child(child(mismatch, 'schema'), 'type'))}`,
+    })
+  }
+
+  for (const key of declared.keys()) {
+    const inputs = declared.get(key) ?? []
+    if (!inputs.some(mustBeSupplied)) continue
+    if (guaranteesValue(child(parameters, key))) continue
+    out.push({
+      code: 'ERR_UNCOVERED_REQUIRED_INPUT',
+      path: '/spec/parameters',
+      message: `input "${key}" must be supplied by the deploying user, and no parameter guarantees it a value`,
+    })
   }
 }
 

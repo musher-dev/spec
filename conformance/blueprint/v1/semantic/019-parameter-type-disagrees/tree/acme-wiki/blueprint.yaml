@@ -1,0 +1,27 @@
+# The parameter asks for an INTEGER; the input it covers declares a STRING.
+# The deploying user is validated against the parameter's schema and the
+# component then receives the result against its own, so nothing fails until the
+# workload starts.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  version: 1
+spec:
+  components:
+    api:
+      component: ./components/api.yaml
+      size: general.standard.small
+      connections: {}
+    db:
+      component: ./components/postgres.yaml
+      size: general.standard.small
+      connections: {}
+  parameters:
+    adminPassword:
+      schema:
+        type: INTEGER
+        isSensitive: true
+      isRequired: true
+      ui:
+        label: Administrator password

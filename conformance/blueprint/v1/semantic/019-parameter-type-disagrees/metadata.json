@@ -1,0 +1,8 @@
+{
+  "id": "semantic-019-parameter-type-disagrees",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#authored-parameters",
+  "summary": "A parameter whose schema.type differs from an input it covers is rejected.",
+  "document": "acme-wiki/blueprint.yaml"
+}

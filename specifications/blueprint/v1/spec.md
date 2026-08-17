@@ -523,10 +523,107 @@ documents that disagreed and with nothing pointing back at them.
 An author who wants one shared value across two components says so by writing
 `spec.parameters` outright, which is what an authored override is for.
 
-> **TODO** — How an authored parameter binds to the component inputs it
-> satisfies. Derivation makes that correspondence by key; an override is used
-> verbatim, which does not say what happens to a parameter key matching no
-> input, or to a `USER` input no parameter covers.
+**This rule belongs to the derivation path.** [§5](#parameters) makes an
+authored override something used in place of derivation rather than merged with
+it, so where `parameters` is non-empty the merge above does not run and there is
+nothing left to conflict. That is what makes the remedy in the previous
+paragraph a remedy: two components that disagree are reconciled by the author
+naming the value once, rather than left in conflict beside the reconciliation.
+What an authored parameter has to satisfy instead is
+[§5.3](#authored-parameters).
+
+### <a id="authored-parameters"></a>5.3 Authored parameters
+
+An authored override replaces the derived parameter set outright. It is the
+path [§5.2](#merge) sends an author to, and it carries obligations derivation
+met for free.
+
+**Binding is by key.** A parameter key is an input key: the parameter called
+`adminPassword` supplies every `USER` input called `adminPassword`, in every
+node that declares one. Nothing else is available to make the correspondence — a
+parameter carries no `suppliedBy`, no node name and no `target` — so the key is
+not one signal among several but the whole of it. That is also what lets one
+parameter serve two components, which is the whole of why [§5.2](#merge) sends
+an author here.
+
+A parameter **covers** an input when their keys are equal. Three rules follow.
+All are `semantic`, and all need the component documents the graph references,
+which a repo-local reference makes readable without a network.
+
+**A parameter MUST cover something.** A key matching no `USER` input of any node
+is rejected with `ERR_UNBOUND_PARAMETER`, anchored at `/spec/parameters/<key>`.
+The install form asks a deploying user for a value and nothing in the
+composition ever reads it. Permitted, these accumulate exactly as
+[§3](#identity) says an unreferenced component document does — last release's
+`legacyMode` still on the form beside the parameters that do something, with
+nothing in the document saying which is which.
+
+**An input the deploying user must supply MUST be covered**, and covered by a
+parameter that will actually ask for it. Otherwise the component requires a
+value, the install form never offers one, and the workload starts without it.
+The blueprint is rejected with `ERR_UNCOVERED_REQUIRED_INPUT`, anchored at
+`/spec/parameters` — the mapping that should have named it, since a JSON Pointer
+addresses this document and the input it is complaining about is not in it.
+
+An input must be covered when every one of these holds:
+
+| Property | Value | Because |
+|---|---|---|
+| `suppliedBy` | `USER` | A `CONNECTION` input is satisfied by a wire ([§4.2](#connections)). |
+| `isRequired` | true, its default | Nothing has to supply an optional input. |
+| `generator` | absent | The platform mints the value. |
+| `platformDefault` | absent | The platform derives it from the node's own addressing. |
+| `schema.default` | absent | The component document already supplies it. |
+
+A parameter covers such an input only if it **guarantees a value**: it declares
+`isRequired: true`, or it carries a `generator`, or its `schema` declares a
+`default`. A parameter that names the key and leaves the value optional has
+moved the omission rather than closed it.
+
+**`isRequired` reads in opposite directions on the two documents**, and this is
+the rule where that bites. It defaults to `true` on a component input and to
+`false` on a blueprint parameter, so an override that copies a required input's
+key and says nothing else has quietly made it optional. The defaults are
+defensible on each side alone — an input declares a need, a parameter declares a
+question — but the asymmetry is a trap, and it is why the rule above tests what
+a parameter guarantees rather than only which keys it names.
+
+**`type` MUST agree.** Where a parameter covers an input, its `schema.type` MUST
+equal that input's, and a mismatch is `ERR_INCOMPATIBLE_PARAMETER_TYPE`,
+anchored at `/spec/parameters/<key>/schema/type`. The deploying user is
+validated against the parameter's schema and the component then receives the
+result against its own: a `STRING` accepted at the form where the workload
+expects an `INTEGER` is the failure [§4.2](#connections) rejected for
+connections and [§5.2](#merge) rejected for merging, arriving through a third
+door.
+
+**A generated parameter is secret material.** A parameter carrying a `generator`
+MUST declare `schema.isSensitive: true`, and MUST declare it rather than leave
+it to a default. That is a shape rather than a relationship, so both halves are
+`structural`: an absent `isSensitive` is `ERR_MISSING_FIELD` and one written
+`false` is `ERR_INVALID_VALUE`.
+[Component §6.1](../../component/v1/spec.md#inputs) requires exactly this of a
+generated input, and a derived parameter takes the input's `schema` unchanged
+([§5.1](#derivation)), so the marking is guaranteed on the derivation path
+already. Without the same rule here, moving a generated secret onto the override
+path is enough to lose it — and `isSensitive` defaults to `false`, so losing it
+takes no more than not mentioning it.
+
+**What v1 does not compare.** `format`, `enum`, `pattern`, `default`,
+`isSensitive` and `ui` take no part in whether a parameter covers an input. A
+parameter whose `pattern` admits more than the input's does is accepted, and so
+is one that asks for a value the input would reject. `semanticType` is not
+compared because a parameter has none to compare: it tags the backing service a
+value addresses ([§4.2](#connections)), and an install form is not where a value
+acquires one. Those silences are gaps rather than considered permissions,
+recorded here so a reader can tell the two apart; closing any of them rejects
+compositions that validate today.
+
+**None of this reaches a published reference.** All three rules read the
+referenced component's inputs, so a node naming its component by UUID
+contributes none of them ([§4.1](#component-reference)). A blueprint mixing the
+two forms is checked against the repo-local half and no further, and an
+implementation MUST NOT report an input it was never given the means to read.
 
 ## <a id="validation-layers"></a>6. Validation layers
 
@@ -561,6 +658,9 @@ family adds:
 | `ERR_VERSION_MISMATCH` | `semantic` | `metadata.version` disagrees with the sibling listing document. |
 | `ERR_UNREFERENCED_COMPONENT` | `semantic` | A component document in the item is referenced by no node. |
 | `ERR_CONFLICTING_INPUT_SCHEMA` | `semantic` | Two nodes declare the same input key with different schemas. |
+| `ERR_UNBOUND_PARAMETER` | `semantic` | An authored parameter's key names no `USER` input of any node. |
+| `ERR_UNCOVERED_REQUIRED_INPUT` | `semantic` | An input the deploying user must supply is guaranteed a value by no authored parameter. |
+| `ERR_INCOMPATIBLE_PARAMETER_TYPE` | `semantic` | An authored parameter and an input it covers declare different `schema.type`s. |
 
 ## <a id="conformance"></a>8. Conformance
 
@@ -573,8 +673,11 @@ Seeded from the platform's generated schema. The naming that arrived with it
 has been cleaned, and [§4.3](#node-compute) now names where the Compute Profile
 vocabulary is published rather than assuming a reader can already resolve it.
 
-One TODO remains, in [§5.2](#merge): how an authored parameter binds to the
-component inputs it satisfies. [§4.4](#advanced-constraints) is not marked TODO
-but carries the nearest thing to one — a pin vocabulary nothing publishes yet,
-recorded there as a gap. See also
+No section of this document is marked TODO any longer. The last of them — how an
+authored parameter binds to the component inputs it satisfies — is answered by
+[§5.3](#authored-parameters).
+
+What remains is not a gap in the prose but a vocabulary nothing publishes yet:
+[§4.4](#advanced-constraints)'s compute-constraint pins, recorded there as a gap
+rather than described as a decision. See also
 [component §10](../../component/v1/spec.md#known-debt).

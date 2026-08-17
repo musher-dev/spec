@@ -1,0 +1,25 @@
+# The other half of the rule. 022 omits isSensitive and takes the false default;
+# this one says false outright. Both leave a platform-minted secret unmarked, so
+# both are rejected — the first for not answering, the second for the answer.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  version: 1
+spec:
+  components:
+    db:
+      component: ./components/postgres.yaml
+      size: general.standard.small
+      connections: {}
+  parameters:
+    adminPassword:
+      schema:
+        type: STRING
+        isSensitive: false
+      generator:
+        byteLength: 32
+        encoding: HEX
+      isRequired: true
+      ui:
+        label: Administrator password

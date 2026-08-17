@@ -1,0 +1,25 @@
+# `legacyMode` is asked of the deploying user and read by nothing: neither
+# component declares an input of that name. Binding is by key and there is no
+# other correspondence to fall back on, so the value is collected and dropped.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  version: 1
+spec:
+  components:
+    api:
+      component: ./components/api.yaml
+      size: general.standard.small
+      connections: {}
+    db:
+      component: ./components/postgres.yaml
+      size: general.standard.small
+      connections: {}
+  parameters:
+    legacyMode:
+      schema:
+        type: BOOLEAN
+      isRequired: true
+      ui:
+        label: Legacy mode
