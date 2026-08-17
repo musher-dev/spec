@@ -1,0 +1,39 @@
+{
+  "$schema": "https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json",
+  "version": "0.2",
+  "language": "en-GB",
+  "dictionaryDefinitions": [
+    {
+      "name": "musher",
+      "path": "./.cspell/musher.txt",
+      "addWords": true,
+      "description": "Musher domain vocabulary and the tooling this repository uses. A word belongs here when it is a term of art, not when it is merely long."
+    }
+  ],
+  "dictionaries": [
+    "musher",
+    "typescript",
+    "node",
+    "softwareTerms",
+    "bash",
+    "companies"
+  ],
+  "ignorePaths": [
+    "**/node_modules/**",
+    "site/**",
+    "tools/bun.lock",
+    ".cspell/**",
+    "LICENSE",
+    "published.json",
+    "**/schemas/dist/**",
+    "conformance/**/case.yaml",
+    "conformance/**/tree/**"
+  ],
+  "ignoreRegExpList": [
+    "/\\b[0-9a-f]{7,64}\\b/",
+    "/`[^`]*`/",
+    "/```[\\s\\S]*?```/",
+    "/\\]\\([^)]*\\)/",
+    "/<a id=\"[^\"]*\"><\\/a>/"
+  ]
+}

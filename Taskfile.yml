@@ -84,6 +84,8 @@ tasks:
       - task: check:published
       - task: check:compat
       - task: check:test
+      - task: check:links
+      - task: check:spelling
       - task: check:shell
       - task: check:workflow
 
@@ -104,6 +106,19 @@ tasks:
     dir: '{{.TOOLS_DIR}}'
     cmds:
       - bun run src/compat.ts
+
+  check:links:
+    desc: Resolve every internal Markdown link and anchor
+    dir: '{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/links.ts
+
+  check:spelling:
+    desc: Spell-check prose, tooling sources, and schema descriptions
+    cmds:
+      - >-
+        tools/node_modules/.bin/cspell --no-progress --no-summary --unique
+        --config cspell.json "**/*.md" "tools/src/**/*.ts" "**/*.schema.json"
 
   check:test:
     desc: Run the tooling test suite
@@ -225,6 +240,8 @@ tasks:
     desc: Lint suite as run in CI
     cmds:
       - task: check:format
+      - task: check:links
+      - task: check:spelling
       - task: check:shell
       - task: check:workflow
 
