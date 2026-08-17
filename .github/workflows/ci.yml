@@ -37,10 +37,26 @@ jobs:
         working-directory: tools
         run: bun install --frozen-lockfile
 
+      # The release tarball, verified against a pinned SHA-256, rather than
+      # piping an install script from a URL into bash. The script is fetched
+      # from a mutable ref and executed unverified, which made it the one place
+      # in CI where an upstream compromise would run arbitrary code with the
+      # workflow's token.
+      #
+      # Keep ACTIONLINT_VERSION in step with .devcontainer/mise.toml. CI is not
+      # a mise host and does not read that file.
       - name: Install actionlint
+        env:
+          ACTIONLINT_VERSION: 1.7.11
+          ACTIONLINT_SHA256: 900919a84f2229bac68ca9cd4103ea297abc35e9689ebb842c6e34a3d1b01b0a
         run: |
-          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.11/scripts/download-actionlint.bash) 1.7.11
-          sudo mv actionlint /usr/local/bin/
+          set -euo pipefail
+          archive="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl -sSfL --retry 3 -o "$archive" \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/${archive}"
+          echo "${ACTIONLINT_SHA256}  ${archive}" | sha256sum -c -
+          tar -xzf "$archive" actionlint
+          sudo install -m 0755 actionlint /usr/local/bin/actionlint
 
       - name: Run lint suite
         run: task ci:lint

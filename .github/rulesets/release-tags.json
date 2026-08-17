@@ -12,13 +12,7 @@
       "exclude": []
     }
   },
-  "bypass_actors": [
-    {
-      "actor_id": 1,
-      "actor_type": "OrganizationAdmin",
-      "bypass_mode": "always"
-    }
-  ],
+  "bypass_actors": [],
   "rules": [
     { "type": "deletion" },
     { "type": "non_fast_forward" },
