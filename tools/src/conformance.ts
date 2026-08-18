@@ -580,6 +580,12 @@ const UNPINNED: ReadonlyMap<string, string> = new Map([
     'metadata is required by every fixture in the corpus, so no single case pins it',
   ],
   ['COMP-ENV-004', 'spec is required by every fixture in the corpus, so no single case pins it'],
+  [
+    'LIST-MEDIA-004',
+    'a rule about what a consumer emits once it has relocated an item media set; ' +
+      'the corpus validates documents and cannot observe a storefront output, the ' +
+      'same limit ADR 0004 records for the listing §4.1 renderer clause',
+  ],
 ])
 
 /**

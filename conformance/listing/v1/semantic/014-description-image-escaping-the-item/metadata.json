@@ -1,0 +1,14 @@
+{
+  "id": "semantic-014-description-image-escaping-the-item",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/listing/v1/spec.md#description-markdown",
+  "requirements": [
+    "LIST-MEDIA-002"
+  ],
+  "summary": "A description image resolving outside the item root through a symlink is rejected.",
+  "document": "acme-wiki/listing.yaml",
+  "symlinks": {
+    "acme-wiki/media/diagram.png": "../../../secrets.png"
+  }
+}

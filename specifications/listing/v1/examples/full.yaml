@@ -3,7 +3,8 @@
 # A storefront entry using the full descriptive surface. Media paths begin at
 # `media/` and resolve inside the item root (§5). The description stays inside
 # §4.1's profile: no raw HTML, links on permitted schemes, and an image that is
-# an item media path rather than a remote one.
+# an item media path rather than a remote one. §5.1 is what makes that image
+# resolve for a consumer that does not serve this directory itself.
 specVersion: v1
 kind: LISTING
 metadata:

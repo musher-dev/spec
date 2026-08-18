@@ -1,0 +1,25 @@
+# §4.1 holds a description image to §5's grammar, so §5's semantic rules reach
+# it too: `media/diagram.png` is a well-formed media path naming a file the item
+# does not ship. The icon and the screenshot both resolve, which is what leaves
+# the description as the only thing this case is measuring.
+#
+# The pointer is `/spec/description` rather than a path into the Markdown.
+# The field is one scalar, so there is no finer JSON Pointer to give.
+specVersion: v1
+kind: LISTING
+metadata:
+  slug: acme-wiki
+  version: 1
+spec:
+  listingKind: BLUEPRINT
+  displayName: Acme Wiki
+  summary: A wiki backed by PostgreSQL
+  category: PRODUCTIVITY
+  lifecycleStage: STABLE
+  description: |
+    ## Architecture
+
+    ![The deployment topology](media/diagram.png)
+  icon: media/icon.png
+  screenshots:
+    - file: media/overview.png
