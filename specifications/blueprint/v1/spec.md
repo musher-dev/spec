@@ -748,11 +748,14 @@ reviewer of the item can see: a graph that reaches outside the directory being
 reviewed deploys something the review did not cover.
 
 **Graph traversal.** [§4.2](#connections) makes the component graph a directed
-graph an implementation walks. A cycle is rejected with `ERR_CONNECTION_CYCLE`,
-and an implementation MUST detect cycles rather than relying on a recursion limit
-to stop it — a stack overflow is a crash, not a diagnostic. The parser's nesting
-bound does not help here: the cycle is in the graph the document describes, not
-in the document's own structure.
+graph an implementation walks, and permits that graph to contain a cycle. An
+implementation MUST therefore detect cycles rather than relying on a recursion
+limit to stop it — a stack overflow is a crash, not a diagnostic. Detecting one
+means terminating the walk, not rejecting the document: that clause forbids
+rejecting a composition for containing a cycle, so a traversal that meets one
+MUST finish rather than report. The parser's nesting bound does not help here:
+the cycle is in the graph the document describes, not in the document's own
+structure.
 
 **Published references.** Resolving a published reference is `capability`
 ([§6](#validation-layers)) precisely because it needs the catalog. An
