@@ -147,11 +147,23 @@ underscore in a product name into emphasis and an asterisk into a bullet.
 profile in [§4.1](#description-markdown).
 
 `homepageUrl`, `sourceRepoUrl`, and `supportUrl` MUST use the `https`, `http`,
-or `mailto` scheme. A value that does not is rejected in the `structural` phase
-with `ERR_INVALID_VALUE`. The rule is [§4.1](#description-markdown)'s, applied
-to the fields that carry a URL directly rather than inside Markdown —
-`javascript:` in `homepageUrl` is the same stored injection as `javascript:` in
-a description link, and a storefront renders both.
+or `mailto` scheme, in any case. A value that does not is rejected in the
+`structural` phase with `ERR_INVALID_VALUE`. The rule is
+[§4.1](#description-markdown)'s, applied to the fields that carry a URL directly
+rather than inside Markdown — `javascript:` in `homepageUrl` is the same stored
+injection as `javascript:` in a description link, and a storefront renders both.
+
+**The scheme is compared case-insensitively, and this is stated because the
+schema cannot state it.** [RFC 3986 §3.1](https://datatracker.ietf.org/doc/html/rfc3986#section-3.1)
+makes a scheme case-insensitive while naming lowercase as the canonical form, so
+`HTTPS://example.com` is legal-but-non-canonical input rather than a different
+URL. The two placements of this rule must agree on it: a consumer that finds a
+link destination parses it, and parsing normalises the scheme, whereas a JSON
+Schema `pattern` carries no case-insensitive flag and must spell the alternation
+out in character classes to reach the same answer. [§5](#media) spells its
+extension alternation the same way for the same reason. An implementation MAY
+canonicalise a scheme to lowercase before storing it; it MUST NOT reject a
+document for the case of a permitted one.
 
 `category` and `lifecycleStage` are controlled vocabularies, described in
 [§4.2](#vocabularies).
@@ -178,7 +190,7 @@ the rules that make it safe to render. The reasoning is recorded in
 | ID | Rule | Diagnostic |
 |---|---|---|
 | <a id="LIST-MD-001"></a>`LIST-MD-001` | A description MUST NOT contain raw HTML — an *HTML block* ([CommonMark §4.6](https://spec.commonmark.org/0.31.2/#html-blocks)) or *raw HTML* inline ([§6.6](https://spec.commonmark.org/0.31.2/#raw-html)). | `ERR_RAW_HTML` |
-| <a id="LIST-MD-002"></a>`LIST-MD-002` | A link destination MUST use the `https`, `http`, or `mailto` scheme, or be a fragment beginning `#`. | `ERR_DISALLOWED_SCHEME` |
+| <a id="LIST-MD-002"></a>`LIST-MD-002` | A link destination MUST use the `https`, `http`, or `mailto` scheme, in any case ([§4](#presentation)), or be a fragment beginning `#`. | `ERR_DISALLOWED_SCHEME` |
 | <a id="LIST-MD-003"></a>`LIST-MD-003` | An image destination MUST be a media path as defined by [§5](#media). | `ERR_IMAGE_NOT_LOCAL` |
 
 All three are `semantic`. Finding a link destination means parsing the document,

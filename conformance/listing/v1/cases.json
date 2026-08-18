@@ -83,6 +83,16 @@
       "path": "structural/012-support-url-mailto"
     },
     {
+      "id": "structural-013-url-field-uppercase-scheme",
+      "phase": "structural",
+      "path": "structural/013-url-field-uppercase-scheme"
+    },
+    {
+      "id": "structural-014-url-field-uppercase-disallowed-scheme",
+      "phase": "structural",
+      "path": "structural/014-url-field-uppercase-disallowed-scheme"
+    },
+    {
       "id": "semantic-001-duplicate-screenshot-basename",
       "phase": "semantic",
       "path": "semantic/001-duplicate-screenshot-basename"
@@ -136,6 +146,11 @@
       "id": "semantic-011-description-remote-image",
       "phase": "semantic",
       "path": "semantic/011-description-remote-image"
+    },
+    {
+      "id": "semantic-012-description-uppercase-scheme",
+      "phase": "semantic",
+      "path": "semantic/012-description-uppercase-scheme"
     }
   ]
 }

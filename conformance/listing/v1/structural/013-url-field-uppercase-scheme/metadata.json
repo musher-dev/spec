@@ -1,0 +1,7 @@
+{
+  "id": "structural-013-url-field-uppercase-scheme",
+  "phase": "structural",
+  "expected": "pass",
+  "clause": "specifications/listing/v1/spec.md#presentation",
+  "summary": "A scalar URL field accepts a permitted scheme in any case, as the description half does."
+}
