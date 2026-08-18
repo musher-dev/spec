@@ -224,6 +224,8 @@ rules reach a description image too: it MUST resolve to a file that exists and
 MUST lie inside the item root, reported at `/spec/description` with
 `ERR_MEDIA_NOT_FOUND` and `ERR_PATH_ESCAPE`. Basename uniqueness does not — that
 rule is about the screenshot gallery, which a description image is not part of.
+What the destination resolves to for a consumer that does not serve the item
+directory itself is [§5.1](#media-resolution).
 
 **What v1 does not constrain.** A link target is never fetched, so nothing here
 decides whether a permitted scheme points somewhere hostile; that is a
@@ -306,16 +308,79 @@ component reference.
 
 **Basenames must differ across the whole item**, not merely within a
 directory: `media/desktop/overview.png` and `media/mobile/overview.png`
-collide. Published assets are addressed by basename, so two files called
-`overview.png` are one file. The constraint is a real one on an author and is
+collide. A gallery addresses its entries by basename, so two screenshots called
+`overview.png` are one entry. The constraint is a real one on an author and is
 stated here rather than left to be found out when the second screenshot
-silently replaces the first.
+silently replaces the first. It stops at the gallery because
+[§5.1](#media-resolution) keys the published media set on the whole path rather
+than on the basename.
 
 **What v1 does not constrain.** Neither dimensions nor file size are bounded.
 A storefront cannot reserve space for an image whose aspect ratio it does not
 know, so this is a gap rather than a permission — but bounding either one
 rejects listings that validate today, which makes closing it a breaking
 change.
+
+### <a id="media-resolution"></a>5.1 Resolution after ingest
+
+A media path is authoring-time input. It is written against the item root, and
+the item root is a directory in the publisher's repository — a consumer that
+ingests an item and serves it from somewhere else does not have one.
+
+`icon` and `screenshots[].file` survive that move because they are fields. A
+consumer reads them, takes the bytes, and rewrites each field to whatever it
+serves them from; it knows exactly which properties hold a media path. A
+description image survives nothing, because it is inside a Markdown blob:
+nothing enumerates it, so nothing rewrites it, and `media/overview.png` resolves
+against a directory that is no longer there.
+
+**The published media set is that mapping, named.** A consumer serving an item
+from anywhere other than the item directory holds, for each media path the item
+ships, the location it serves those bytes from. A consumer that rewrites `icon`
+already has this mapping — it is what the rewrite is — and this section does no
+more than say a description image is entitled to it.
+
+| ID | Rule | Diagnostic |
+|---|---|---|
+| <a id="LIST-MEDIA-004"></a>`LIST-MEDIA-004` | A consumer that rewrites `icon` or `screenshots[].file` to a location it serves MUST resolve a `description` image destination through the same mapping. | — |
+
+**The mapping is keyed on the media path**, whole and unmodified — not on the
+basename, and not on the location the bytes end up at. This is why
+`LIST-MEDIA-003` stops at the screenshot gallery rather than reaching every
+media path, and why [§4.1](#description-markdown) can exempt a description image
+from it: `media/desktop/overview.png` and `media/mobile/overview.png` are two
+keys, and a consumer that shortened them to one would have made the collision it
+was avoiding.
+
+**The mapping always has an entry.** [§4.1](#description-markdown) already holds
+a description image to `LIST-MEDIA-001`, so an item referencing an image it does
+not ship is rejected before a consumer sees it. The obligation above is never
+asked to resolve something the item did not publish, and a consumer holding a
+description image it has no entry for is holding a document that did not
+validate.
+
+**An image that will not resolve is omitted, never made remote.** A consumer
+that cannot resolve a description image MUST NOT emit a remote URL in its place.
+It MAY omit the `img` element and render the alt text instead, and that is the
+behaviour this section expects of it. The failure mode being forbidden is the
+helpful one: a storefront repairing a broken image by pointing it somewhere
+reachable has reopened the beacon [§4.1](#description-markdown) closed, on a
+page the author no longer controls.
+
+**This binds an implementation's output, which is the second such rule here.**
+[§4.1](#description-markdown)'s renderer clause is the first, and the grounds
+are the same — what a consumer does with a description is not settled by a rule
+about what an author may write. Left unsaid, the resolution is invented once per
+consumer and in private, and a rule each consumer resolves differently is not a
+contract. That is the objection
+[ADR 0004](../../../docs/adr/0004-listing-description-trust-boundary.md) opens
+with, reaching one step further downstream than it did.
+
+**No fixture pins this section.** The corpus validates documents, and nothing in
+it can observe what a storefront emits — the limit ADR 0004 already records for
+the renderer clause. `LIST-MEDIA-004` is carried in the conformance runner's
+`UNPINNED` list with that reason. It is a rule this specification states and
+cannot test, and saying so is better than a fixture that appears to cover it.
 
 ## <a id="validation-layers"></a>6. Validation layers
 
@@ -371,6 +436,15 @@ applies: media dimensions and file size are unbounded ([§5](#media)), a
 checks. Closing any of them rejects documents v1 accepts. See
 [component §10](../../component/v1/spec.md#known-debt).
 
+One debt is of a different kind, and is not closed by rejecting anything.
+[§5.1](#media-resolution) obliges a consumer to resolve a description image
+through the mapping it already holds, and no fixture can watch it do so — the
+corpus validates documents and cannot observe what a storefront emits. It is the
+second clause here in that position, after [§4.1](#description-markdown)'s
+renderer clause, and it is the one carrying a requirement ID — so it is recorded
+in the conformance runner's `UNPINNED` list with its reason, rather than left to
+look covered.
+
 ## <a id="security"></a>10. Security considerations
 
 [Component §11](../../component/v1/spec.md#security) applies in full. What is
@@ -400,6 +474,13 @@ link, and a renderer treats both as a link.
 inside the item rather than a URL. A remote image would make every storefront
 visitor's IP address and user agent visible to a host the listing's author chose,
 turning a catalog page into a tracking beacon on behalf of a third party.
+
+That rule survives ingest or it was never a rule. [§5.1](#media-resolution)
+forbids a consumer from substituting a remote URL for a description image it
+cannot resolve, and the clause is here as well as there because the substitution
+is the *repair* — a storefront doing it is fixing a broken image, not attacking
+anyone, and it reopens the beacon exactly as an author-supplied remote image
+would. A consumer that cannot resolve one omits it.
 
 **Media paths are paths.** `ERR_PATH_ESCAPE` is the listing's form of the
 containment rule; the symlink and resolved-location requirements in
