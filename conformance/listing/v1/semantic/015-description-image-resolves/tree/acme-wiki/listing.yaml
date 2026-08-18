@@ -1,0 +1,26 @@
+# The regression pin for the conforming spelling. §4.1 makes a remote image
+# unspellable, so this is the only way to put an image in a description: a media
+# path the item actually ships. §5.1 is what makes that destination mean
+# something for a consumer that does not serve the item directory itself.
+#
+# The same file backs the screenshot. That is deliberate — one asset referenced
+# twice is one entry in the published media set, and basename uniqueness has
+# nothing to say about it.
+specVersion: v1
+kind: LISTING
+metadata:
+  slug: acme-wiki
+  version: 1
+spec:
+  listingKind: BLUEPRINT
+  displayName: Acme Wiki
+  summary: A wiki backed by PostgreSQL
+  category: PRODUCTIVITY
+  lifecycleStage: STABLE
+  description: |
+    ## Architecture
+
+    ![The deployment topology](media/overview.png)
+  icon: media/icon.png
+  screenshots:
+    - file: media/overview.png

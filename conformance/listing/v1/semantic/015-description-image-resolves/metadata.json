@@ -1,0 +1,11 @@
+{
+  "id": "semantic-015-description-image-resolves",
+  "phase": "semantic",
+  "expected": "pass",
+  "clause": "specifications/listing/v1/spec.md#media-resolution",
+  "requirements": [
+    "LIST-MD-003"
+  ],
+  "summary": "A description image naming a file the item ships validates.",
+  "document": "acme-wiki/listing.yaml"
+}

@@ -151,6 +151,21 @@
       "id": "semantic-012-description-uppercase-scheme",
       "phase": "semantic",
       "path": "semantic/012-description-uppercase-scheme"
+    },
+    {
+      "id": "semantic-013-description-image-absent",
+      "phase": "semantic",
+      "path": "semantic/013-description-image-absent"
+    },
+    {
+      "id": "semantic-014-description-image-escaping-the-item",
+      "phase": "semantic",
+      "path": "semantic/014-description-image-escaping-the-item"
+    },
+    {
+      "id": "semantic-015-description-image-resolves",
+      "phase": "semantic",
+      "path": "semantic/015-description-image-resolves"
     }
   ]
 }

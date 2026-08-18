@@ -1,0 +1,25 @@
+# The description-image counterpart of case 005. `media/diagram.png` is a legal
+# spelling — §5's grammar makes `..` unspellable — and it escapes by symlink
+# instead, so containment has to be decided on the resolved location rather than
+# on the string. §4.1 reaches a description image with the same rule it reaches
+# an icon with, and reports it at `/spec/description`.
+#
+# The link is declared in metadata.json rather than committed. See ADR 0002 §3.
+specVersion: v1
+kind: LISTING
+metadata:
+  slug: acme-wiki
+  version: 1
+spec:
+  listingKind: BLUEPRINT
+  displayName: Acme Wiki
+  summary: A wiki backed by PostgreSQL
+  category: PRODUCTIVITY
+  lifecycleStage: STABLE
+  description: |
+    ## Architecture
+
+    ![The deployment topology](media/diagram.png)
+  icon: media/icon.png
+  screenshots:
+    - file: media/overview.png
