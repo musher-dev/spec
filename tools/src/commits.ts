@@ -4,8 +4,9 @@
  * `.github/conventional-commits.yaml` calls itself the single source of truth
  * and says it is "consumed by .github/workflows/lint-pr.yml". It is not
  * consumed by anything: the workflow inlines the same lists in its `with:`
- * block, and the lefthook commit-msg hook inlines the types again inside a
- * POSIX regex. Three copies, and a comment asking people to keep them in step.
+ * block, and the .config/lefthook.yml commit-msg hook inlines the types again
+ * inside a POSIX regex. Three copies, and a comment asking people to keep them
+ * in step.
  *
  * That is the same defect as a ruleset file documenting a rule it does not
  * carry — a claim a reader will believe and not think to check. The lists
@@ -27,7 +28,7 @@ import { Failures, REPO_ROOT } from './spec.ts'
 
 const SOURCE = join(REPO_ROOT, '.github', 'conventional-commits.yaml')
 const WORKFLOW = join(REPO_ROOT, '.github', 'workflows', 'lint-pr.yml')
-const HOOKS = join(REPO_ROOT, 'lefthook.yml')
+const HOOKS = join(REPO_ROOT, '.config', 'lefthook.yml')
 
 /** A `key:` followed by an indented `- item` list, in a small YAML file. */
 function yamlList(source: string, key: string): string[] {
@@ -106,7 +107,12 @@ function main(): void {
 
   // The hook checks types only — a scope is optional, and the hook's own error
   // text lists the scopes for a human rather than enforcing them.
-  compare('lefthook.yml commit-msg types', types, hookTypes(readFileSync(HOOKS, 'utf8')), failures)
+  compare(
+    '.config/lefthook.yml commit-msg types',
+    types,
+    hookTypes(readFileSync(HOOKS, 'utf8')),
+    failures,
+  )
 
   failures.report(
     `Conventional Commits vocabulary agrees across 3 file(s): ${types.length} type(s), ` +

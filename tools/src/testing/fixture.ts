@@ -44,6 +44,11 @@ export class FixtureRepo {
     writeFileSync(absolute, contents, 'utf8')
   }
 
+  /** Delete a file relative to the repository root. */
+  remove(path: string): void {
+    rmSync(join(this.root, path), { force: true })
+  }
+
   /** Write a family's committed bundle, at the layout the tooling expects. */
   writeBundle(family: string, major: string, doc: Json): string {
     const path = join('specifications', family, major, 'schemas', 'dist', `${family}.schema.json`)
