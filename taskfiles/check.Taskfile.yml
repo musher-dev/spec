@@ -1,0 +1,158 @@
+# Every gate this repository runs, under the `check` namespace.
+#
+# The aggregate entry point is `task check`, defined in the root Taskfile.yml:
+# it runs all of these in the order CI does -- cheap static checks first, then
+# the normative gates, then the ones that need git history.
+#
+# Each check names its config with the tool's own flag. Default discovery is
+# never relied on -- see .config/README.md and docs/adr/0007.
+#
+# `dir:` is absolute via {{.ROOT_DIR}} throughout this directory. A relative
+# `dir:` in an included taskfile resolves against *that file's* directory, so
+# `dir: tools` here would silently mean `taskfiles/tools`.
+version: '3'
+
+tasks:
+  # --- The non-normative surface: formatting, types, and repository layout ---
+
+  format:
+    desc: Check formatting and lint of the tooling sources
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      - bun run biome ci .
+
+  types:
+    desc: Typecheck the tooling sources
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      - bun run tsc --noEmit
+
+  config:
+    desc: Verify the .config/ layout (CFG-01..CFG-08)
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/config.ts
+
+  # --- The normative gates ---------------------------------------------------
+
+  schema:
+    desc: Meta-validate schema modules, $id uniqueness, and $ref locality
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/lint.ts
+
+  drift:
+    desc: Fail if a committed bundle does not match a fresh compile
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/drift.ts
+
+  examples:
+    desc: Validate every example document against its family bundle
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/examples.ts
+
+  conformance:
+    desc: Execute the conformance corpus
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/conformance.ts
+
+  standards:
+    desc: Meta-validate schemas with an independent JSON Schema toolchain
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/standards.ts
+
+  parity:
+    desc: Require Ajv and Blaze to agree on every structural verdict
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/parity.ts
+
+  test:
+    desc: Run the tooling test suite
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      - bun test
+
+  # --- The publication record ------------------------------------------------
+
+  published:
+    desc: Verify every released version against the publication ledger
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/published.ts
+
+  ledger:
+    desc: Fail if published.json changed anything already recorded
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/ledger.ts check
+
+  compat:
+    desc: Replay every released version's accepted documents against the candidate schema
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/compat.ts
+
+  # --- Prose, workflows, and shell -------------------------------------------
+
+  commits:
+    desc: Hold the Conventional Commits vocabulary in step across its three copies
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/commits.ts
+
+  links:
+    desc: Resolve every internal Markdown link and anchor
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/links.ts
+
+  md:
+    desc: Lint Markdown against .config/markdown/markdownlint.jsonc
+    dir: '{{.ROOT_DIR}}'
+    cmds:
+      # pull_request_template.md is excluded because it is a form fragment, not
+      # a document: GitHub renders it into a textarea, so it has no title and
+      # MD041 would be asking it to grow one.
+      - >-
+        tools/node_modules/.bin/markdownlint-cli2
+        --config .config/markdown/markdownlint.jsonc
+        "**/*.md" "#tools/node_modules" "#site" "#.github/pull_request_template.md"
+
+  spelling:
+    desc: Spell-check prose, tooling sources, and schema descriptions
+    dir: '{{.ROOT_DIR}}'
+    cmds:
+      - >-
+        tools/node_modules/.bin/cspell --no-progress --no-summary --unique
+        --config .config/spelling/cspell.json "**/*.md" "tools/src/**/*.ts" "**/*.schema.json"
+
+  shell:
+    desc: ShellCheck the dev container scripts
+    dir: '{{.ROOT_DIR}}'
+    cmds:
+      # --severity is passed here rather than in a config file: .shellcheckrc
+      # has no severity key and ignores unrecognised ones silently.
+      - shellcheck -x --source-path=SCRIPTDIR .devcontainer/scripts/*.sh .devcontainer/scripts/lib/*.sh
+
+  shell:files:
+    desc: ShellCheck specific files (used by the pre-commit hook)
+    dir: '{{.ROOT_DIR}}'
+    cmds:
+      - shellcheck -x --source-path=SCRIPTDIR {{.CLI_ARGS}}
+
+  workflow:
+    desc: Lint the GitHub Actions workflows
+    dir: '{{.ROOT_DIR}}'
+    cmds:
+      - actionlint -config-file .config/actions/actionlint.yaml
+
+  workflow:files:
+    desc: Lint specific workflow files (used by the pre-commit hook)
+    dir: '{{.ROOT_DIR}}'
+    cmds:
+      - actionlint -config-file .config/actions/actionlint.yaml {{.CLI_ARGS}}

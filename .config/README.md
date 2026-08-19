@@ -27,8 +27,9 @@ missing from this table fails CFG-03; a file no caller names fails CFG-04.
 | `spelling/cspell.json` | cspell | `--config .config/spelling/cspell.json` |
 | `spelling/musher.txt` | cspell | Resolved via `dictionaryDefinitions[].path` in `spelling/cspell.json` |
 
-Call sites are [`Taskfile.yml`](../Taskfile.yml), `.config/lefthook.yml`, and
-[`.github/workflows/`](../.github/workflows/). Tool versions are pinned in
+Call sites are [`Taskfile.yml`](../Taskfile.yml), [`taskfiles/`](../taskfiles/),
+`.config/lefthook.yml`, and [`.github/workflows/`](../.github/workflows/).
+Tool versions are pinned in
 [`tools/package.json`](../tools/package.json) for anything installed by Bun,
 and in [`.devcontainer/mise.toml`](../.devcontainer/mise.toml) for the rest —
 with the CI workflow mirroring the same version, because CI is not a mise host

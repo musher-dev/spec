@@ -30,6 +30,10 @@ implementation of what is defined here.
 7. **Exact-version URLs are rebuilt from tags, never from `main`.**
    `tools/src/site.ts` extracts each release from its own tag. Nothing in the
    working tree may feed a path that has already been published.
+8. **Tool configuration lives in `.config/<concern>/`, passed by path.** Never
+   add a config to the repo root when the tool accepts a config flag, and never
+   rely on default discovery — every caller names its config explicitly.
+   `task check:config` enforces this (CFG-01..CFG-08). See docs/adr/0007.
 
 ## Layout
 
@@ -44,6 +48,8 @@ conformance/<family>/v<major>/
   <phase>/<case-id>/   metadata.json + case.yaml + diagnostics.json
 tools/src/*.ts         non-normative Bun scripts — the only language-bound code
 docs/adr/              architecture decision records
+.config/               every linter, formatter, and hook config (see its README)
+taskfiles/             Task modules included by the root Taskfile.yml
 ```
 
 Three families, versioned independently: `component`, `blueprint`, `listing`.

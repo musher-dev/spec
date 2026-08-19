@@ -1,0 +1,27 @@
+# Setup tasks: everything needed to work in this repository.
+#
+# Included by the root Taskfile.yml under the `setup` namespace. The aggregate
+# entry point is `task setup`, defined there.
+#
+# `dir:` is absolute via {{.ROOT_DIR}} throughout this directory. A relative
+# `dir:` in an included taskfile resolves against *that file's* directory, so
+# `dir: tools` here would silently mean `taskfiles/tools`.
+version: '3'
+
+tasks:
+  tools:
+    desc: Install the specification tooling dependencies
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      - bun install
+
+  hooks:
+    desc: Install repository git hooks
+    dir: '{{.ROOT_DIR}}'
+    status:
+      - test -f .git/hooks/pre-commit
+    cmds:
+      # Lefthook reads .config/lefthook.yml, which it finds itself.
+      - cmd: git config --unset core.hooksPath
+        ignore_error: true
+      - lefthook install

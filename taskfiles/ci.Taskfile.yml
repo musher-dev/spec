@@ -1,0 +1,38 @@
+# The two entry points .github/workflows/ci.yml calls, under the `ci` namespace.
+#
+# They exist so the workflow names one task per job rather than a list of
+# checks: a check added to a job is added here, where a developer can run the
+# same job locally, instead of only in YAML nobody executes before pushing.
+#
+# `task check` runs everything; these two are its split into the Lint and
+# Schema jobs. Every check in either must also be in `check`.
+#
+# The leading colon on each reference is load-bearing: inside an included
+# taskfile a bare `task: check:format` resolves within this file's own
+# namespace, as `ci:check:format`, and fails. `:` anchors it to the root.
+version: '3'
+
+tasks:
+  lint:
+    desc: Lint suite as run in CI
+    cmds:
+      - task: :check:format
+      - task: :check:config
+      - task: :check:commits
+      - task: :check:links
+      - task: :check:md
+      - task: :check:spelling
+      - task: :check:shell
+      - task: :check:workflow
+
+  test:
+    desc: Schema and conformance suite as run in CI
+    cmds:
+      - task: :check:schema
+      - task: :check:drift
+      - task: :check:examples
+      - task: :check:conformance
+      - task: :check:standards
+      - task: :check:parity
+      - task: :check:compat
+      - task: :check:test

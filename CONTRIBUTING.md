@@ -51,6 +51,11 @@ task setup     # install tool dependencies and git hooks
 task check     # run everything CI runs
 ```
 
+The tasks live in [`taskfiles/`](taskfiles/), included by the root
+`Taskfile.yml`. Every linter, formatter and hook config lives in
+[`.config/`](.config/README.md), and every caller names its config with the
+tool's own flag — adding one has a fixed shape, described there.
+
 ## Making a change
 
 ```sh
@@ -89,6 +94,7 @@ runner's `UNCOVERED` list saying why the code cannot be exercised.
 |---|---|
 | `check:format` | Biome formatting and lint of `tools/` |
 | `check:types` | TypeScript typecheck of `tools/` |
+| `check:config` | The `.config/` layout: every file indexed, reachable, and a declaration (CFG-01..CFG-08) |
 | `check:schema` | Every `src/` module is valid JSON Schema 2020-12; `$id`s are unique and canonical; no remote `$ref` |
 | `check:drift` | The committed `dist/` bundle matches a fresh compile of `src/` |
 | `check:examples` | Every file in `examples/` validates against its family's bundle |
@@ -100,6 +106,7 @@ runner's `UNCOVERED` list saying why the code cannot be exercised.
 | `check:test` | The tooling test suite, including the publication-immutability regressions |
 | `check:commits` | The Conventional Commits vocabulary agrees across its three copies |
 | `check:links` | Every internal Markdown link and anchor resolves |
+| `check:md` | markdownlint over every Markdown file |
 | `check:spelling` | Prose, tooling, and schema descriptions spell-check clean |
 | `check:shell` | ShellCheck over `.devcontainer/scripts` |
 | `check:workflow` | actionlint over `.github/workflows` |

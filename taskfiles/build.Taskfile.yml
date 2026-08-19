@@ -1,0 +1,41 @@
+# Build and reporting tasks — everything that regenerates a committed artifact.
+#
+# Included flattened, so these keep their bare names (`task bundle`, not
+# `task build:bundle`): CI, the hooks and CONTRIBUTING all call them by name.
+#
+# `dir:` is absolute via {{.ROOT_DIR}} throughout this directory. A relative
+# `dir:` in an included taskfile resolves against *that file's* directory.
+version: '3'
+
+tasks:
+  bundle:
+    desc: Compile schemas/src into the published schemas/dist bundles
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/bundle.ts
+      - bun run src/catalog.ts
+      - bun run src/traceability.ts
+
+  traceability:
+    desc: Regenerate the requirement traceability matrix
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/traceability.ts
+
+  catalog:
+    desc: Regenerate the SchemaStore catalog index
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/catalog.ts
+
+  changes:
+    desc: Report what this branch does to the published contract (BASE=origin/main)
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/changes.ts {{.BASE | default "origin/main"}}
+
+  site:build:
+    desc: Assemble the publication tree served at schemas.musher.dev
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/site.ts
