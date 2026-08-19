@@ -26,6 +26,17 @@ ordinary codebase.
    makes a previously valid document invalid, it is a major release and needs a
    new `v<N>` directory.
 
+   **One exception, and it is closing.** While a family has no published
+   version, a change that would reject a previously valid document needs
+   neither the `v<N>` directory nor a migration note — there is no released
+   version to have validated against, so there is nothing to migrate from.
+   [ADR 0005](docs/adr/0005-platform-divergence-reconciliation.md) §1 sets the
+   rule out and [GOVERNANCE.md](GOVERNANCE.md#compatibility-review) carries it.
+   What the
+   window does **not** remove is maintainer approval, or the obligation to
+   declare the change as breaking in the commit trailer. It closes for a family
+   the moment that family's first tag is created.
+
 ## Development environment
 
 The supported environment is the dev container:
