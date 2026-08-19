@@ -115,6 +115,22 @@ jobs:
             exit 1
           fi
 
+      # Reporting only, and deliberately not a gate: check:compat above is the
+      # gate. This says what the pull request does to the contract in the terms
+      # a reviewer of a specification cares about — which fields are required,
+      # enum members, bounds, defaults, diagnostics — which a JSON diff of a
+      # 900-line bundle does not. Written to the step summary rather than posted as a comment,
+      # so the job needs no write permission on the pull request.
+      - name: Contract change report
+        if: github.event_name == 'pull_request'
+        # base_ref reaches the shell through the environment, never through
+        # ${{ }} interpolation into the script: a branch name is attacker-chosen
+        # on a fork pull request, and interpolation would run it.
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          task changes BASE="origin/$BASE_REF" >> "$GITHUB_STEP_SUMMARY"
+
   # ---------------------------------------------------------------------------
   # Site — prove the publication tree assembles before a release depends on it
   # ---------------------------------------------------------------------------

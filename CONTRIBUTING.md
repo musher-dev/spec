@@ -67,6 +67,12 @@ mkdir -p conformance/component/v1/structural/010-my-new-rule
 task check
 ```
 
+`task changes` reports what your branch does to the contract — fields added and
+removed, which fields are required, enum members, patterns, bounds, defaults,
+diagnostics, and requirement IDs — and says which of those can reject a document
+that validates today. It is reporting, not a gate: `check:compat` is the gate. CI
+runs it on every pull request and writes it to the job summary.
+
 A fixture is a `case.yaml` when the rule is decided by reading one document,
 and a `tree/` when it is decided by reading the item the document sits in —
 a slug against its directory, a reference against a file. See
@@ -87,7 +93,7 @@ runner's `UNCOVERED` list saying why the code cannot be exercised.
 | `check:drift` | The committed `dist/` bundle matches a fresh compile of `src/` |
 | `check:examples` | Every file in `examples/` validates against its family's bundle |
 | `check:conformance` | Every conformance case produces its declared outcome; every declared diagnostic code and requirement ID has a case; every case directory is indexed |
-| `check:standards` | An independent JSON Schema toolchain accepts every module and bundle |
+| `check:standards` | An independent JSON Schema toolchain accepts every module and bundle, and reports no lint finding outside the reviewed exclusions |
 | `check:parity` | Ajv and Blaze agree on every structural verdict |
 | `check:published` | Every released version still hashes to what `published.json` recorded |
 | `check:compat` | No released version's accepted documents are rejected by the candidate schema |

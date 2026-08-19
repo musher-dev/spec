@@ -103,22 +103,32 @@ function main(): void {
     }
   }
 
-  // Advisory. A finding outside the excluded set is worth a reviewer's eye, but
-  // a generic linter's opinion does not get to fail this repository's build.
-  let advisories = 0
+  // Blocking. A finding outside the excluded set fails the build.
+  //
+  // This was advisory, on the reasoning that "a generic linter's opinion does
+  // not get to fail this repository's build". That is right about the six rules
+  // in EXCLUDED_RULES and wrong about the shape: printing a finding nobody has
+  // to act on means a new *class* of finding can appear and stay, indefinitely,
+  // with CI green — and the schemas are about to be rewritten surface by
+  // surface, which is when a linter is worth the most and an ignored line is
+  // worth the least.
+  //
+  // The disagreement is preserved rather than overruled: a rule this repository
+  // does not accept goes in EXCLUDED_RULES with a written reason, which is a
+  // claim a reviewer can argue with. What is no longer available is neither
+  // adopting nor rejecting it.
   for (const family of discoverFamilies()) {
     if (!existsSync(family.bundlePath)) continue
     const { output } = run(['lint', family.bundlePath])
     for (const line of output.split('\n')) {
       const rule = /\(([a-z_]+)\)\s*$/.exec(line)?.[1]
       if (rule === undefined || EXCLUDED_RULES.has(rule)) continue
-      advisories += 1
-      console.log(`  ! ${line.trim()}`)
+      failures.add(
+        `${relativeToRepo(family.bundlePath)}: ${line.trim()}\n` +
+          `      Fix it, or add "${rule}" to EXCLUDED_RULES in tools/src/standards.ts ` +
+          'with a reason a reviewer can disagree with.',
+      )
     }
-  }
-
-  if (advisories > 0) {
-    console.log(`\n  ${advisories} advisory finding(s) outside the reviewed exclusions.`)
   }
 
   failures.report(
