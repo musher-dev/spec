@@ -70,8 +70,10 @@ jobs:
         run: task site:build
 
       # The token is scoped to the musher-schemas Pages project. `task
-      # site:deploy` refuses to run without both, so a missing secret fails the
-      # job instead of deploying anonymously.
+      # site:deploy` refuses to run unless both are set and non-empty, so a
+      # missing secret fails the job instead of deploying anonymously -- an
+      # unset secret arrives here as an empty value, not as an absent one,
+      # which is why the guard tests for emptiness rather than for definedness.
       - name: Deploy to Cloudflare Pages
         run: task site:deploy
         env:
