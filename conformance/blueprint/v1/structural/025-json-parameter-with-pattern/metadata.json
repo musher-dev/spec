@@ -1,0 +1,8 @@
+{
+  "id": "structural-025-json-parameter-with-pattern",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#authored-parameters",
+  "requirements": ["COMP-VAL-002"],
+  "summary": "A regular expression on a JSON parameter is rejected."
+}

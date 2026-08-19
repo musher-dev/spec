@@ -1,0 +1,22 @@
+# The JSON restrictions belong to component §6.3 and this family enforces them
+# on the same terms. Fixtured here because the enforcement is a separate schema
+# module, not because the rule is a separate rule.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  version: 1
+spec:
+  components:
+    db:
+      component: ./components/postgres.yaml
+      size: general.standard.small
+      connections: {}
+  parameters:
+    settings:
+      schema:
+        type: JSON
+        pattern: '^\{.*\}$'
+      isRequired: false
+      ui:
+        label: Advanced settings

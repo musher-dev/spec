@@ -1,0 +1,8 @@
+{
+  "id": "structural-026-json-parameter",
+  "phase": "structural",
+  "expected": "pass",
+  "clause": "specifications/blueprint/v1/spec.md#authored-parameters",
+  "requirements": ["COMP-VAL-001"],
+  "summary": "An authored parameter may take a JSON value."
+}

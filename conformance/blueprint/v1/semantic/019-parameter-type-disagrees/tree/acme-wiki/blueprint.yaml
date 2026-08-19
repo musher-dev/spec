@@ -1,4 +1,4 @@
-# The parameter asks for an INTEGER; the input it covers declares a STRING.
+# The parameter asks for a NUMBER; the input it covers declares a STRING.
 # The deploying user is validated against the parameter's schema and the
 # component then receives the result against its own, so nothing fails until the
 # workload starts.
@@ -20,7 +20,7 @@ spec:
   parameters:
     adminPassword:
       schema:
-        type: INTEGER
+        type: NUMBER
         isSensitive: true
       isRequired: true
       ui:

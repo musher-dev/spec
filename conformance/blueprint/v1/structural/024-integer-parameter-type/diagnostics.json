@@ -1,0 +1,6 @@
+[
+  {
+    "code": "ERR_INVALID_VALUE",
+    "path": "/spec/parameters/replicaCount/schema/type"
+  }
+]

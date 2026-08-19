@@ -1,0 +1,22 @@
+# The component half of this rule is component structural/039. This family
+# carries its own parameter value schema, so a fixture over there proves nothing
+# about a blueprint — the two would drift apart silently and CI would stay
+# green.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  version: 1
+spec:
+  components:
+    db:
+      component: ./components/postgres.yaml
+      size: general.standard.small
+      connections: {}
+  parameters:
+    replicaCount:
+      schema:
+        type: INTEGER
+      isRequired: true
+      ui:
+        label: Replica count

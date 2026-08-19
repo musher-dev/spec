@@ -403,6 +403,53 @@
     "BlueprintParameterValueSchema": {
       "description": "Data contract of an install-form parameter value (JSON-Schema subset).",
       "additionalProperties": false,
+      "allOf": [
+        {
+          "$comment": "spec.md §5.3, the block component §6.3 defines. A JSON value's string form is a JSON document, and one value has many spellings — insignificant whitespace, member order, number formatting. `pattern` and `enum` both decide membership on the spelling, so neither can state a rule about the value.",
+          "if": {
+            "properties": {
+              "type": {
+                "const": "JSON"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "enum": {
+                "maxItems": 0
+              },
+              "pattern": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "$comment": "spec.md §5.3, the block component §6.3 defines. Every `format` member names a lexical convention for text, so the field only refines a STRING. `type` is REQUIRED, so this is a `not` inside the `if` rather than an `else`: a document omitting `type` already reports ERR_MISSING_FIELD and should not also collect a format diagnostic.",
+          "if": {
+            "properties": {
+              "type": {
+                "not": {
+                  "const": "STRING"
+                }
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "format": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ],
       "properties": {
         "default": {
           "description": "Pre-filled value, or null when the deploying user must supply one.",
@@ -417,14 +464,14 @@
           "default": null
         },
         "enum": {
-          "description": "Allowed values when the value is a closed enumeration; empty when unconstrained.",
+          "description": "Allowed values when the value is a closed enumeration; empty when unconstrained. MUST be empty where the type is JSON.",
           "items": {
             "type": "string"
           },
           "type": "array"
         },
         "format": {
-          "description": "Semantic refinement of a STRING value: EMAIL, URI, ENDPOINT_URL, or CONNECTION_STRING; null when unrefined.",
+          "description": "Semantic refinement of a STRING value: EMAIL, URI, ENDPOINT_URL, or CONNECTION_STRING; null when unrefined. MUST be null where the type is not STRING.",
           "anyOf": [
             {
               "enum": [
@@ -447,7 +494,7 @@
           "type": "boolean"
         },
         "pattern": {
-          "description": "Regular expression the supplied value must match, or null when unconstrained.",
+          "description": "Regular expression the supplied value must match, or null when unconstrained. MUST be null where the type is JSON.",
           "anyOf": [
             {
               "type": "string"
@@ -459,11 +506,12 @@
           "default": null
         },
         "type": {
-          "description": "Primitive shape of the value: STRING, INTEGER, or BOOLEAN.",
+          "description": "Shape of the value's string form: STRING is any text, NUMBER a JSON number, BOOLEAN true or false, JSON a JSON document of any kind.",
           "enum": [
             "STRING",
-            "INTEGER",
-            "BOOLEAN"
+            "NUMBER",
+            "BOOLEAN",
+            "JSON"
           ],
           "type": "string"
         }
