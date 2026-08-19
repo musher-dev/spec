@@ -183,7 +183,7 @@ export function configViolations(repoRoot: string = REPO_ROOT): string[] {
   if (!existsSync(configDir) || !statSync(configDir).isDirectory()) {
     problems.push(
       `CFG-01: ${CONFIG_DIR}/ does not exist. Tool configuration lives there — see ` +
-        'docs/adr/0007-tooling-configuration-layout.md.',
+        'docs/adr/0011-tooling-configuration-layout.md.',
     )
     return problems
   }

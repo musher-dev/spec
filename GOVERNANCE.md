@@ -29,7 +29,7 @@ specification disputes. Current maintainers are listed in
 [`.github/CODEOWNERS`](.github/CODEOWNERS).
 
 **Contributors** are anyone opening an issue or pull request. No agreement
-beyond the [DCO](CONTRIBUTING.md#sign-your-work) is required.
+beyond the [DCO](.github/CONTRIBUTING.md#sign-your-work) is required.
 
 ## Decision process
 
@@ -183,4 +183,4 @@ passed.
 
 ## Security
 
-See [SECURITY.md](SECURITY.md).
+See [SECURITY.md](.github/SECURITY.md).

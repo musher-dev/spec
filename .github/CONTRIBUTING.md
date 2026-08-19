@@ -30,8 +30,8 @@ ordinary codebase.
    version, a change that would reject a previously valid document needs
    neither the `v<N>` directory nor a migration note — there is no released
    version to have validated against, so there is nothing to migrate from.
-   [ADR 0005](docs/adr/0005-platform-divergence-reconciliation.md) §1 sets the
-   rule out and [GOVERNANCE.md](GOVERNANCE.md#compatibility-review) carries it.
+   [ADR 0005](../docs/adr/0005-platform-divergence-reconciliation.md) §1 sets the
+   rule out and [GOVERNANCE.md](../GOVERNANCE.md#compatibility-review) carries it.
    What the
    window does **not** remove is maintainer approval, or the obligation to
    declare the change as breaking in the commit trailer. It closes for a family
@@ -51,9 +51,9 @@ task setup     # install tool dependencies and git hooks
 task check     # run everything CI runs
 ```
 
-The tasks live in [`taskfiles/`](taskfiles/), included by the root
+The tasks live in [`taskfiles/`](../taskfiles/), included by the root
 `Taskfile.yml`. Every linter, formatter and hook config lives in
-[`.config/`](.config/README.md), and every caller names its config with the
+[`.config/`](../.config/README.md), and every caller names its config with the
 tool's own flag — adding one has a fixed shape, described there.
 
 ## Making a change
@@ -81,7 +81,7 @@ runs it on every pull request and writes it to the job summary.
 A fixture is a `case.yaml` when the rule is decided by reading one document,
 and a `tree/` when it is decided by reading the item the document sits in —
 a slug against its directory, a reference against a file. See
-[conformance/README.md](conformance/README.md#case-trees).
+[conformance/README.md](../conformance/README.md#case-trees).
 
 Adding a diagnostic code or a requirement ID to a `spec.md` obliges you to add a
 case for it.
@@ -144,8 +144,8 @@ git commit -s -m "feat(component): add restartPolicy"
 ## Proposing a structural change
 
 Changes to the repository architecture, the release model, or the family
-taxonomy need an ADR in [`docs/adr/`](docs/adr/). Copy the format of
-[ADR 0001](docs/adr/0001-canonical-repository-architecture.md), open it as a PR
+taxonomy need an ADR in [`docs/adr/`](../docs/adr/). Copy the format of
+[ADR 0001](../docs/adr/0001-canonical-repository-architecture.md), open it as a PR
 on its own, and get it accepted before writing the implementation.
 
 ## Reporting a problem in the specification

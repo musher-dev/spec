@@ -903,7 +903,7 @@ runner's `UNCOVERED` list rather than left to be assumed tested.
 
 This section is addressed to **implementations**: what a validator, a CLI, or a
 control plane must do so that reading an untrusted component document is safe.
-[SECURITY.md](../../../SECURITY.md) is the separate question of what counts as a
+[SECURITY.md](../../../.github/SECURITY.md) is the separate question of what counts as a
 vulnerability *in this repository* and how to report one.
 
 A component document is untrusted input. It arrives from a pull request, a

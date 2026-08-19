@@ -33,7 +33,7 @@ implementation of what is defined here.
 8. **Tool configuration lives in `.config/<concern>/`, passed by path.** Never
    add a config to the repo root when the tool accepts a config flag, and never
    rely on default discovery — every caller names its config explicitly.
-   `task check:config` enforces this (CFG-01..CFG-08). See docs/adr/0007.
+   `task check:config` enforces this (CFG-01..CFG-08). See docs/adr/0011.
 
 ## Layout
 

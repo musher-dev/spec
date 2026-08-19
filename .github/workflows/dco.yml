@@ -66,7 +66,7 @@ jobs:
 
               git rebase --signoff origin/main && git push --force-with-lease
 
-          See CONTRIBUTING.md → Sign your work.
+          See .github/CONTRIBUTING.md → Sign your work.
           MSG
             exit 1
           fi

@@ -1,4 +1,4 @@
-# ADR 0007: Tool configuration lives in `.config/`, passed by path
+# ADR 0011: Tool configuration lives in `.config/`, passed by path
 
 - **Status:** Accepted
 - **Date:** 2026-08-19

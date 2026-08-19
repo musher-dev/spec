@@ -5,7 +5,7 @@ purpose: if a tool needs a config file and it is not provisioning the
 container, it goes in here.
 
 Policy and rationale:
-[`docs/adr/0007-tooling-configuration-layout.md`](../docs/adr/0007-tooling-configuration-layout.md).
+[`docs/adr/0011-tooling-configuration-layout.md`](../docs/adr/0011-tooling-configuration-layout.md).
 Enforcement: `task check:config` (CFG-01..CFG-08), implemented in
 [`tools/src/config.ts`](../tools/src/config.ts).
 

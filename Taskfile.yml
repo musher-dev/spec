@@ -6,7 +6,7 @@
 # there: `--taskfile` would work but would break bare `task <name>`. It holds
 # the entry points; the tasks themselves live in taskfiles/, included below.
 # Everything else this repository configures lives in .config/ — see
-# .config/README.md and docs/adr/0007-tooling-configuration-layout.md.
+# .config/README.md and docs/adr/0011-tooling-configuration-layout.md.
 
 version: '3'
 

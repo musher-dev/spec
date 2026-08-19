@@ -107,7 +107,7 @@ fails the build if your commit does not match.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [GOVERNANCE.md](GOVERNANCE.md).
+See [CONTRIBUTING.md](.github/CONTRIBUTING.md) and [GOVERNANCE.md](GOVERNANCE.md).
 
 ```sh
 task setup     # install tooling and git hooks

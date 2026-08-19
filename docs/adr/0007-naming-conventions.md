@@ -193,7 +193,7 @@ Everywhere else the `"null"` branch is removed and the field is simply optional.
 
 This ADR is not descriptive. Every table above is a change to at least one
 published module, each lands with conformance fixtures per
-[CONTRIBUTING.md](../../CONTRIBUTING.md) ground rule 2, and each is declared
+[CONTRIBUTING.md](../../.github/CONTRIBUTING.md) ground rule 2, and each is declared
 breaking in its commit trailer per ADR 0005 §1.
 
 ## Alternatives considered
