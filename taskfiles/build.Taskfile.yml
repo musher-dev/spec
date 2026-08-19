@@ -51,8 +51,16 @@ tasks:
     # decided by a reviewed lockfile change, not by whatever `latest` resolves
     # to at deploy time. See GOVERNANCE.md -> Tooling dependencies.
     dir: '{{.ROOT_DIR}}'
-    requires:
-      vars: [CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID]
+    # A precondition rather than `requires: vars:`. GitHub Actions defines an
+    # `env:` key whose secret is unset -- as an empty string -- and Task counts
+    # empty as set, so `requires` passes in the one environment this guard
+    # exists for and wrangler reaches the network unauthenticated.
+    preconditions:
+      - sh: '[ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]'
+        msg: >-
+          CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID must both be set and
+          non-empty. In CI they are repository secrets; see
+          .github/workflows/pages.yml.
     cmds:
       - >-
         {{.TOOLS_DIR}}/node_modules/.bin/wrangler pages deploy {{.SITE_DIR}}
