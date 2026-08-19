@@ -65,7 +65,9 @@ whole directory exists to prevent, and it is one command to rule out.
 | --- | --- | --- |
 | `Taskfile.yml` | Repo root | Task only discovers `Taskfile.*` at the root; `--taskfile` would break bare `task <name>` |
 | `.gitignore`, `.gitattributes` | Repo root | Git reads these from the root only |
-| `.editorconfig` | Repo root | EditorConfig walks up from the file being edited; no config-path flag exists |
+| `.editorconfig` | Repo root | EditorConfig walks up from the file being edited; no config-path flag exists. It is the *single* source for whitespace, line endings and encoding — `devcontainer.json` deliberately does not restate them |
+| `LICENSE`, `NOTICE` | Repo root | GitHub detects a licence at the root only, and Apache-2.0 expects NOTICE to travel with the work |
+| `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md` | `.github/` | Community health files, which GitHub resolves from there |
 | `biome.json`, `tsconfig.json` | `tools/` | They belong to the `tools/` package and are resolved by it — a package's own config, not a repo-level one |
 | `catalog.json`, `published.json` | Repo root | Published data artifacts, not tool configuration |
 | `mise.toml`, `devcontainer.json` | `.devcontainer/` | They provision the environment rather than checking the code |

@@ -111,6 +111,28 @@ This mirrors the carve-out platform reached from the opposite direction, where
 shared frontend configs outgrew `.config/` and became a workspace package once
 they needed to own their dependencies.
 
+### 6. `.editorconfig` stays, and is the only place editor whitespace is stated
+
+`musher-dev/development-container` deletes `.editorconfig` and states editor
+intent once in `devcontainer.json` → `customizations.vscode.settings`. Its own
+rationale names the exception this repository falls under: those settings reach
+VS Code inside the container and nothing else, so a project with contributors
+who work outside the container should keep `.editorconfig`. CONTRIBUTING
+documents exactly that path ("Outside the container you need Bun ≥ 1.3 and
+Task ≥ 3.5"), and this is a public specification anyone may send a patch to.
+
+The drift the template warns about had already happened here. Both files stated
+whitespace independently, and they disagreed: `.editorconfig` exempts Markdown
+from trailing-whitespace trimming, because two trailing spaces are a hard line
+break, and `devcontainer.json` trimmed unconditionally. In-container VS Code was
+silently reformatting prose against the repository's stated rule.
+
+So the direction is reversed rather than the principle: `.editorconfig` is the
+single source, `devcontainer.json` no longer restates whitespace, line endings
+or encoding, and the EditorConfig extension is added so in-container VS Code
+honours the file. `devcontainer.json` keeps what is genuinely VS Code's own —
+rulers, format-on-save, formatter bindings, the local schema associations.
+
 ## Alternatives considered
 
 **Leave the configs at the root.** Zero migration cost, and every tool's
