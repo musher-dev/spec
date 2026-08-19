@@ -32,7 +32,7 @@ Unacceptable behaviour:
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behaviour may be
-reported to the maintainers at **conduct@musher.dev**. All complaints will be
+reported to the maintainers at **<conduct@musher.dev>**. All complaints will be
 reviewed and investigated promptly and fairly. Maintainers are obligated to
 respect the privacy and security of the reporter.
 

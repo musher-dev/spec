@@ -1,0 +1,18 @@
+# actionlint configuration.
+#
+# Read by actionlint via an explicit -config-file path. actionlint's own
+# default is .github/actionlint.yaml; this repository overrides it so every
+# tool config sits in one place. See .config/README.md.
+# Docs: https://github.com/rhysd/actionlint/blob/main/docs/config.md
+
+# No self-hosted runners. GitHub-hosted labels are known to actionlint and need
+# no declaration, so an empty list here is a statement rather than a stub: a
+# workflow naming any other label is a typo, and actionlint will say so.
+self-hosted-runner:
+  labels: []
+
+# Every configuration variable this repository's workflows may read. The list
+# is exhaustive on purpose -- with it, `vars.TYPO` is a build failure instead of
+# an empty string that silently changes what a job does. Add a name here in the
+# same change that adds the variable to the repository settings.
+config-variables: []

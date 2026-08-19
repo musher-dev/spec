@@ -102,6 +102,7 @@ tasks:
       - task: check:test
       - task: check:commits
       - task: check:links
+      - task: check:md
       - task: check:spelling
       - task: check:shell
       - task: check:workflow
@@ -147,6 +148,17 @@ tasks:
     dir: '{{.TOOLS_DIR}}'
     cmds:
       - bun run src/links.ts
+
+  check:md:
+    desc: Lint Markdown against .config/markdown/markdownlint.jsonc
+    cmds:
+      # pull_request_template.md is excluded because it is a form fragment, not a
+      # document: GitHub renders it into a textarea, so it has no title and MD041
+      # would be asking it to grow one.
+      - >-
+        tools/node_modules/.bin/markdownlint-cli2
+        --config .config/markdown/markdownlint.jsonc
+        "**/*.md" "#tools/node_modules" "#site" "#.github/pull_request_template.md"
 
   check:spelling:
     desc: Spell-check prose, tooling sources, and schema descriptions
@@ -228,12 +240,12 @@ tasks:
   check:workflow:
     desc: Lint the GitHub Actions workflows
     cmds:
-      - actionlint
+      - actionlint -config-file .config/actions/actionlint.yaml
 
   check:workflow:files:
     desc: Lint specific workflow files (used by the pre-commit hook)
     cmds:
-      - actionlint {{.CLI_ARGS}}
+      - actionlint -config-file .config/actions/actionlint.yaml {{.CLI_ARGS}}
 
   # ===========================================================================
   # Formatting
@@ -244,6 +256,14 @@ tasks:
     dir: '{{.TOOLS_DIR}}'
     cmds:
       - bun run biome format --write .
+
+  fmt:md:
+    desc: Apply the Markdown fixes markdownlint can make itself
+    cmds:
+      - >-
+        tools/node_modules/.bin/markdownlint-cli2 --fix
+        --config .config/markdown/markdownlint.jsonc
+        "**/*.md" "#tools/node_modules" "#site" "#.github/pull_request_template.md"
 
   # ===========================================================================
   # Environment
@@ -284,6 +304,7 @@ tasks:
       - task: check:config
       - task: check:commits
       - task: check:links
+      - task: check:md
       - task: check:spelling
       - task: check:shell
       - task: check:workflow

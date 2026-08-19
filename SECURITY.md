@@ -4,7 +4,7 @@
 
 Report security issues privately through
 [GitHub Security Advisories](https://github.com/musher-dev/spec/security/advisories/new),
-or by email to **security@musher.dev**.
+or by email to **<security@musher.dev>**.
 
 Please do not open a public issue for a security report.
 

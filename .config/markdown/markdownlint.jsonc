@@ -1,0 +1,48 @@
+// markdownlint rules for this repository's Markdown.
+//
+// Read by markdownlint-cli2 via an explicit --config path; never
+// auto-discovered. The call sites are `check:md` and `fmt:md` in Taskfile.yml.
+// Rule reference: https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
+//
+// Every relaxation below carries its reason, per .config/README.md rule 5.
+{
+  "default": true,
+
+  // Prose here wraps at 80, but the limit is 120 and applies to prose only.
+  // spec.md is largely wide reference tables, and reflowing one to fit costs
+  // more readability than the long line does.
+  "MD013": {
+    "line_length": 120,
+    "tables": false,
+    "code_blocks": false,
+    "headings": false
+  },
+
+  // The `<a id="...">` anchors in spec.md are load-bearing: conformance
+  // fixtures link back to them, so they are part of the contract rather than
+  // decoration. `<br>` is the only way to break a line inside a table cell.
+  // No other element is used, and none should be.
+  "MD033": { "allowed_elements": ["a", "br"] },
+
+  // The specifications and the ADRs deliberately reuse headings such as
+  // "Context" and "Known debt" under different parents. Siblings must still be
+  // unique, which is what this setting keeps enforcing.
+  "MD024": { "siblings_only": true },
+
+  // A bold lead-in opening a paragraph -- "**Positive.** ..." in every ADR,
+  // "**In scope**" in GOVERNANCE -- is this repository's house style, and it is
+  // a lead-in rather than a heading: the text continues on the same line and
+  // the sections it sits inside already have real headings.
+  "MD036": false,
+
+  // A fenced block with no language is how this repository writes directory
+  // trees and terminal output, neither of which has a language to name.
+  "MD040": false,
+
+  // Table pipe alignment is presentation with no effect on rendering, and the
+  // rule cannot fix it -- adopting it would mean hand-realigning 263 pipes
+  // across three normative spec.md files, in tables that carry anchors and
+  // in-cell line breaks. The cost is a large hand edit to normative prose; the
+  // benefit is nil. Revisit if markdownlint gains an autofix for it.
+  "MD060": false
+}

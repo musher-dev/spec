@@ -22,6 +22,10 @@ pre-commit:
       glob: '.config/**'
       run: task check:config
 
+    - name: markdown
+      glob: '**/*.md'
+      run: task check:md
+
     - name: drift
       glob: 'specifications/**/*.schema.json'
       run: task check:drift

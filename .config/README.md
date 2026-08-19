@@ -22,6 +22,8 @@ missing from this table fails CFG-03; a file no caller names fails CFG-04.
 | --- | --- | --- |
 | `lefthook.yml` | lefthook | **Auto-discovered.** Lefthook searches `.config/lefthook.*` natively |
 | `lefthook-local.yml` | lefthook | Auto-discovered and merged. Gitignored; personal overrides only |
+| `actions/actionlint.yaml` | actionlint | `-config-file .config/actions/actionlint.yaml` |
+| `markdown/markdownlint.jsonc` | markdownlint-cli2 | `--config .config/markdown/markdownlint.jsonc` |
 | `spelling/cspell.json` | cspell | `--config .config/spelling/cspell.json` |
 | `spelling/musher.txt` | cspell | Resolved via `dictionaryDefinitions[].path` in `spelling/cspell.json` |
 

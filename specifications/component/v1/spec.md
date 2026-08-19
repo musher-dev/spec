@@ -867,7 +867,6 @@ The profiles, and the report shape a claim should take, are defined in
 A skipped case is never a passed one. An implementation MUST NOT claim a
 profile while skipping any case in a phase that profile requires.
 
-
 ## <a id="known-debt"></a>10. Known debt
 
 This schema was seeded from the platform's Pydantic-generated catalog schema.
