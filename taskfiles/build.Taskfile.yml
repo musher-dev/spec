@@ -1,4 +1,5 @@
-# Build and reporting tasks — everything that regenerates a committed artifact.
+# Build and reporting tasks — everything that regenerates a generated artifact,
+# plus the one step that ships it.
 #
 # Included flattened, so these keep their bare names (`task bundle`, not
 # `task build:bundle`): CI, the hooks and CONTRIBUTING all call them by name.
@@ -39,3 +40,20 @@ tasks:
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
       - bun run src/site.ts
+
+  site:deploy:
+    desc: Deploy the assembled publication tree to Cloudflare Pages
+    # Run from the repo root, not tools/: the tree being uploaded is at the
+    # root, and wrangler resolves --project-name's asset directory from cwd.
+    #
+    # The lockfile-pinned binary rather than `bunx wrangler`. This is the one
+    # tool here that holds a credential, so the version that receives it is
+    # decided by a reviewed lockfile change, not by whatever `latest` resolves
+    # to at deploy time. See GOVERNANCE.md -> Tooling dependencies.
+    dir: '{{.ROOT_DIR}}'
+    requires:
+      vars: [CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID]
+    cmds:
+      - >-
+        {{.TOOLS_DIR}}/node_modules/.bin/wrangler pages deploy {{.SITE_DIR}}
+        --project-name=musher-schemas --branch=main

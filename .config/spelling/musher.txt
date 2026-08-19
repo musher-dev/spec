@@ -30,6 +30,7 @@ deserialisation
 # --- Names and acronyms ------------------------------------------------------
 bluemonday
 Pydantic
+Segoe
 SLSA
 
 # --- Hardware and format vocabulary the schemas name --------------------------
@@ -46,7 +47,9 @@ commonmark
 gpgsign
 metaschema
 nojekyll
+nosniff
 pycache
+quot
 subschema
 subschemas
 Taskfile

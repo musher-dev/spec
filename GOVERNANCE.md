@@ -128,7 +128,8 @@ release-please PR; merging that PR tags the release and triggers publication.
    SHA-256 checksums and a SLSA provenance attestation
 4. The archive is attached to a GitHub Release
 5. The schema is published to `https://schemas.musher.dev/<family>/…`, rebuilt
-   from the tag rather than from `main`
+   from the tag rather than from `main`, with the cache policy for its path
+   generated alongside it
 6. `catalog.json` is regenerated for editor discovery
 
 Released versions are **immutable**. Tag deletion and update are blocked by
@@ -180,6 +181,14 @@ Using it as a CI tool does not place this repository's schemas or prose under
 the AGPL, and no artifact this repository publishes derives from it. A
 contributor without it sees the checks report themselves as skipped rather than
 passed.
+
+One more is worth naming, for a different reason.
+[`wrangler`](https://github.com/cloudflare/workers-sdk) uploads the publication
+tree to Cloudflare Pages, which makes it the only dependency here that is handed
+a credential. It is pinned to an exact version in `tools/package.json` and the
+lockfile rather than fetched at deploy time, so the code that receives the token
+changes only through a reviewed diff under CODEOWNERS. Nothing else in `tools/`
+holds a secret, and nothing published derives from wrangler either.
 
 ## Security
 

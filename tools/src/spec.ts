@@ -13,11 +13,13 @@ export const SPECIFICATIONS_DIR = join(REPO_ROOT, 'specifications')
 export const CONFORMANCE_DIR = join(REPO_ROOT, 'conformance')
 export const SITE_DIR = join(REPO_ROOT, 'site')
 
-export const SCHEMA_ORIGIN = 'https://schemas.musher.dev'
-export const METASCHEMA = 'https://json-schema.org/draft/2020-12/schema'
-
 /** The public hostname the published schemas are served from. */
 export const SITE_HOST = 'schemas.musher.dev'
+export const SCHEMA_ORIGIN = `https://${SITE_HOST}`
+export const METASCHEMA = 'https://json-schema.org/draft/2020-12/schema'
+
+/** This repository, for the links the published pages make back to the prose. */
+export const REPO_URL = 'https://github.com/musher-dev/spec'
 
 export interface Family {
   /** Family name, e.g. `component`. */
