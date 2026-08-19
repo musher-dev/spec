@@ -6,6 +6,7 @@
 # specification has committed to.
 
 # --- Musher domain -----------------------------------------------------------
+healthz
 storefront
 storefronts
 endpointless

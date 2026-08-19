@@ -63,6 +63,12 @@ tasks:
     cmds:
       - bun run src/traceability.ts
 
+  changes:
+    desc: Report what this branch does to the published contract (BASE=origin/main)
+    dir: '{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/changes.ts {{.BASE | default "origin/main"}}
+
   catalog:
     desc: Regenerate the SchemaStore catalog index
     dir: '{{.TOOLS_DIR}}'

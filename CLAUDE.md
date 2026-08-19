@@ -17,7 +17,10 @@ implementation of what is defined here.
    needs a fixture that fails before it and passes after it.
 4. **Validation never becomes stricter inside a major version.** Adding a
    required field, narrowing an enum, tightening a pattern, or removing a field
-   are all breaking and require a new `v<N>` directory.
+   are all breaking and require a new `v<N>` directory — *except* while a family
+   is unpublished, when ADR 0005 §1's pre-publication window removes the
+   directory and the migration note but not the approval or the declaration.
+   `git tag -l` decides which case you are in.
 5. **No executables, no generated language bindings.** Data artifacts only. See
    GOVERNANCE.md → Binary policy.
 6. **`published.json` is append-only.** It records the checksum of every version
@@ -47,7 +50,14 @@ Three families, versioned independently: `component`, `blueprint`, `listing`.
 
 ## Naming rules
 
-Enforced by `tools/src/lint.ts` — do not work around them.
+This table names **repository artifacts** and is enforced by
+`tools/src/lint.ts` — do not work around them. What a **field**, a **value**, or
+a user-authored **mapping key** is called is decided by
+[ADR 0007](docs/adr/0007-naming-conventions.md) instead: `camelCase` properties,
+`UPPER_SNAKE_CASE` enum values, `kind` for the document family and `type` for
+every other discriminator, adjectives rather than `is…` booleans, plural
+collections, `…Ref` references, correctly spelled units, and a named grammar for
+every identifier.
 
 | Thing | Rule | Example |
 |---|---|---|
