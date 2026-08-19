@@ -21,7 +21,7 @@ spec:
     inputs:
       gamePort:
         schema:
-          type: INTEGER
+          type: NUMBER
         ui:
           label: Game server port
         platformDefault:

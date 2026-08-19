@@ -1,0 +1,12 @@
+{
+  "id": "structural-041-json-value-type",
+  "phase": "structural",
+  "expected": "pass",
+  "clause": "specifications/component/v1/spec.md#value-schema",
+  "requirements": ["COMP-VAL-001"],
+  "summary": "A JSON value carries its default as JSON text.",
+  "effective": {
+    "/spec/contract/inputs/settings/schema/pattern": null,
+    "/spec/contract/inputs/settings/schema/format": null
+  }
+}

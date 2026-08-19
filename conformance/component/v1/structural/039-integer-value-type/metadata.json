@@ -1,0 +1,8 @@
+{
+  "id": "structural-039-integer-value-type",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#value-schema",
+  "requirements": ["COMP-VAL-001"],
+  "summary": "A value schema declaring the withdrawn INTEGER shape is rejected."
+}

@@ -653,6 +653,73 @@ leaves nothing unresolved.
 carries the two diagnostics, because the connection is what joins the two ends
 and a component document sees only one of them.
 
+### <a id="value-schema"></a>6.3 Value schemas
+
+An input and an output carry the same `schema` block, and this section defines
+it once. `type` is its only REQUIRED property.
+
+**A value is carried as text.** Whatever an input receives or an output
+publishes reaches the workload as an environment variable, so `type` does not
+name a host language's type — it names the shape the value's **string form**
+takes. That is why `default` is a string, why `enum` is a list of strings, why a
+`DECLARED` output's `value` is a string, and why `pattern` is a regular
+expression over the same form.
+
+<a id="COMP-VAL-001"></a>**`COMP-VAL-001`** — `type` MUST be one of four
+members. Anything else is rejected in the `structural` phase with
+`ERR_INVALID_VALUE`.
+
+| `type` | The string form is | `format` | `pattern` | `enum` |
+|---|---|---|---|---|
+| `STRING` | any text | permitted | permitted | permitted |
+| `NUMBER` | a JSON number — `5432`, `-1`, `2.5` | MUST be null | permitted | permitted |
+| `BOOLEAN` | `true` or `false`, in lower case | MUST be null | permitted | permitted |
+| `JSON` | a JSON value of any kind — object, array, string, number, boolean or null | MUST be null | MUST be null | MUST be empty |
+
+**There is no integer member, and the omission is deliberate.** `NUMBER` is
+JSON's own numeric kind and covers whole numbers and reals alike. An author who
+needs whole numbers writes the constraint rather than reaching for a second
+type: `type: NUMBER` with `pattern: '^-?[0-9]+$'`. A separate `INTEGER` would
+have to answer whether `5432.0` is one, whether an integer output satisfies a
+number input under [blueprint §4.2](../../blueprint/v1/spec.md#connections)'s
+no-widening rule, and what a bound would mean on each — three answers bought for
+a distinction the transport does not preserve.
+
+<a id="COMP-VAL-002"></a>**`COMP-VAL-002`** — Where `type` is `JSON`, `pattern`
+MUST be null and `enum` MUST be empty. Both are `structural`: a non-null
+`pattern` is `ERR_INVALID_TYPE` and a non-empty `enum` is `ERR_INVALID_VALUE`.
+
+One JSON value has many spellings. `{"a":1}` and `{ "a" : 1 }` are the same
+value, and so are `{"a":1,"b":2}` and `{"b":2,"a":1}`. A regular expression and
+a string enumeration each decide membership on the spelling, so a rule written
+with either would accept one author's formatter and reject another's. Permitting
+them and leaving "equal" undefined is the worse option: two implementations
+would then disagree about a valid document for a reason neither could see.
+
+<a id="COMP-VAL-003"></a>**`COMP-VAL-003`** — Where `type` is not `STRING`,
+`format` MUST be null. `structural`, `ERR_INVALID_TYPE`.
+
+Every `format` member — `EMAIL`, `URI`, `ENDPOINT_URL`, `CONNECTION_STRING` —
+names a lexical convention for text. `format: EMAIL` on a `BOOLEAN` describes
+nothing, and that it validates today is an accident of the two fields never
+having been described together. This clause is about the Musher field `format`,
+not the JSON Schema keyword; [§7.2](#format-policy) is that.
+
+**`semanticType` is not paired with `type`.** It tags the backing service a
+value addresses rather than the shape the value takes, so nothing here restricts
+which types may carry which tag — a `JSON` value describing a Postgres cluster
+is as legitimately `POSTGRES` as a connection string is. That the pairing goes
+unchecked in either direction is a gap rather than a considered permission.
+
+**What v1 does not check.** No phase tests a **value** against the shape its
+`schema` declares. A `DECLARED` output may write `type: NUMBER` beside
+`value: 'banana'`; a `default` may ignore the `pattern` and the `enum` written
+beside it; a `JSON` value's `default` is not parsed. None of this is new with
+`JSON` — it has been true of every member since v1 — and it is recorded here
+rather than described aspirationally, because the table above is the first place
+a reader could reasonably expect the check to be. Closing any of them rejects
+documents that validate today.
+
 ## <a id="validation-layers"></a>7. Validation layers
 
 Structural validation is one layer of four. An implementation MUST apply them

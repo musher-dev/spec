@@ -1,4 +1,4 @@
-# `db` publishes an INTEGER port; `web` asks for a STRING. Both ends resolve —
+# `db` publishes a NUMBER port; `web` asks for a STRING. Both ends resolve —
 # the node, the output and the input all exist — so nothing above §4.2's
 # compatibility rule fires. Without it the mismatch reaches the consuming
 # workload at deploy time with nothing pointing back at either document.

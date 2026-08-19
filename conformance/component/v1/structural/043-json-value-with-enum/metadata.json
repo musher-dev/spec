@@ -1,0 +1,8 @@
+{
+  "id": "structural-043-json-value-with-enum",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#value-schema",
+  "requirements": ["COMP-VAL-002"],
+  "summary": "A closed enumeration on a JSON value is rejected."
+}

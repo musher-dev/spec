@@ -1,0 +1,13 @@
+{
+  "id": "structural-040-number-value-type",
+  "phase": "structural",
+  "expected": "pass",
+  "clause": "specifications/component/v1/spec.md#value-schema",
+  "requirements": ["COMP-VAL-001"],
+  "summary": "A NUMBER value constrained to whole numbers by a pattern validates.",
+  "effective": {
+    "/spec/contract/inputs/port/schema/format": null,
+    "/spec/contract/inputs/port/schema/isSensitive": false,
+    "/spec/contract/inputs/port/schema/semanticType": null
+  }
+}

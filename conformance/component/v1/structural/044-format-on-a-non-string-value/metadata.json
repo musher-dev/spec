@@ -1,0 +1,8 @@
+{
+  "id": "structural-044-format-on-a-non-string-value",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#value-schema",
+  "requirements": ["COMP-VAL-003"],
+  "summary": "A format refinement on a value that is not text is rejected."
+}

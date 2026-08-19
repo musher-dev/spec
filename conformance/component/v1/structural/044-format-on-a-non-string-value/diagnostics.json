@@ -1,0 +1,6 @@
+[
+  {
+    "code": "ERR_INVALID_TYPE",
+    "path": "/spec/contract/inputs/retries/schema/format"
+  }
+]

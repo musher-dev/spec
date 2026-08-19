@@ -258,6 +258,36 @@
       "path": "structural/038-probe-defaults-are-effective"
     },
     {
+      "id": "structural-039-integer-value-type",
+      "phase": "structural",
+      "path": "structural/039-integer-value-type"
+    },
+    {
+      "id": "structural-040-number-value-type",
+      "phase": "structural",
+      "path": "structural/040-number-value-type"
+    },
+    {
+      "id": "structural-041-json-value-type",
+      "phase": "structural",
+      "path": "structural/041-json-value-type"
+    },
+    {
+      "id": "structural-042-json-value-with-pattern",
+      "phase": "structural",
+      "path": "structural/042-json-value-with-pattern"
+    },
+    {
+      "id": "structural-043-json-value-with-enum",
+      "phase": "structural",
+      "path": "structural/043-json-value-with-enum"
+    },
+    {
+      "id": "structural-044-format-on-a-non-string-value",
+      "phase": "structural",
+      "path": "structural/044-format-on-a-non-string-value"
+    },
+    {
       "id": "semantic-001-floating-tag-image-reference",
       "phase": "semantic",
       "path": "semantic/001-floating-tag-image-reference"
