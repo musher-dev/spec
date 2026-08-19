@@ -25,7 +25,9 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, isAbsolute, join, normalize } from 'node:path'
+import { effectiveValue, pointerSegments } from './effective.ts'
 import {
+  canonicalJson,
   discoverFamilies,
   Failures,
   type Family,
@@ -35,7 +37,7 @@ import {
   readJson,
   relativeToRepo,
 } from './spec.ts'
-import { type Phase, validateDocument } from './validator.ts'
+import { type Phase, parseDocument, validateDocument } from './validator.ts'
 
 interface CaseIndexEntry {
   readonly id: string
@@ -58,6 +60,15 @@ interface CaseMetadata {
    */
   readonly requirements?: string[]
   readonly summary?: string
+  /**
+   * Effective values this case pins, keyed by JSON Pointer (ADR 0008).
+   *
+   * `expected: "pass"` only. A validator answers whether a document is
+   * accepted; it does not answer what the document *means* where it says
+   * nothing, and two implementations that agree on the first can still
+   * disagree on the second. This map is where the corpus says so.
+   */
+  readonly effective?: Record<string, Json>
   /**
    * Tree cases only (ADR 0002). Path of the document under test, relative to
    * `tree/`. Its containing directory is the item root.
@@ -395,6 +406,28 @@ function checkCaseShape(
     }
   }
 
+  // An `effective` map pins what a document means where it says nothing, which
+  // is only a question about a document that was accepted.
+  if (metadata.effective !== undefined) {
+    if (!isObject(metadata.effective as Json)) {
+      failures.add(`${label}: metadata.effective must be an object keyed by JSON Pointer`)
+      ok = false
+    } else if (metadata.expected !== 'pass') {
+      failures.add(
+        `${label}: metadata.effective is for a passing case. A rejected document has no ` +
+          'effective values — it has diagnostics.',
+      )
+      ok = false
+    } else {
+      for (const pointer of Object.keys(metadata.effective)) {
+        if (pointer === '' || !pointer.startsWith('/')) {
+          failures.add(`${label}: metadata.effective key "${pointer}" is not a JSON Pointer`)
+          ok = false
+        }
+      }
+    }
+  }
+
   if (metadata.expected === 'pass') return ok ? [] : null
 
   const diagnosticsPath = join(caseDir, 'diagnostics.json')
@@ -441,6 +474,67 @@ function checkCaseShape(
  * arriving without a directory has no item root, and the rules measured against
  * one MUST NOT be reported for it.
  */
+/**
+ * Every pinned effective value is the one the contract actually yields.
+ *
+ * ADR 0008. The map is the normative claim; this checks it against the bundle
+ * and the document so a fixture cannot pin a default the schema does not
+ * declare, or contradict a value the author wrote down.
+ */
+function checkEffective(
+  family: Family,
+  caseDir: string,
+  label: string,
+  metadata: CaseMetadata,
+  failures: Failures,
+): boolean {
+  const pinned = metadata.effective
+  if (pinned === undefined || Object.keys(pinned).length === 0) return true
+
+  const source =
+    metadata.document === undefined
+      ? readFileSync(join(caseDir, 'case.yaml'), 'utf8')
+      : readFileSync(join(caseDir, 'tree', metadata.document), 'utf8')
+
+  const parsed = parseDocument(source)
+  if ('errors' in parsed) {
+    failures.add(`${label}: effective values declared on a document that does not parse`)
+    return false
+  }
+
+  const bundle = readJson(family.bundlePath)
+  let ok = true
+
+  for (const [pointer, expected] of Object.entries(pinned)) {
+    let resolution: ReturnType<typeof effectiveValue>
+    try {
+      pointerSegments(pointer)
+      resolution = effectiveValue(bundle, parsed.value, pointer)
+    } catch (error) {
+      failures.add(`${label}: ${pointer} could not be resolved — ${(error as Error).message}`)
+      ok = false
+      continue
+    }
+
+    if (resolution.kind === 'absent') {
+      failures.add(`${label}: ${pointer} pins an effective value but ${resolution.reason}`)
+      ok = false
+      continue
+    }
+
+    if (canonicalJson(resolution.value) !== canonicalJson(expected)) {
+      const from = resolution.kind === 'written' ? 'the document' : 'the schema default'
+      failures.add(
+        `${label}: ${pointer} is pinned as ${JSON.stringify(expected)} but ${from} says ` +
+          `${JSON.stringify(resolution.value)}`,
+      )
+      ok = false
+    }
+  }
+
+  return ok
+}
+
 function runValidation(family: Family, caseDir: string, metadata: CaseMetadata) {
   if (metadata.document === undefined) {
     return validateDocument(family, readFileSync(join(caseDir, 'case.yaml'), 'utf8'))
@@ -505,6 +599,7 @@ function runCase(
 
   if (metadata.expected === 'pass') {
     if (result.ok) {
+      if (!checkEffective(family, caseDir, label, metadata, failures)) return 'failed'
       console.log(`  ✓ ${label}`)
       return 'ran'
     }

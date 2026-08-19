@@ -73,6 +73,7 @@ directory without indexing it is a no-op — index entries are the contract.
 | `summary` | RECOMMENDED. One sentence, present tense. |
 | `document` | REQUIRED for a tree case, forbidden otherwise. Path of the document under test, relative to `tree/`. |
 | `symlinks` | OPTIONAL, tree cases only. Link path → link target, both verbatim. |
+| `effective` | OPTIONAL, `expected: "pass"` only. Effective values this case pins, keyed by JSON Pointer. See [Effective values](#effective-values). |
 
 ### <a id="requirements"></a>Requirement IDs
 
@@ -178,11 +179,51 @@ once is more useful than one that stops at the first.
 | The diagnostic `code` | The human-readable message |
 | The `path` the diagnostic anchors to | The order diagnostics are emitted |
 | The `phase` at which validation fails | Whether extra diagnostics accompany the declared ones |
+| An `effective` value | Whether an implementation stores it or computes it on demand |
 
 Different language parsers emit wildly different error text — `serde_yaml` and
 `gopkg.in/yaml.v3` do not agree on a single string. Pinning codes and phases
 instead of messages is what lets Go, Rust, Python, and TypeScript run the
 identical corpus.
+
+## <a id="effective-values"></a>Effective values
+
+A case declares whether a document is **accepted**. That is not the whole of
+what a document means, and [ADR 0008](../docs/adr/0008-effective-values.md) is
+about the rest of it.
+
+`default` in JSON Schema is an annotation. Validators do not insert it, so two
+implementations can both accept the same document and still disagree about what
+it says — one materialising `periodSeconds: 10` into its object model, one
+leaving the field absent and reading the default when it needs to, and a third
+treating an explicit `null` as different from an omission. All three pass an
+acceptance fixture. Only one of them can be right about how often to poll.
+
+`effective` is where the corpus says which:
+
+```json
+{
+  "expected": "pass",
+  "effective": {
+    "/spec/workload/health/readiness/periodSeconds": 10,
+    "/spec/workload/health/readiness/timeoutSeconds": 5
+  }
+}
+```
+
+The claim is about **behaviour, not representation**. An implementation MAY hold
+the field as absent; what it MUST NOT do is behave differently from one holding
+the value the map declares. Nothing here obliges anyone to rewrite a document.
+
+A key is a JSON Pointer into the document under test. A pointer may name a field
+the author wrote — pinning it asserts the corpus and the document agree — or one
+they omitted, pinning what the contract supplies in its place. A pointer that
+resolves to neither is an error in the fixture: an absent field with no default
+has no effective value, and a case claiming otherwise is claiming something the
+specification does not say.
+
+`effective` is forbidden on a failing case. A rejected document has diagnostics,
+not values.
 
 ## Phases
 

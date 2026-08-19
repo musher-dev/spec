@@ -1,0 +1,15 @@
+{
+  "id": "structural-038-probe-defaults-are-effective",
+  "phase": "structural",
+  "expected": "pass",
+  "clause": "specifications/component/v1/spec.md#health",
+  "summary": "A probe declaring only `path` has the five timing defaults as its effective values.",
+  "effective": {
+    "/spec/workload/health/readiness/path": "/healthz",
+    "/spec/workload/health/readiness/initialDelaySeconds": 10,
+    "/spec/workload/health/readiness/periodSeconds": 10,
+    "/spec/workload/health/readiness/timeoutSeconds": 5,
+    "/spec/workload/health/readiness/successThreshold": 1,
+    "/spec/workload/health/readiness/failureThreshold": 3
+  }
+}

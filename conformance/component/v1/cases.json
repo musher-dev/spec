@@ -253,6 +253,11 @@
       "path": "structural/037-public-hostname-default"
     },
     {
+      "id": "structural-038-probe-defaults-are-effective",
+      "phase": "structural",
+      "path": "structural/038-probe-defaults-are-effective"
+    },
+    {
       "id": "semantic-001-floating-tag-image-reference",
       "phase": "semantic",
       "path": "semantic/001-floating-tag-image-reference"
