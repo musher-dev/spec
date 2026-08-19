@@ -50,7 +50,14 @@ Three families, versioned independently: `component`, `blueprint`, `listing`.
 
 ## Naming rules
 
-Enforced by `tools/src/lint.ts` — do not work around them.
+This table names **repository artifacts** and is enforced by
+`tools/src/lint.ts` — do not work around them. What a **field**, a **value**, or
+a user-authored **mapping key** is called is decided by
+[ADR 0007](docs/adr/0007-naming-conventions.md) instead: `camelCase` properties,
+`UPPER_SNAKE_CASE` enum values, `kind` for the document family and `type` for
+every other discriminator, adjectives rather than `is…` booleans, plural
+collections, `…Ref` references, correctly spelled units, and a named grammar for
+every identifier.
 
 | Thing | Rule | Example |
 |---|---|---|
