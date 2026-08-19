@@ -1,0 +1,26 @@
+# INTEGER was a member of this vocabulary and is not one now. The case exists to
+# make the withdrawal executable rather than declared: it passed before NUMBER
+# replaced INTEGER, and fails after. See ADR 0013.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+    endpoints:
+      web:
+        containerPort: 8080
+        protocol: HTTP
+        visibility: PRIVATE
+  contract:
+    inputs:
+      replicaCount:
+        schema:
+          type: INTEGER
+        ui:
+          label: Replica count
+    outputs: {}

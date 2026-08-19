@@ -1,0 +1,21 @@
+# The positive verdict for the same module, so both branches of the conditional
+# are exercised in this family and not only in the component one.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  version: 1
+spec:
+  components:
+    db:
+      component: ./components/postgres.yaml
+      size: general.standard.small
+      connections: {}
+  parameters:
+    settings:
+      schema:
+        type: JSON
+        default: '{"logLevel":"info"}'
+      isRequired: false
+      ui:
+        label: Advanced settings

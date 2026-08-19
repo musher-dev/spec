@@ -1,5 +1,5 @@
 # Both components declare `adminPassword`, and they disagree about what it is:
-# a STRING for `api`, an INTEGER for `db`. Silent first-wins would hand `db` a
+# a STRING for `api`, a NUMBER for `db`. Silent first-wins would hand `db` a
 # value validated against `api`'s rules and fail at deploy time, a long way from
 # either document.
 #

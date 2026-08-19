@@ -277,7 +277,7 @@ the value, with nothing saying which arrives. That silence is a gap rather than
 a considered permission; closing it rejects compositions that validate today.
 
 **The two ends MUST fit.** Resolving both ends establishes only that they
-exist. A `STRING` output wired into an `INTEGER` input satisfies every rule
+exist. A `STRING` output wired into a `NUMBER` input satisfies every rule
 above, and fails at deploy time inside the consuming workload — the failure
 shape [§5.2](#merge) rejected for input merging, on the grounds that it lands
 "a long way from the two documents that disagreed and with nothing pointing
@@ -291,12 +291,22 @@ are `semantic`, both need the referenced component documents, and both anchor
 at the connection's `fromOutput`.
 
 **`type` MUST be equal.** A mismatch is `ERR_INCOMPATIBLE_TYPE`. No widening is
-permitted, in either direction. An `INTEGER` output feeding a `STRING` input
+permitted, in either direction. A `NUMBER` output feeding a `STRING` input
 looks harmless — everything is a string by the time it reaches a container —
 but *which* string is a decision each language's formatter makes differently,
-and a contract that permitted the wire would be promising a value it cannot
-describe. An author who wants the conversion writes an output that already has
-the type the consumer asked for.
+and `5432`, `5432.0` and `5.432e3` are one value with three spellings. A
+contract that permitted the wire would be promising a value it cannot describe.
+An author who wants the conversion writes an output that already has the type
+the consumer asked for.
+
+**`JSON` is not an exception, and it is the member most likely to look like
+one.** It names a value whose string form is a JSON document
+([component §6.3](../../component/v1/spec.md#value-schema)), not a supertype of
+the other three. A `STRING` output does not satisfy a `JSON` input, and a
+`JSON` output does not satisfy a `STRING` one — in either direction and for
+the same reason: a consumer that will parse what it receives and one that will
+not are asking for different things, and the wire is the last place that
+difference is visible.
 
 **`semanticType` MUST agree where the consumer names one.** A consumer
 declaring `null` accepts any producer: it has said the value is not specific to
@@ -612,7 +622,7 @@ equal that input's, and a mismatch is `ERR_INCOMPATIBLE_PARAMETER_TYPE`,
 anchored at `/spec/parameters/<key>/schema/type`. The deploying user is
 validated against the parameter's schema and the component then receives the
 result against its own: a `STRING` accepted at the form where the workload
-expects an `INTEGER` is the failure [§4.2](#connections) rejected for
+expects a `NUMBER` is the failure [§4.2](#connections) rejected for
 connections and [§5.2](#merge) rejected for merging, arriving through a third
 door.
 
@@ -627,6 +637,17 @@ generated input, and a derived parameter takes the input's `schema` unchanged
 already. Without the same rule here, moving a generated secret onto the override
 path is enough to lose it — and `isSensitive` defaults to `false`, so losing it
 takes no more than not mentioning it.
+
+**A parameter's `schema` is the block
+[component §6.3](../../component/v1/spec.md#value-schema) defines**, minus
+`semanticType`. The `type` vocabulary, the `JSON` restrictions on `pattern`
+and `enum`, and the `STRING` restriction on `format` are that section's and
+are not restated here; this family's schema enforces them on the same terms and
+in the same phase. Naming where a vocabulary is published rather than mirroring
+it is the rule
+[ADR 0003](../../../docs/adr/0003-controlled-vocabulary-placement.md) §2 sets
+out, and a sibling `spec.md` is no more exempt from it than an external
+surface.
 
 **What v1 does not compare.** `format`, `enum`, `pattern`, `default`,
 `isSensitive` and `ui` take no part in whether a parameter covers an input. A

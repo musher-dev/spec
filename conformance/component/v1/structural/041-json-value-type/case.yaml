@@ -1,0 +1,34 @@
+# A JSON value's string form is a JSON document, so its `default` is a string
+# whose content is that document — quoted, or the YAML profile would read it as
+# a flow mapping and reject it against `type: string`. Nothing in any phase
+# parses it: the contract does not check a value against the shape beside it,
+# and that is as true of JSON as of every other member.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+    endpoints:
+      web:
+        containerPort: 8080
+        protocol: HTTP
+        visibility: PRIVATE
+  contract:
+    inputs:
+      settings:
+        schema:
+          type: JSON
+          default: '{"logLevel":"info"}'
+        ui:
+          label: Advanced settings
+    outputs:
+      topology:
+        schema:
+          type: JSON
+        valueFrom: DECLARED
+        value: '{"shards":1}'

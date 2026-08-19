@@ -1,0 +1,34 @@
+# NUMBER is JSON's own numeric kind, so it covers whole numbers and reals alike.
+# An author who needs whole numbers writes the constraint rather than reaching
+# for a second type, and this is what that looks like. The output's `value` is a
+# quoted string because every value is carried as text — the shape names the
+# string form, not a host type.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: postgres:17.10-alpine
+    endpoints:
+      primary:
+        containerPort: 5432
+        protocol: TCP
+        visibility: PRIVATE
+  contract:
+    inputs:
+      port:
+        schema:
+          type: NUMBER
+          pattern: '^-?[0-9]+$'
+        ui:
+          label: Listen port
+    outputs:
+      port:
+        schema:
+          type: NUMBER
+        valueFrom: DECLARED
+        value: '5432'

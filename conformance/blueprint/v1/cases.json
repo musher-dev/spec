@@ -138,6 +138,21 @@
       "path": "structural/023-generated-parameter-marked-insensitive"
     },
     {
+      "id": "structural-024-integer-parameter-type",
+      "phase": "structural",
+      "path": "structural/024-integer-parameter-type"
+    },
+    {
+      "id": "structural-025-json-parameter-with-pattern",
+      "phase": "structural",
+      "path": "structural/025-json-parameter-with-pattern"
+    },
+    {
+      "id": "structural-026-json-parameter",
+      "phase": "structural",
+      "path": "structural/026-json-parameter"
+    },
+    {
       "id": "semantic-001-connection-names-unknown-role",
       "phase": "semantic",
       "path": "semantic/001-connection-names-unknown-role"
