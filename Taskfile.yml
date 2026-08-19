@@ -1,6 +1,12 @@
 # Musher Specification Taskfile
 # Usage: task [task-name]
 # List tasks: task --list
+#
+# This file stays at the repo root because Task only discovers `Taskfile.*`
+# there: `--taskfile` would work but would break bare `task <name>`. It holds
+# the entry points; the tasks themselves live in taskfiles/, included below.
+# Everything else this repository configures lives in .config/ — see
+# .config/README.md and docs/adr/0011-tooling-configuration-layout.md.
 
 version: '3'
 
@@ -13,6 +19,19 @@ env:
   # already provisions, so a rebuild does not re-download the world.
   BUN_INSTALL_CACHE_DIR: '{{.BUN_INSTALL_CACHE_DIR | default "/home/vscode/.cache/bun"}}'
 
+# Namespaced except for build, which is flattened so `task bundle` and
+# `task site:build` keep the names CI, the hooks and CONTRIBUTING use. An
+# included file's `default` becomes the bare namespace, so `task setup` and
+# `task check` still work.
+includes:
+  setup: taskfiles/setup.Taskfile.yml
+  build:
+    taskfile: taskfiles/build.Taskfile.yml
+    flatten: true
+  check: taskfiles/check.Taskfile.yml
+  ci: taskfiles/ci.Taskfile.yml
+  ledger: taskfiles/release.Taskfile.yml
+
 tasks:
   default:
     desc: List available tasks
@@ -21,7 +40,12 @@ tasks:
     silent: true
 
   # ===========================================================================
-  # Setup
+  # Entry points
+  #
+  # The two aggregates live here rather than as a `default` inside their
+  # modules: an included `default` is reachable as the bare namespace, but
+  # `task --list` shows it as `check:default`, which hides the command a
+  # newcomer most needs to find.
   # ===========================================================================
 
   setup:
@@ -30,65 +54,11 @@ tasks:
       - task: setup:tools
       - task: setup:hooks
 
-  setup:tools:
-    desc: Install the specification tooling dependencies
-    dir: '{{.TOOLS_DIR}}'
-    cmds:
-      - bun install
-
-  setup:hooks:
-    desc: Install repository git hooks
-    status:
-      - test -f .git/hooks/pre-commit
-    cmds:
-      - cmd: git config --unset core.hooksPath
-        ignore_error: true
-      - lefthook install
-
-  # ===========================================================================
-  # Build
-  # ===========================================================================
-
-  bundle:
-    desc: Compile schemas/src into the published schemas/dist bundles
-    dir: '{{.TOOLS_DIR}}'
-    cmds:
-      - bun run src/bundle.ts
-      - bun run src/catalog.ts
-      - bun run src/traceability.ts
-
-  traceability:
-    desc: Regenerate the requirement traceability matrix
-    dir: '{{.TOOLS_DIR}}'
-    cmds:
-      - bun run src/traceability.ts
-
-  changes:
-    desc: Report what this branch does to the published contract (BASE=origin/main)
-    dir: '{{.TOOLS_DIR}}'
-    cmds:
-      - bun run src/changes.ts {{.BASE | default "origin/main"}}
-
-  catalog:
-    desc: Regenerate the SchemaStore catalog index
-    dir: '{{.TOOLS_DIR}}'
-    cmds:
-      - bun run src/catalog.ts
-
-  site:build:
-    desc: Assemble the publication tree served at schemas.musher.dev
-    dir: '{{.TOOLS_DIR}}'
-    cmds:
-      - bun run src/site.ts
-
-  # ===========================================================================
-  # Checks
-  # ===========================================================================
-
   check:
     desc: Run every check CI runs
     cmds:
       - task: check:format
+      - task: check:config
       - task: check:types
       - task: check:schema
       - task: check:drift
@@ -101,132 +71,10 @@ tasks:
       - task: check:test
       - task: check:commits
       - task: check:links
+      - task: check:md
       - task: check:spelling
       - task: check:shell
       - task: check:workflow
-
-  check:standards:
-    desc: Meta-validate schemas with an independent JSON Schema toolchain
-    dir: '{{.TOOLS_DIR}}'
-    cmds:
-      - bun run src/standards.ts
-
-  check:parity:
-    desc: Require Ajv and Blaze to agree on every structural verdict
-    dir: '{{.TOOLS_DIR}}'
-    cmds:
-      - bun run src/parity.ts
-
-  check:published:
-    desc: Verify every released version against the publication ledger
-    dir: '{{.TOOLS_DIR}}'
-    cmds:
-      - bun run src/published.ts
-
-  check:ledger:
-    desc: Fail if published.json changed anything already recorded
-    dir: '{{.TOOLS_DIR}}'
-    cmds:
-      - bun run src/ledger.ts check
-
-  check:compat:
-    desc: Replay every released version's accepted documents against the candidate schema
-    dir: '{{.TOOLS_DIR}}'
-    cmds:
-      - bun run src/compat.ts
-
-  check:commits:
-    desc: Hold the Conventional Commits vocabulary in step across its three copies
-    dir: '{{.TOOLS_DIR}}'
-    cmds:
-      - bun run src/commits.ts
-
-  check:links:
-    desc: Resolve every internal Markdown link and anchor
-    dir: '{{.TOOLS_DIR}}'
-    cmds:
-      - bun run src/links.ts
-
-  check:spelling:
-    desc: Spell-check prose, tooling sources, and schema descriptions
-    cmds:
-      - >-
-        tools/node_modules/.bin/cspell --no-progress --no-summary --unique
-        --config cspell.json "**/*.md" "tools/src/**/*.ts" "**/*.schema.json"
-
-  check:test:
-    desc: Run the tooling test suite
-    dir: '{{.TOOLS_DIR}}'
-    cmds:
-      - bun test
-
-  ledger:record:
-    desc: Record the pending release from the release-please manifest
-    dir: '{{.TOOLS_DIR}}'
-    cmds:
-      - bun run src/ledger.ts record
-
-  ledger:sync:
-    desc: Backfill ledger entries for tags that exist but were never recorded
-    dir: '{{.TOOLS_DIR}}'
-    cmds:
-      - bun run src/ledger.ts sync
-
-  check:schema:
-    desc: Meta-validate schema modules, $id uniqueness, and $ref locality
-    dir: '{{.TOOLS_DIR}}'
-    cmds:
-      - bun run src/lint.ts
-
-  check:drift:
-    desc: Fail if a committed bundle does not match a fresh compile
-    dir: '{{.TOOLS_DIR}}'
-    cmds:
-      - bun run src/drift.ts
-
-  check:examples:
-    desc: Validate every example document against its family bundle
-    dir: '{{.TOOLS_DIR}}'
-    cmds:
-      - bun run src/examples.ts
-
-  check:conformance:
-    desc: Execute the conformance corpus
-    dir: '{{.TOOLS_DIR}}'
-    cmds:
-      - bun run src/conformance.ts
-
-  check:format:
-    desc: Check formatting and lint of the tooling sources
-    dir: '{{.TOOLS_DIR}}'
-    cmds:
-      - bun run biome ci .
-
-  check:types:
-    desc: Typecheck the tooling sources
-    dir: '{{.TOOLS_DIR}}'
-    cmds:
-      - bun run tsc --noEmit
-
-  check:shell:
-    desc: ShellCheck the dev container scripts
-    cmds:
-      - shellcheck -x --source-path=SCRIPTDIR .devcontainer/scripts/*.sh .devcontainer/scripts/lib/*.sh
-
-  check:shell:files:
-    desc: ShellCheck specific files (used by the pre-commit hook)
-    cmds:
-      - shellcheck -x --source-path=SCRIPTDIR {{.CLI_ARGS}}
-
-  check:workflow:
-    desc: Lint the GitHub Actions workflows
-    cmds:
-      - actionlint
-
-  check:workflow:files:
-    desc: Lint specific workflow files (used by the pre-commit hook)
-    cmds:
-      - actionlint {{.CLI_ARGS}}
 
   # ===========================================================================
   # Formatting
@@ -237,6 +85,14 @@ tasks:
     dir: '{{.TOOLS_DIR}}'
     cmds:
       - bun run biome format --write .
+
+  fmt:md:
+    desc: Apply the Markdown fixes markdownlint can make itself
+    cmds:
+      - >-
+        tools/node_modules/.bin/markdownlint-cli2 --fix
+        --config .config/markdown/markdownlint.jsonc
+        "**/*.md" "#tools/node_modules" "#site" "#.github/pull_request_template.md"
 
   # ===========================================================================
   # Environment
@@ -267,30 +123,8 @@ tasks:
       - task: check
 
   # ===========================================================================
-  # CI entry points
+  # Housekeeping
   # ===========================================================================
-
-  ci:lint:
-    desc: Lint suite as run in CI
-    cmds:
-      - task: check:format
-      - task: check:commits
-      - task: check:links
-      - task: check:spelling
-      - task: check:shell
-      - task: check:workflow
-
-  ci:test:
-    desc: Schema and conformance suite as run in CI
-    cmds:
-      - task: check:schema
-      - task: check:drift
-      - task: check:examples
-      - task: check:conformance
-      - task: check:standards
-      - task: check:parity
-      - task: check:compat
-      - task: check:test
 
   clean:
     desc: Remove generated output

@@ -1,0 +1,23 @@
+# Publication ledger tasks.
+#
+# Included under the `ledger` namespace: `task ledger:record`, `ledger:sync`.
+# `ledger:check` lives with the other checks, in check.Taskfile.yml, because it
+# is a gate rather than a write.
+#
+# published.json is append-only (see docs/adr/0006). Nothing here edits an
+# entry; `record` adds the pending release, `sync` backfills tags that exist
+# but were never recorded.
+version: '3'
+
+tasks:
+  record:
+    desc: Record the pending release from the release-please manifest
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/ledger.ts record
+
+  sync:
+    desc: Backfill ledger entries for tags that exist but were never recorded
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/ledger.ts sync

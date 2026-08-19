@@ -414,7 +414,6 @@ An implementation MUST declare the **profile** it claims, as
 [conformance/README.md](../../../conformance/README.md#profiles) defines. A
 skipped case is never a passed one.
 
-
 ## <a id="known-debt"></a>9. Known debt
 
 Seeded from the platform's generated schema. The naming that arrived with it

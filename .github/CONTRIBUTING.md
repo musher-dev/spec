@@ -30,8 +30,8 @@ ordinary codebase.
    version, a change that would reject a previously valid document needs
    neither the `v<N>` directory nor a migration note — there is no released
    version to have validated against, so there is nothing to migrate from.
-   [ADR 0005](docs/adr/0005-platform-divergence-reconciliation.md) §1 sets the
-   rule out and [GOVERNANCE.md](GOVERNANCE.md#compatibility-review) carries it.
+   [ADR 0005](../docs/adr/0005-platform-divergence-reconciliation.md) §1 sets the
+   rule out and [GOVERNANCE.md](../GOVERNANCE.md#compatibility-review) carries it.
    What the
    window does **not** remove is maintainer approval, or the obligation to
    declare the change as breaking in the commit trailer. It closes for a family
@@ -50,6 +50,11 @@ Outside the container you need [Bun](https://bun.sh) ≥ 1.3 and
 task setup     # install tool dependencies and git hooks
 task check     # run everything CI runs
 ```
+
+The tasks live in [`taskfiles/`](../taskfiles/), included by the root
+`Taskfile.yml`. Every linter, formatter and hook config lives in
+[`.config/`](../.config/README.md), and every caller names its config with the
+tool's own flag — adding one has a fixed shape, described there.
 
 ## Making a change
 
@@ -76,7 +81,7 @@ runs it on every pull request and writes it to the job summary.
 A fixture is a `case.yaml` when the rule is decided by reading one document,
 and a `tree/` when it is decided by reading the item the document sits in —
 a slug against its directory, a reference against a file. See
-[conformance/README.md](conformance/README.md#case-trees).
+[conformance/README.md](../conformance/README.md#case-trees).
 
 Adding a diagnostic code or a requirement ID to a `spec.md` obliges you to add a
 case for it.
@@ -89,6 +94,7 @@ runner's `UNCOVERED` list saying why the code cannot be exercised.
 |---|---|
 | `check:format` | Biome formatting and lint of `tools/` |
 | `check:types` | TypeScript typecheck of `tools/` |
+| `check:config` | The `.config/` layout: every file indexed, reachable, and a declaration (CFG-01..CFG-08) |
 | `check:schema` | Every `src/` module is valid JSON Schema 2020-12; `$id`s are unique and canonical; no remote `$ref` |
 | `check:drift` | The committed `dist/` bundle matches a fresh compile of `src/` |
 | `check:examples` | Every file in `examples/` validates against its family's bundle |
@@ -100,6 +106,7 @@ runner's `UNCOVERED` list saying why the code cannot be exercised.
 | `check:test` | The tooling test suite, including the publication-immutability regressions |
 | `check:commits` | The Conventional Commits vocabulary agrees across its three copies |
 | `check:links` | Every internal Markdown link and anchor resolves |
+| `check:md` | markdownlint over every Markdown file |
 | `check:spelling` | Prose, tooling, and schema descriptions spell-check clean |
 | `check:shell` | ShellCheck over `.devcontainer/scripts` |
 | `check:workflow` | actionlint over `.github/workflows` |
@@ -137,8 +144,8 @@ git commit -s -m "feat(component): add restartPolicy"
 ## Proposing a structural change
 
 Changes to the repository architecture, the release model, or the family
-taxonomy need an ADR in [`docs/adr/`](docs/adr/). Copy the format of
-[ADR 0001](docs/adr/0001-canonical-repository-architecture.md), open it as a PR
+taxonomy need an ADR in [`docs/adr/`](../docs/adr/). Copy the format of
+[ADR 0001](../docs/adr/0001-canonical-repository-architecture.md), open it as a PR
 on its own, and get it accepted before writing the implementation.
 
 ## Reporting a problem in the specification

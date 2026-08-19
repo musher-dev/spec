@@ -13,7 +13,7 @@ origin — the classic shape of a stored cross-site scripting vulnerability.
 
 Nothing constrains it today. CommonMark permits raw HTML by design, so a
 conforming listing may contain `<script>`, and
-[SECURITY.md](../../SECURITY.md) already names "a schema that accepts a document
+[SECURITY.md](../../.github/SECURITY.md) already names "a schema that accepts a document
 the specification forbids, where the gap has a security consequence" as a
 vulnerability class in this repository.
 

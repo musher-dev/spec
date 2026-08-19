@@ -2,10 +2,17 @@
   "$schema": "https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json",
   "version": "0.2",
   "language": "en-GB",
+
+  // This config sits two levels below the repo root, and cspell resolves the
+  // globs below against the config file's own directory. Without globRoot,
+  // every repo-relative ignorePath would be matched against .config/spelling/,
+  // match nothing, and the check would keep passing while covering less.
+  "globRoot": "../..",
+
   "dictionaryDefinitions": [
     {
       "name": "musher",
-      "path": "./.cspell/musher.txt",
+      "path": "./musher.txt",
       "addWords": true,
       "description": "Musher domain vocabulary and the tooling this repository uses. A word belongs here when it is a term of art, not when it is merely long."
     }
@@ -19,13 +26,18 @@
     "companies"
   ],
   "ignorePaths": [
+    // Vendored or generated: not this repository's prose to correct.
     "**/node_modules/**",
     "site/**",
     "tools/bun.lock",
-    ".cspell/**",
-    "LICENSE",
-    "published.json",
     "**/schemas/dist/**",
+    // The dictionary itself, and a licence whose wording is not ours to edit.
+    ".config/spelling/**",
+    "LICENSE",
+    // Checksums and opaque identifiers, not words.
+    "published.json",
+    // Conformance vectors are chosen for their bytes, including deliberate
+    // misspellings and malformed input. Correcting them would destroy the test.
     "conformance/**/case.yaml",
     "conformance/**/tree/**"
   ],

@@ -41,12 +41,16 @@ webp
 xlarge
 
 # --- Tooling and JSON Schema terms -------------------------------------------
+codespell
 commonmark
 gpgsign
 metaschema
 nojekyll
+pycache
 subschema
 subschemas
+Taskfile
+taskfiles
 unindexed
 unioned
 vendored

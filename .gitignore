@@ -15,5 +15,8 @@ Thumbs.db
 .idea/
 *.swp
 
+# Personal lefthook overrides, auto-merged beside .config/lefthook.yml.
+/.config/lefthook-local.yml
+
 # Task runner cache
 .task/

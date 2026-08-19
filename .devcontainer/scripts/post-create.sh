@@ -30,13 +30,13 @@ on_error() {
 trap 'on_error ${LINENO} "${BASH_COMMAND}"' ERR
 
 # Installs lefthook git hooks for this repo. Best-effort: silently
-# skips if lefthook isn't on PATH yet or no lefthook.yml exists.
+# skips if lefthook isn't on PATH yet or no .config/lefthook.yml exists.
 #
 # Outputs:
 #   Writes progress to stderr via log()
 install_lefthook_hooks() {
   command -v lefthook >/dev/null 2>&1 || return 0
-  [[ -f "${SCRIPT_DIR}/../../lefthook.yml" ]] || return 0
+  [[ -f "${SCRIPT_DIR}/../../.config/lefthook.yml" ]] || return 0
   log "Installing lefthook git hooks..."
   (cd "${SCRIPT_DIR}/../.." && lefthook install >/dev/null 2>&1) || true
 }

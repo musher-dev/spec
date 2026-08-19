@@ -24,7 +24,7 @@ The `semantic` phase does not. Of the twenty-four diagnostic codes the three
 
 None is expressible as a single document, so none had a fixture. They reached
 `main` as prose with CI green, which is the failure mode
-[CONTRIBUTING.md](../../CONTRIBUTING.md) ground rule 2 exists to prevent: "no
+[CONTRIBUTING.md](../../.github/CONTRIBUTING.md) ground rule 2 exists to prevent: "no
 schema change without conformance fixtures."
 
 The rules themselves are not in doubt. Blueprint §3.1 defines the **item root**

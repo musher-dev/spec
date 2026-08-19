@@ -40,7 +40,7 @@ notices.
 
 The prose could say "`periodSeconds` defaults to 10" more loudly. It already
 does. What it cannot do is make the claim **executable** — and
-[CONTRIBUTING.md](../../CONTRIBUTING.md) ground rule 1 makes the corpus the
+[CONTRIBUTING.md](../../.github/CONTRIBUTING.md) ground rule 1 makes the corpus the
 executable form of the prose for observable outcomes, alongside the bundle for
 structural validity. A behaviour the prose asserts and no fixture can hold down
 is exactly the shape of defect ADR 0002 was written to close, one layer up.
