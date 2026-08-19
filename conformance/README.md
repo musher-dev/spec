@@ -190,7 +190,7 @@ identical corpus.
 |---|---|---|
 | `parser` | The Musher YAML profile — [component §7.1](../specifications/component/v1/spec.md#yaml-profile) | Never |
 | `structural` | The family's JSON Schema 2020-12 bundle | Never |
-| `semantic` | Reference resolution, path containment, dependency cycles | Never |
+| `semantic` | Reference resolution, path containment, cross-document agreement | Never |
 | `capability` | Account, region, and quota checks | Server only |
 
 An implementation MUST apply the phases in order and MUST NOT report a

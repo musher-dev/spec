@@ -121,6 +121,14 @@ const BASE_FAMILY = 'component'
 const DIAGNOSTIC_ROW = /^\|\s*`(ERR_[A-Z0-9_]+)`\s*\|\s*`([a-z]+)`\s*\|/
 /** A stable heading anchor, `## <a id="envelope"></a>2. Document envelope`. */
 const SPEC_ANCHOR = /<a id="([^"]+)"><\/a>/g
+/**
+ * A diagnostic code named anywhere in the prose, inside backticks.
+ *
+ * `DIAGNOSTIC_ROW` is anchored to `^|`, so it sees only the registry tables. A
+ * code named in a sentence is the same promise to an implementer and was
+ * matched by nothing — see `checkProseCodes`.
+ */
+const PROSE_CODE = /`(ERR_[A-Z0-9_]+)`/g
 
 interface SpecIndex {
   /** Diagnostic code to the phase the prose assigns it. */
@@ -195,6 +203,23 @@ function registryFor(family: Family): ReadonlyMap<string, Phase> {
   const own = specIndex(family.specPath) ?? EMPTY_INDEX
   const base = specIndex(family.specPath.replace(`/${family.name}/`, `/${BASE_FAMILY}/`))
   return new Map([...(base ?? EMPTY_INDEX).codes, ...own.codes])
+}
+
+/**
+ * Every code any of the three registries declares.
+ *
+ * Deliberately global rather than `registryFor`'s reachable set. A family's
+ * prose legitimately names another family's code — component §3 and §10 name
+ * blueprint's `ERR_UNKNOWN_COMPONENT`, listing §4 names
+ * `ERR_UNREFERENCED_COMPONENT` — and those are citations, not declarations.
+ * What `checkProseCodes` asks is whether the code exists at all.
+ */
+function declaredCodes(): ReadonlySet<string> {
+  const codes = new Set<string>()
+  for (const family of discoverFamilies()) {
+    for (const code of specIndex(family.specPath)?.codes.keys() ?? []) codes.add(code)
+  }
+  return codes
 }
 
 function loadIndex(family: Family, failures: Failures): CaseIndexEntry[] {
@@ -606,6 +631,52 @@ function checkRequirementCoverage(cited: ReadonlySet<string>, failures: Failures
 }
 
 /**
+ * Codes the prose names on purpose without declaring them, and why.
+ *
+ * The same shape as `UNCOVERED` and `UNPINNED`, for the same reason. An entry
+ * here is a claim a reviewer can check, and the list should stay near empty:
+ * naming a code that does not exist is how a withdrawn rule survives.
+ */
+const HYPOTHETICAL: ReadonlyMap<string, string> = new Map([
+  [
+    'ERR_SCHEMA_TOO_OLD',
+    'component §3 names it as a code that deliberately does not exist, to explain why a field from a newer release is reported as ERR_UNKNOWN_FIELD — a validator holding neither definition cannot tell that case from a misspelling',
+  ],
+])
+
+/**
+ * Every diagnostic code the prose names is declared by a registry.
+ *
+ * The third direction, and the one nothing checked. `checkCaseShape` asks
+ * whether a code a *fixture* declares exists; `checkCoverage` asks whether a
+ * code a *registry* declares is fixtured. Neither looks at a code named in a
+ * sentence — which is how blueprint §10 came to reject a cycle §4.2 permits,
+ * with `ERR_CONNECTION_CYCLE`, a code no table has ever defined, and CI green.
+ *
+ * Scoped to the three spec.md files. An ADR is immutable and records withdrawn
+ * codes as history, so a code that no longer exists is correct there; a named
+ * code is a promise only in a normative document.
+ */
+function checkProseCodes(failures: Failures): void {
+  const declared = declaredCodes()
+  for (const family of discoverFamilies()) {
+    if (!existsSync(family.specPath)) continue
+    const lines = readFileSync(family.specPath, 'utf8').split('\n')
+    for (const [offset, line] of lines.entries()) {
+      for (const match of line.matchAll(PROSE_CODE)) {
+        const code = match[1]
+        if (code === undefined || declared.has(code) || HYPOTHETICAL.has(code)) continue
+        failures.add(
+          `${relativeToRepo(family.specPath)}:${offset + 1}: ${code} is named in the prose but ` +
+            'is declared by no diagnostics table. Add it to a registry, or record it in ' +
+            'HYPOTHETICAL with a reason.',
+        )
+      }
+    }
+  }
+}
+
+/**
  * Case directories that no `cases.json` entry names. The index is the contract
  * and the runner never walks the filesystem, so an unindexed directory is not a
  * failing fixture — it is an invisible one, which is worse.
@@ -654,6 +725,7 @@ function main(): void {
   }
 
   checkRequirementCoverage(cited, failures)
+  checkProseCodes(failures)
 
   const suffix = skipped > 0 ? ` (${skipped} skipped)` : ''
   const profile = profileFor(IMPLEMENTED_PHASES) ?? 'none'
