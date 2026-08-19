@@ -74,6 +74,18 @@ checksum of every version this repository has ever released. See
 Once a family is tagged its alias serves that family's newest release; before
 its first tag the alias serves what is committed on `main`.
 
+### How they are served
+
+`https://schemas.musher.dev/` is browsable: it lists every family, and each
+family's page lists every version it has published with that version's checksum.
+
+Every schema is served as `application/schema+json` with CORS open, so a
+browser-based validator can fetch it. An exact-version path is
+`immutable` for a year; an alias revalidates within five minutes of a release.
+Those headers are generated from the same enumeration that assembles the tree,
+so a published path cannot be served a cache policy nobody wrote down. See
+[ADR 0012](docs/adr/0012-cloudflare-pages-publication.md).
+
 ### Offline
 
 Every published schema is a self-contained compound document — all `$ref`s

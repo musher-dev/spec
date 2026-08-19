@@ -197,6 +197,8 @@ jobs:
     if: needs.release-please.outputs.paths_released != '' && needs.release-please.outputs.paths_released != '[]'
     permissions:
       contents: read
-      pages: write
-      id-token: write
+    # A reusable workflow inherits no secrets by default. Without this the
+    # deploy would fail on exactly the run that matters most — the one that
+    # publishes a version at its own immutable URL for the first time.
+    secrets: inherit
     uses: ./.github/workflows/pages.yml
