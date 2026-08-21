@@ -82,11 +82,32 @@
     "find .devcontainer/scripts -name '*.sh' -exec perl -i -pe 's/\\r$//' {} + 2>/dev/null; bash .devcontainer/scripts/initialize.sh"
   ],
 
-  "waitFor": "postCreateCommand",
-  "postCreateCommand": {
-    "fix-crlf": "find .devcontainer/scripts -type f -name '*.sh' -exec sed -i 's/\\r$//' {} +",
-    "setup": ["bash", ".devcontainer/scripts/post-create.sh"]
-  },
+  // Connect as soon as the container exists, not when provisioning ends.
+  //
+  // postCreateCommand still runs to completion and still reports failure — it
+  // simply no longer gates the VS Code connection. That matters because the
+  // cold path is genuinely minutes long (the Claude Code installer dominates
+  // it), and waiting for it meant a developer stared at a connecting window
+  // with no output for the entire install.
+  //
+  // The trade-off, stated plainly: a terminal opened in the first couple of
+  // minutes will not have task, lefthook or claude on PATH yet. They appear as
+  // mise finishes — `remoteEnv` already points PATH at the shim directory, so
+  // no reload is needed, only a new shell.
+  "waitFor": "onCreateCommand",
+
+  // ONE string, deliberately — not the object form this used to be.
+  //
+  // An object-form lifecycle command runs its entries in PARALLEL and buffers
+  // each entry's output until that entry exits. As two named entries, this pair
+  // therefore did neither of the things it looks like it does: the CRLF strip
+  // raced post-create.sh rather than preceding it (both started in the same
+  // millisecond), and the setup entry printed nothing at all for the several
+  // minutes the cold tool install takes — which is indistinguishable from a
+  // hung container, and is what sent a developer looking for a deadlock that
+  // was not there. `&&` restores the ordering, and a string command streams its
+  // output line by line while it runs.
+  "postCreateCommand": "find .devcontainer/scripts -type f -name '*.sh' -exec sed -i 's/\\r$//' {} + && bash .devcontainer/scripts/post-create.sh",
   "postStartCommand": ["bash", ".devcontainer/scripts/startup.sh"],
 
   "customizations": {
