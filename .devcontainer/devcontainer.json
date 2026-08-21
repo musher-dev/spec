@@ -59,10 +59,14 @@
 
     "XDG_CACHE_HOME": "/home/vscode/.cache",
     "NPM_CONFIG_CACHE": "/home/vscode/.cache/npm",
-    "BUN_INSTALL_CACHE_DIR": "/home/vscode/.cache/bun",
+    "BUN_INSTALL_CACHE_DIR": "/home/vscode/.cache/bun"
 
-    "MUSHER_INSTALL_CLAUDE": "1",
-    "MUSHER_INSTALL_CODEX": "1"
+    // MUSHER_INSTALL_CLAUDE and MUSHER_INSTALL_CODEX are deliberately NOT set
+    // here. containerEnv becomes `docker run -e`, and an explicit -e beats
+    // --env-file for the same name whichever order they appear in — so pinning
+    // them to "1" here silently overrode the `.devcontainer/.env` opt-out that
+    // .env.example tells developers to use. The scripts default to on when the
+    // variable is unset, which leaves .env as the single place that decides.
   },
 
   "remoteEnv": {
