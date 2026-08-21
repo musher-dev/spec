@@ -68,6 +68,29 @@ install_wanted() {
   esac
 }
 
+# Runs a command under a wall-clock ceiling, when `timeout` is available.
+#
+# Every network install below used to run unbounded. A stalled connection parks
+# postCreateCommand for as long as the kernel keeps the socket, and a lifecycle
+# command shows no output until it exits, so an unbounded install is
+# indistinguishable from a hung container. A ceiling turns "hangs forever" into
+# "fails, and the container is still usable".
+#
+# Arguments:
+#   $1 — ceiling in seconds
+#   $@ — command and arguments to execute
+# Returns:
+#   The command's status, or 124 if the ceiling was reached
+bounded() {
+  local seconds="${1:?usage: bounded <seconds> <command...>}"
+  shift
+  if has_cmd timeout; then
+    timeout --foreground "${seconds}" "$@"
+  else
+    "$@"
+  fi
+}
+
 # Runs a command with sudo if available, otherwise without.
 #
 # Arguments:

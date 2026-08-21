@@ -95,7 +95,8 @@ base_install_mise() {
     return 0
   fi
   log "Installing mise (https://mise.run)..."
-  retry 3 5 bash -c 'curl -fsSL https://mise.run | sh'
+  retry 3 5 bounded 300 bash -c \
+    'curl -fsSL --connect-timeout 10 --max-time 120 https://mise.run | sh'
 }
 
 # Installs the CLIs pinned in .devcontainer/mise.toml (tools with no Feature),
@@ -127,7 +128,7 @@ base_install_tools() {
   log "Installing pinned CLIs from ${config}..."
   debug "MISE_DISABLE_TOOLS=${MISE_DISABLE_TOOLS:-<unset>}"
   "${mise}" trust "${config}" >/dev/null 2>&1 || true
-  retry 3 5 "${mise}" install
+  retry 3 5 bounded 900 "${mise}" install
   "${mise}" reshim >/dev/null 2>&1 || true
 }
 
@@ -149,7 +150,10 @@ base_install_claude() {
     return 0
   fi
   log "Installing Claude Code (native installer)..."
-  retry 3 5 bash -c 'curl -fsSL https://claude.ai/install.sh | bash'
+  # install.sh itself downloads a platform binary of its own, so the ceiling has
+  # to cover the whole pipeline rather than just the fetch of the script.
+  retry 3 5 bounded 900 bash -c \
+    'curl -fsSL --connect-timeout 10 --max-time 120 https://claude.ai/install.sh | bash'
 }
 
 # --- Verify ---
@@ -190,6 +194,14 @@ base_setup() {
   base_install_mise
   base_install_tools
   base_install_claude
-  base_verify_tools
+
+  # Verification reports; it no longer aborts. `set -e` used to let one missing
+  # CLI end post-create.sh right here, which skipped the repo-specific setup
+  # that follows it — git hooks and `bun install` — and left the container in a
+  # worse state than the single missing tool warranted. The status rides out on
+  # the return code instead, so the failure is still loud.
+  local verified=0
+  base_verify_tools || verified=$?
   log "Base setup complete"
+  return "${verified}"
 }

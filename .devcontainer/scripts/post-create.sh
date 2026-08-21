@@ -67,10 +67,18 @@ install_spec_tools() {
 #   Writes progress to stderr via log()
 main() {
   log "Starting post-create setup..."
-  base_setup
+  # base_setup reports a missing tool through its status rather than aborting,
+  # so the repo-specific steps below still run. Carry the status to the exit
+  # code so a half-provisioned container is still reported as one.
+  local status=0
+  base_setup || status=$?
   install_lefthook_hooks
   # --- Repo-specific setup ---
   install_spec_tools
+  if ((status != 0)); then
+    log "Post-create setup completed with MISSING TOOLS (see the ✗ lines above)"
+    return "${status}"
+  fi
   log "Post-create setup completed"
 }
 
