@@ -39,11 +39,16 @@ ensure_env_file() {
   fi
 }
 
+# `perl -i`, not `sed -i`: this runs on the HOST, and BSD sed — every macOS
+# host — reads the next argument as the backup suffix, so `sed -i 's/\r$//' f`
+# consumes the expression and then treats f as the script. It exits non-zero,
+# which under `set -e` would take the whole initializeCommand down with it.
+# perl -i means the same thing on both host families.
 strip_crlf() {
   [[ -f "${ENV_FILE}" ]] || return 0
   if grep -q $'\r' "${ENV_FILE}" 2>/dev/null; then
     log "Stripping CRLF from .devcontainer/.env"
-    sed -i 's/\r$//' "${ENV_FILE}"
+    perl -i -pe 's/\r$//' "${ENV_FILE}"
   fi
 }
 

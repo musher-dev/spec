@@ -72,10 +72,14 @@
   // Host-side: creates .devcontainer/.env from the template and strips CRLF so
   // --env-file above has a valid target on a fresh clone. Run through `bash -c`
   // so CRLF in the script files cannot break the strip-and-run bootstrap.
+  //
+  // `perl -i`, not `sed -i`. This one runs on the host, and BSD sed — every
+  // macOS host — reads the next argument as the backup suffix, so the strip
+  // exited non-zero and never happened; `2>/dev/null` then hid that it hadn't.
   "initializeCommand": [
     "bash",
     "-c",
-    "find .devcontainer/scripts -name '*.sh' -exec sed -i 's/\\r$//' {} + 2>/dev/null; bash .devcontainer/scripts/initialize.sh"
+    "find .devcontainer/scripts -name '*.sh' -exec perl -i -pe 's/\\r$//' {} + 2>/dev/null; bash .devcontainer/scripts/initialize.sh"
   ],
 
   "waitFor": "postCreateCommand",
