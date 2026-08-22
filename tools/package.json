@@ -25,12 +25,12 @@
     "yaml": "2.9.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.8",
-    "@sourcemeta/jsonschema": "^16.7.0",
+    "@biomejs/biome": "2.5.9",
+    "@sourcemeta/jsonschema": "^16.8.0",
     "@types/bun": "1.3.14",
     "@types/commonmark": "0.27.10",
-    "cspell": "9",
-    "markdownlint-cli2": "0.22.1",
+    "cspell": "10",
+    "markdownlint-cli2": "0.23.2",
     "typescript": "7.0.2",
     "wrangler": "4.124.0"
   }
