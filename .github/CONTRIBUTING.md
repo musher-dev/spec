@@ -138,7 +138,11 @@ Types: `feat`, `fix`, `perf`, `docs`, `chore`, `refactor`, `test`, `ci`,
 `build`, `style`, `revert`.
 
 Scopes: `component`, `blueprint`, `listing`, `conformance`, `tools`, `ci`,
-`devcontainer`, `docs`, `repo`, `deps`.
+`devcontainer`, `docs`, `repo`, `deps`, `deps-dev`.
+
+`deps` and `deps-dev` are Dependabot's: a dependency update arrives as
+`build(deps):`, `build(deps-dev):`, or `ci(deps):`. See
+[ADR 0016](../docs/adr/0016-dependency-update-policy.md).
 
 Releases are cut by [release-please](https://github.com/googleapis/release-please)
 from these messages. A `feat(component):` commit produces a `component/v1.x.0`
@@ -154,6 +158,11 @@ Every commit must carry a `Signed-off-by` trailer:
 ```sh
 git commit -s -m "feat(component): add restartPolicy"
 ```
+
+The trailer's name and email must match the commit's author. One exception, for
+a GitHub App: an app signs under its operator's address rather than the noreply
+address its commits are authored from, so a bot's sign-off is matched on name
+alone. See [ADR 0016](../docs/adr/0016-dependency-update-policy.md).
 
 ## Proposing a structural change
 

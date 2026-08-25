@@ -106,7 +106,7 @@ tasks:
   # --- Prose, workflows, and shell -------------------------------------------
 
   commits:
-    desc: Hold the Conventional Commits vocabulary in step across its three copies
+    desc: Hold the Conventional Commits vocabulary in step across all five of its copies
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
       - bun run src/commits.ts

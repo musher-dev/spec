@@ -4,6 +4,21 @@ name: DCO
 # Developer Certificate of Origin sign-off on every commit. Until this workflow
 # existed, nothing checked it — the requirement lived entirely in prose, which
 # is the same as not having it.
+#
+# One narrow exception, for a GitHub App. The DCO certifies provenance by a
+# legal person, and for an app that person is its operator, not the app: a
+# Dependabot commit is authored as
+# `dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>` and
+# signed off by GitHub, Inc. as `dependabot[bot] <support@github.com>`. The
+# names agree; the addresses cannot, because neither field is the other's to
+# set. Demanding they match rejected a sign-off that was present and valid, and
+# left every dependency update mergeable only through the org-admin bypass —
+# the habit docs/adr/0015-selective-code-owner-review.md was written to end.
+# See docs/adr/0016-dependency-update-policy.md.
+#
+# This is a paper trail, not a security control, and the exception widens
+# nothing: anyone who would forge a bot's sign-off can already author under a
+# bot's address, or simply type the trailer themselves.
 
 on:
   pull_request:
@@ -41,13 +56,25 @@ jobs:
 
           for sha in $commits; do
             author="$(git show -s --format='%an <%ae>' "$sha")"
+            name="$(git show -s --format='%an' "$sha")"
+            email="$(git show -s --format='%ae' "$sha")"
             subject="$(git show -s --format='%s' "$sha")"
 
             # Trailers only — a "Signed-off-by" written into the body is not a
             # sign-off, and %(trailers) is what git itself considers one.
-            if git show -s --format='%(trailers:key=Signed-off-by,valueonly)' "$sha" \
-                 | grep -qxF "$author"; then
+            trailers="$(git show -s --format='%(trailers:key=Signed-off-by,valueonly)' "$sha")"
+
+            # A GitHub App: both halves of the identity must say so, and the
+            # trailer still has to name the same author. Only the address is
+            # allowed to differ, because only the address is out of its hands.
+            case "$name" in *'[bot]') bot=1 ;; *) bot=0 ;; esac
+            case "$email" in *'[bot]@users.noreply.github.com') ;; *) bot=0 ;; esac
+
+            if printf '%s\n' "$trailers" | grep -qxF "$author"; then
               echo "  ✓ ${sha:0:8} ${subject}"
+            elif [ "$bot" -eq 1 ] \
+                 && printf '%s\n' "$trailers" | sed -E 's/ *<[^>]*>$//' | grep -qxF "$name"; then
+              echo "  ✓ ${sha:0:8} ${subject} — app sign-off by ${name}"
             else
               echo "::error::${sha:0:8} (${subject}) has no Signed-off-by matching its author ${author}"
               failed=1
