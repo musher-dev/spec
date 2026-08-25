@@ -88,6 +88,19 @@ case for it.
 `check:conformance` fails otherwise, and the only way out is an entry in the
 runner's `UNCOVERED` list saying why the code cannot be exercised.
 
+### How your pull request merges
+
+There is no blanket review requirement. A pull request that touches no path
+listed in [`.github/CODEOWNERS`](CODEOWNERS) — which today is only the review
+gate's own two configuration files — merges once the required checks are green:
+`Lint`, `Schema`, `Site Build`, and `Signed off`. Nobody has to approve it.
+
+That is a deliberate trade, not an oversight. It puts the weight on the checks
+below, which is where it belongs for a repository whose contract is machine
+verifiable. [ADR 0015](../docs/adr/0015-selective-code-owner-review.md) explains
+it, and GOVERNANCE.md still asks for a maintainer's eyes on a change of
+consequence even where nothing blocks the merge.
+
 `task check` runs, in order:
 
 | Step | What it enforces |
@@ -95,6 +108,7 @@ runner's `UNCOVERED` list saying why the code cannot be exercised.
 | `check:format` | Biome formatting and lint of `tools/` |
 | `check:types` | TypeScript typecheck of `tools/` |
 | `check:config` | The `.config/` layout: every file indexed, reachable, and a declaration (CFG-01..CFG-08) |
+| `check:rulesets` | The two halves of the review gate agree, and no required status check can hang a pull request (RUL-01..RUL-09) |
 | `check:schema` | Every `src/` module is valid JSON Schema 2020-12; `$id`s are unique and canonical; no remote `$ref` |
 | `check:drift` | The committed `dist/` bundle matches a fresh compile of `src/` |
 | `check:examples` | Every file in `examples/` validates against its family's bundle |

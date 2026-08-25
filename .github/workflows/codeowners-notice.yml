@@ -1,0 +1,185 @@
+name: CODEOWNERS Notice
+
+# The compensating control for the one hole in the selective review gate.
+#
+# GitHub cannot request a review from a pull request's author, so authorship
+# waives the code-owner requirement for the patterns that author owns. On this
+# repository both owned paths have a single owner, which means the person most
+# able to change the gate is exactly the person the gate never stops. Nothing
+# would be reviewed and nobody would be told.
+#
+# So this workflow tells them. It posts, updates, and removes one sticky comment
+# listing the paths in the pull request that its own author owns.
+#
+# It is a NOTIFIER, not a gate: it validates nothing, blocks nothing, and must
+# never be added to the required checks in .github/rulesets/main-branch.json
+# (`task check:rulesets` RUL-09 would accept it; the ruleset should not). A
+# failure of the notifier itself still fails the workflow so it cannot rot
+# unnoticed.
+#
+# Ownership matching approximates CODEOWNERS with `git check-ignore -v`, whose
+# last-match-wins precedence is identical. The two places the approximation
+# would diverge -- `!` negation and `[ ]` ranges -- are rejected by RUL-06, so
+# it is exact for any file that passes CI.
+#
+# See docs/adr/0015-selective-code-owner-review.md.
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: codeowners-notice-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  self-owned-notice:
+    name: Self-owned paths notice
+    # Drafts are skipped; `ready_for_review` re-fires this when the pull request
+    # leaves draft.
+    if: github.event.pull_request.draft == false && !endsWith(github.event.pull_request.user.login, '[bot]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      # CODEOWNERS is read from the base branch -- the same file GitHub itself
+      # uses to compute this pull request's review requirements. Reading the
+      # head would let a pull request rewrite the rules it is judged by.
+      - name: Check out the base branch CODEOWNERS
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.base.sha }}
+          sparse-checkout: .github/CODEOWNERS
+          sparse-checkout-cone-mode: false
+
+      - name: Detect author-owned changed paths
+        id: detect
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          set -euo pipefail
+
+          codeowners=.github/CODEOWNERS
+          if [[ ! -f "$codeowners" ]]; then
+            echo "no CODEOWNERS on the base branch; nothing to notice"
+            echo "self_owned=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          workdir=$(mktemp -d)
+
+          # Translate CODEOWNERS into a parallel pair: a gitignore-style pattern
+          # file with blank lines preserved so line numbers align, and a map
+          # from line number to that line's owners.
+          declare -A owners_by_line
+          lineno=0
+          while IFS= read -r raw; do
+            lineno=$((lineno + 1))
+            line="${raw%%#*}"
+            line="$(echo "$line" | xargs || true)"
+            if [[ -z "$line" ]]; then
+              echo "" >> "$workdir/patterns"
+              continue
+            fi
+            read -r pattern owners <<< "$line"
+            echo "$pattern" >> "$workdir/patterns"
+            owners_by_line[$lineno]="$owners"
+          done < "$codeowners"
+
+          gh api --paginate "/repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/files" \
+            --jq '.[].filename' > "$workdir/changed" || true
+          if [[ ! -s "$workdir/changed" ]]; then
+            echo "self_owned=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # An empty scratch repository isolates matching from this repository's
+          # own .gitignore. `check-ignore -v` reports the LAST matching pattern
+          # per path, which is exactly CODEOWNERS precedence.
+          git init -q "$workdir/scratch"
+          git -C "$workdir/scratch" -c "core.excludesFile=$workdir/patterns" \
+            check-ignore -v --no-index --stdin \
+            < "$workdir/changed" > "$workdir/matches" || true
+
+          author_lc="${PR_AUTHOR,,}"
+          : > "$workdir/self_owned"
+          while IFS= read -r match; do
+            src_line="${match%%$'\t'*}"
+            file="${match#*$'\t'}"
+            matched_lineno="$(cut -d: -f2 <<< "$src_line")"
+            owners="${owners_by_line[$matched_lineno]:-}"
+            # A pattern with no owner is the documented explicitly-unowned carve-out.
+            [[ -z "$owners" ]] && continue
+            owners_lc="${owners,,}"
+            read -ra owner_list <<< "$owners_lc"
+            is_author_owner=false
+            for owner in "${owner_list[@]}"; do
+              [[ "$owner" == "@${author_lc}" ]] && is_author_owner=true
+            done
+            [[ "$is_author_owner" == false ]] && continue
+            if [[ "${#owner_list[@]}" -eq 1 ]]; then
+              echo "- \`${file}\` — you are the **sole owner**; no review will be requested" >> "$workdir/self_owned"
+            else
+              echo "- \`${file}\` — co-owned (\`${owners}\`); the other owners were requested" >> "$workdir/self_owned"
+            fi
+          done < "$workdir/matches"
+
+          {
+            echo "self_owned<<SELF_OWNED_EOF"
+            cat "$workdir/self_owned"
+            echo "SELF_OWNED_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upsert or remove the sticky comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          SELF_OWNED: ${{ steps.detect.outputs.self_owned }}
+        run: |
+          set -euo pipefail
+
+          marker='<!-- codeowners-self-edit-notice -->'
+          all_ids=$(gh api --paginate \
+            "/repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
+            --jq ".[] | select(.body | startswith(\"$marker\")) | .id")
+          existing_id="${all_ids%%$'\n'*}"
+
+          if [[ -z "$SELF_OWNED" ]]; then
+            if [[ -n "$existing_id" ]]; then
+              gh api --method DELETE \
+                "/repos/${GITHUB_REPOSITORY}/issues/comments/${existing_id}"
+              echo "removed stale notice (no self-owned paths remain)"
+            else
+              echo "no self-owned paths; nothing to do"
+            fi
+            exit 0
+          fi
+
+          body="$(printf '%s\n' \
+            "$marker" \
+            '### You own some of the paths this pull request changes' \
+            '' \
+            "@${PR_AUTHOR}, this pull request touches paths you are a code owner for. Your authorship **waives the code-owner review requirement** — GitHub cannot request a review from a pull request's author — so nobody is automatically notified about these changes:" \
+            '' \
+            "$SELF_OWNED" \
+            '' \
+            'Double-check they are intentional. If you want a second pair of eyes, request a review manually. (Automated notice from the codeowners-notice workflow — ADR 0015.)')"
+
+          if [[ -n "$existing_id" ]]; then
+            gh api --method PATCH \
+              "/repos/${GITHUB_REPOSITORY}/issues/comments/${existing_id}" \
+              -f body="$body" > /dev/null
+            echo "updated existing notice"
+          else
+            gh api --method POST \
+              "/repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
+              -f body="$body" > /dev/null
+            echo "posted notice"
+          fi

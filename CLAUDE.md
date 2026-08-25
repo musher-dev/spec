@@ -38,6 +38,13 @@ implementation of what is defined here.
    add a config to the repo root when the tool accepts a config flag, and never
    rely on default discovery — every caller names its config explicitly.
    `task check:config` enforces this (CFG-01..CFG-08). See docs/adr/0011.
+9. **Review is a code-owner gate, not a blanket approval.** A pull request
+   touching no path in `.github/CODEOWNERS` merges on green CI; one touching an
+   owned path needs that owner. The two halves — `required_approving_review_count:
+   0` plus `require_code_owner_review: true`, and a CODEOWNERS with no `*`
+   catch-all — are useless separately and both break silently, so never change
+   one without the other. `task check:rulesets` enforces this (RUL-01..RUL-09).
+   See docs/adr/0015.
 
 ## Layout
 

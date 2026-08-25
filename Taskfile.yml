@@ -59,6 +59,7 @@ tasks:
     cmds:
       - task: check:format
       - task: check:config
+      - task: check:rulesets
       - task: check:types
       - task: check:schema
       - task: check:drift

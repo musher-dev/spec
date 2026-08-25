@@ -34,7 +34,18 @@ beyond the [DCO](.github/CONTRIBUTING.md#sign-your-work) is required.
 ## Decision process
 
 Ordinary changes — a new optional field, a corrected description, an additional
-conformance fixture — need one maintainer approval and green CI.
+conformance fixture — need green CI. Green CI is the whole of the mechanical
+gate: review is required only on the paths listed in
+[`.github/CODEOWNERS`](.github/CODEOWNERS), which are the review gate's own two
+configuration files and nothing else.
+
+Maintainer approval is still expected on a change of consequence, and this
+document still requires it where it says so below. What changed is that it is
+requested rather than enforced. A blanket approval requirement was tried and
+measured: with one maintainer it blocked every pull request that maintainer opened,
+and was merged past with an administrator bypass every time, which enforced nothing and
+taught the bypass. [ADR 0015](docs/adr/0015-selective-code-owner-review.md)
+records the reasoning and what it costs.
 
 Structural changes need an accepted ADR first. That covers:
 
@@ -54,6 +65,13 @@ Any change that would cause a previously valid document to fail validation is a
 1. Explicit approval from a maintainer listed in CODEOWNERS
 2. A new `v<N>` major directory — the previous major keeps working unchanged
 3. A migration note in the new major's `spec.md`
+
+Requirement 1 is an obligation on the maintainer, not a gate the repository
+enforces: `specifications/` and `conformance/` are deliberately unowned, so a
+breaking change is not blocked awaiting a review. What *is* enforced on every
+pull request is the machinery that detects the breakage — `check:drift`,
+`check:compat`, `check:published`, and the conformance suite, all required. See
+[ADR 0015 §4](docs/adr/0015-selective-code-owner-review.md).
 
 Adding a required field, narrowing an enum, tightening a pattern, and removing
 a field are all breaking. Adding an optional field is not.
@@ -93,8 +111,10 @@ and the proposing pull request must say so in three parts:
    existing one in two makes both less useful, because a listing that could sit
    in either now sits in whichever its author picked.
 
-Approval is one maintainer, as for any ordinary change. What is not ordinary is
-that a reviewer is expected to reject a well-formed term on editorial grounds —
+Approval is one maintainer. `specifications/` is unowned, so nothing blocks the
+merge awaiting it — a category addition is one of the changes where the
+obligation in Decision process is real and the gate is not. What is not ordinary
+is that a reviewer is expected to reject a well-formed term on editorial grounds —
 a taxonomy is judged by what it excludes, and twenty categories is a taxonomy
 while sixty is a list with none.
 
@@ -187,8 +207,11 @@ One more is worth naming, for a different reason.
 tree to Cloudflare Pages, which makes it the only dependency here that is handed
 a credential. It is pinned to an exact version in `tools/package.json` and the
 lockfile rather than fetched at deploy time, so the code that receives the token
-changes only through a reviewed diff under CODEOWNERS. Nothing else in `tools/`
-holds a secret, and nothing published derives from wrangler either.
+changes only through a diff someone opened deliberately — never through a
+resolution that moved on its own. `tools/` is not a CODEOWNERS path, so that
+diff is not gated on a review; the exact pin plus the lockfile is what carries
+the guarantee. Nothing else in `tools/` holds a secret, and nothing published
+derives from wrangler either.
 
 ## Security
 

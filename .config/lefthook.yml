@@ -22,6 +22,12 @@ pre-commit:
       glob: '.config/**'
       run: task check:config
 
+    # Both halves of the review gate, plus the workflows whose job names its
+    # required checks name -- renaming a job is the quiet way to break it.
+    - name: rulesets
+      glob: '.github/{rulesets/**,CODEOWNERS,workflows/*.yml}'
+      run: task check:rulesets
+
     - name: markdown
       glob: '**/*.md'
       run: task check:md

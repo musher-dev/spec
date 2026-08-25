@@ -33,6 +33,12 @@ tasks:
     cmds:
       - bun run src/config.ts
 
+  rulesets:
+    desc: Verify the review gate holds together (RUL-01..RUL-09)
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/rulesets.ts
+
   # --- The normative gates ---------------------------------------------------
 
   schema:
