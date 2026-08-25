@@ -1,12 +1,20 @@
 name: Lint PR
 
+# `pull-requests: write` is here for the normalisation step below, which fixes
+# one thing it is not worth exempting a bot from. This workflow runs on
+# `pull_request_target`, so it holds that token while running FROM THE BASE
+# BRANCH -- it must never check out, build, or execute anything from the head,
+# and it does not: there is no checkout step. Values from the pull request
+# reach the shell through `env:`, never through a `${{ }}` expansion inside
+# `run:`.
+
 on:
   pull_request_target:
     types: [opened, edited, synchronize, reopened]
 
 permissions:
   contents: read
-  pull-requests: read
+  pull-requests: write
 
 jobs:
   title:
@@ -14,6 +22,49 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      # Dependabot capitalises the subject it writes -- `build(deps): Bump ...`
+      # -- which is exactly what `subjectPattern` below rejects, and that
+      # capital is not configurable: dependabot-core decides it from a
+      # heuristic over recent commit messages, and on this repository it lands
+      # on "capitalise" against a history that is entirely lowercase.
+      #
+      # So the choice was to exempt the bot from the rule or to fix the title.
+      # This fixes the title, and the rule stays single.
+      #
+      # It belongs in THIS job rather than a workflow of its own. A retitle
+      # made with GITHUB_TOKEN does not trigger a new workflow run -- GitHub
+      # suppresses that to prevent loops -- so a separate normaliser leaves the
+      # title check sitting on the stale red it produced before the edit, until
+      # some unrelated event happens to re-run it. Correcting the title in the
+      # step before the check closes that race: the action re-reads the title
+      # from the API rather than the event payload, so it judges the corrected
+      # one. See docs/adr/0016-dependency-update-policy.md.
+      - name: Lowercase a bot's capitalised subject
+        if: github.event.pull_request.user.login == 'dependabot[bot]'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+
+          # Read the title from the API, not the payload: on a re-run the
+          # payload is whatever it was when the run was created.
+          title="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json title --jq '.title')"
+
+          # Case only, and only after a conventional-SHAPED prefix. Whether the
+          # type and scope in that prefix are real is the check's business, not
+          # this step's: rewriting them here would paper over a broken
+          # .github/dependabot.yml, which is the other half of this.
+          if [[ ! "$title" =~ ^([a-z]+(\([a-z][a-z-]*\))?!?:[[:space:]])([A-Z].*)$ ]]; then
+            echo "Nothing to lowercase: ${title}"
+            exit 0
+          fi
+
+          fixed="${BASH_REMATCH[1]}${BASH_REMATCH[3],}"
+          echo "  ${title}"
+          echo "→ ${fixed}"
+          gh pr edit "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --title "$fixed"
+
       # The vocabulary here must stay in step with
       # .github/conventional-commits.yaml and the lefthook commit-msg hook.
       # The scope drives release-please: feat(component) cuts component/v1.x.0,
