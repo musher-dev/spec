@@ -4,7 +4,18 @@
 # - devcontainers  : bumps Features in devcontainer.json AND refreshes
 #                    .devcontainer/devcontainer-lock.json (digest pins).
 # - github-actions : bumps the actions pinned in .github/workflows/.
-# - bun            : bumps tools/ dependencies (ajv, yaml, biome).
+# - bun            : bumps tools/ dependencies.
+#
+# Every `prefix` below is a Conventional Commits TYPE, optionally with a scope
+# appended by `include: 'scope'` -- Dependabot emits the prefix as the type, so
+# a value that is only a valid scope produces a message no gate will accept.
+# `task check:commits` holds these against .github/conventional-commits.yaml;
+# it was added because `prefix: 'devcontainer'` sat here wrong for months.
+#
+# `build`, `ci` and `chore` are all hidden in .github/release-please/config.json,
+# so no dependency bump can cut a specification release.
+#
+# See docs/adr/0016-dependency-update-policy.md.
 version: 2
 updates:
   - package-ecosystem: 'devcontainers'
@@ -12,7 +23,8 @@ updates:
     schedule:
       interval: 'weekly'
     commit-message:
-      prefix: 'devcontainer'
+      prefix: 'build'
+      include: 'scope' # -> build(deps): bump ...
 
   - package-ecosystem: 'github-actions'
     directory: '/'
@@ -20,15 +32,24 @@ updates:
       interval: 'weekly'
     commit-message:
       prefix: 'ci'
+      include: 'scope' # -> ci(deps): bump ...
 
   - package-ecosystem: 'bun'
     directory: '/tools'
     schedule:
       interval: 'weekly'
     commit-message:
-      prefix: 'chore'
-      prefix-development: 'chore'
+      prefix: 'build'
+      prefix-development: 'build'
+      include: 'scope' # -> build(deps-dev): bump ...
     groups:
       tooling:
         patterns:
           - '*'
+        # wrangler is the only dependency in this repository handed a
+        # credential, and GOVERNANCE.md -> Tooling dependencies rests its
+        # guarantee on that pin moving only through a diff someone opened
+        # deliberately. Inside the group it would arrive folded into somebody
+        # else's lockfile churn, so it is kept out and reviewed on its own.
+        exclude-patterns:
+          - 'wrangler'

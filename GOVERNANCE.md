@@ -210,7 +210,12 @@ lockfile rather than fetched at deploy time, so the code that receives the token
 changes only through a diff someone opened deliberately — never through a
 resolution that moved on its own. `tools/` is not a CODEOWNERS path, so that
 diff is not gated on a review; the exact pin plus the lockfile is what carries
-the guarantee. Nothing else in `tools/` holds a secret, and nothing published
+the guarantee. For the same reason it is excluded from the grouped Dependabot
+update in [`.github/dependabot.yml`](.github/dependabot.yml): folded into four
+other packages' lockfile churn it would arrive as a diff nobody opened *for
+it*, which is not the deliberate one this paragraph promises. It always comes
+as its own pull request. See
+[ADR 0016](docs/adr/0016-dependency-update-policy.md). Nothing else in `tools/` holds a secret, and nothing published
 derives from wrangler either.
 
 ## Security

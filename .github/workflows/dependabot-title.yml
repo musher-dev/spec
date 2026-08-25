@@ -1,0 +1,76 @@
+name: Dependabot Title
+
+# Dependabot capitalises the subject of the messages it writes -- `build(deps):
+# Bump ...` -- which is exactly what the `subjectPattern` in lint-pr.yml
+# rejects. That capital is not configurable: dependabot-core decides it from a
+# heuristic over recent commit messages, and on this repository it lands on
+# "capitalise" against a history that is entirely lowercase.
+#
+# So the choice was to exempt the bot from the title rule or to fix the title.
+# Exempting it would leave `Bump` in the log on `main` forever and carve a hole
+# in a rule that otherwise has none. This lowercases the first letter instead,
+# and the rule stays single. See docs/adr/0016-dependency-update-policy.md.
+#
+# Three things about this file are load-bearing:
+#
+#   1. `pull_request_target`, because a `pull_request` run on a fork-context
+#      Dependabot pull request gets a read-only token and cannot retitle it.
+#      That means this workflow runs FROM THE BASE BRANCH WITH A WRITE TOKEN,
+#      so it must never check out, build, or execute anything from the head --
+#      and it does not: there is no checkout step at all.
+#   2. The title reaches the shell through `env:`, never through a `${{ }}`
+#      expansion inside `run:`. Interpolating pull-request-controlled text into
+#      a privileged shell is the textbook injection, whoever opened it.
+#   3. It is idempotent, which is what makes listening to `edited` safe: our own
+#      edit re-fires the event, the second run finds nothing to change and
+#      stops. There is no loop.
+#
+# It is a NORMALISER, not a gate -- `Conventional PR title` in lint-pr.yml is
+# still the thing that judges the result. Expect one transient red on `opened`:
+# that check and this job start together, this one edits the title, and the
+# edit re-runs the check green.
+
+on:
+  pull_request_target:
+    types: [opened, reopened, edited]
+
+permissions:
+  pull-requests: write
+
+# Queue rather than cancel: a cancelled retitle would leave the pull request
+# with the title the check has already rejected.
+concurrency:
+  group: dependabot-title-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  subject:
+    name: Lowercase subject
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Lowercase the first letter of the subject
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -euo pipefail
+
+          # Case only, and only after a conventional-SHAPED prefix. Whether
+          # the type and scope in that prefix are real is the title check's
+          # business, not this job's: rewriting them here would paper over a
+          # broken .github/dependabot.yml, which is the other half of this.
+          if [[ ! "$PR_TITLE" =~ ^([a-z]+(\([a-z][a-z-]*\))?!?:[[:space:]])([A-Z].*)$ ]]; then
+            echo "Nothing to lowercase: ${PR_TITLE}"
+            exit 0
+          fi
+
+          prefix="${BASH_REMATCH[1]}"
+          subject="${BASH_REMATCH[3]}"
+          fixed="${prefix}${subject,}"
+
+          echo "  ${PR_TITLE}"
+          echo "→ ${fixed}"
+          gh pr edit "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --title "$fixed"

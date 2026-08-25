@@ -28,6 +28,16 @@ pre-commit:
       glob: '.github/{rulesets/**,CODEOWNERS,workflows/*.yml}'
       run: task check:rulesets
 
+    # Every copy of the Conventional Commits vocabulary, this file included --
+    # the commit-msg hook below inlines the types a fifth time. CI checks them
+    # too; catching a mismatch here saves a round trip, and the prefixes in
+    # dependabot.yml are only ever exercised by a bot nobody watches.
+    - name: commits
+      glob:
+        - '.github/{conventional-commits.yaml,dependabot.yml,CONTRIBUTING.md,workflows/lint-pr.yml}'
+        - '.config/lefthook.yml'
+      run: task check:commits
+
     - name: markdown
       glob: '**/*.md'
       run: task check:md
