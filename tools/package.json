@@ -32,6 +32,6 @@
     "cspell": "10",
     "markdownlint-cli2": "0.23.2",
     "typescript": "7.0.2",
-    "wrangler": "4.124.0"
+    "wrangler": "4.125.0"
   }
 }
