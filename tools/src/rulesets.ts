@@ -23,7 +23,8 @@
  * See docs/adr/0015-selective-code-owner-review.md and
  * .github/rulesets/RULESETS.md.
  *
- * NON-NORMATIVE, like everything under tools/.
+ * NON-NORMATIVE, like everything under tools/. Throwaway edit: verifying that
+ * a pull request touching no owned path merges without a review.
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
