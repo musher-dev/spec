@@ -19,6 +19,10 @@
 # Docs: https://mise.jdx.dev
 
 [tools]
+# @openai/codex is pinned here but NOT installed by default: it is opt-in via
+# MUSHER_INSTALL_CODEX=1 in .devcontainer/.env, which the setup scripts turn
+# into MISE_DISABLE_TOOLS. The pin stays recorded so enabling it is a one-line
+# change that still resolves to a known version.
 "actionlint"        = "1.7.11"
 "task"              = "3.52.0"
 "npm:@openai/codex" = "0.143.0"

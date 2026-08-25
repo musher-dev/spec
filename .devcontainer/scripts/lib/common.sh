@@ -20,6 +20,23 @@ log() {
   echo "[$(date '+%H:%M:%S')] $*" >&2
 }
 
+# Logs a message only when MUSHER_LOG_LEVEL=debug.
+#
+# .env.example advertises MUSHER_LOG_LEVEL as the way to raise the setup
+# scripts' log level. Nothing read it, so the switch was documentation for a
+# feature that did not exist. This is that feature.
+#
+# Globals:
+#   MUSHER_LOG_LEVEL — read, defaults to "info"
+# Arguments:
+#   $@ — message text
+# Outputs:
+#   Writes to stderr via log() when debug is on, nothing otherwise
+debug() {
+  [[ "${MUSHER_LOG_LEVEL:-info}" == "debug" ]] || return 0
+  log "DEBUG: $*"
+}
+
 # --- Command helpers ---
 
 # Checks whether a command exists on the PATH.
@@ -30,6 +47,48 @@ log() {
 #   0 if found, 1 otherwise
 has_cmd() {
   command -v "$1" &>/dev/null
+}
+
+# Reports whether an install guarded by a MUSHER_INSTALL_* switch is wanted.
+#
+# devcontainer.json declares MUSHER_INSTALL_CLAUDE and MUSHER_INSTALL_CODEX and
+# .env.example documents them as the way to "skip the AI CLI installs on a slow
+# connection". No script read either one, so both CLIs installed unconditionally
+# — and they are most of the several minutes a cold container spends inside
+# postCreateCommand. This is what makes the documented switch real.
+#
+# Arguments:
+#   $1 — the switch's value, e.g. "${MUSHER_INSTALL_CLAUDE:-1}"
+# Returns:
+#   0 when the install is wanted, 1 when it is switched off
+install_wanted() {
+  case "${1:-1}" in
+    0 | false | no | off) return 1 ;;
+    *) return 0 ;;
+  esac
+}
+
+# Runs a command under a wall-clock ceiling, when `timeout` is available.
+#
+# Every network install below used to run unbounded. A stalled connection parks
+# postCreateCommand for as long as the kernel keeps the socket, and a lifecycle
+# command shows no output until it exits, so an unbounded install is
+# indistinguishable from a hung container. A ceiling turns "hangs forever" into
+# "fails, and the container is still usable".
+#
+# Arguments:
+#   $1 — ceiling in seconds
+#   $@ — command and arguments to execute
+# Returns:
+#   The command's status, or 124 if the ceiling was reached
+bounded() {
+  local seconds="${1:?usage: bounded <seconds> <command...>}"
+  shift
+  if has_cmd timeout; then
+    timeout --foreground "${seconds}" "$@"
+  else
+    "$@"
+  fi
 }
 
 # Runs a command with sudo if available, otherwise without.

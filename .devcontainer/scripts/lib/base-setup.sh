@@ -95,7 +95,8 @@ base_install_mise() {
     return 0
   fi
   log "Installing mise (https://mise.run)..."
-  retry 3 5 bash -c 'curl -fsSL https://mise.run | sh'
+  retry 3 5 bounded 300 bash -c \
+    'curl -fsSL --connect-timeout 10 --max-time 120 https://mise.run | sh'
 }
 
 # Installs the CLIs pinned in .devcontainer/mise.toml (tools with no Feature),
@@ -112,9 +113,22 @@ base_install_tools() {
   local mise
   mise="$(command -v mise || echo "${_MISE_BIN}")"
   local config="${MISE_GLOBAL_CONFIG_FILE:-${_LIB_DIR}/../../mise.toml}"
+
+  # Claude Code is this repository's default harness; Codex is opt-IN. Codex is
+  # an npm package carrying a platform binary and it dominates the cold-
+  # container install, so a developer who does not use it should not pay for it
+  # on every rebuild. MISE_DISABLE_TOOLS drops it from the resolved set without
+  # editing the manifest, so the pin stays recorded either way and CI still
+  # sees it — set MUSHER_INSTALL_CODEX=1 in .devcontainer/.env to install it.
+  if ! install_wanted "${MUSHER_INSTALL_CODEX:-0}"; then
+    log "MUSHER_INSTALL_CODEX is off — leaving the Codex CLI out of this install"
+    export MISE_DISABLE_TOOLS="npm:@openai/codex${MISE_DISABLE_TOOLS:+,${MISE_DISABLE_TOOLS}}"
+  fi
+
   log "Installing pinned CLIs from ${config}..."
+  debug "MISE_DISABLE_TOOLS=${MISE_DISABLE_TOOLS:-<unset>}"
   "${mise}" trust "${config}" >/dev/null 2>&1 || true
-  retry 3 5 "${mise}" install
+  retry 3 5 bounded 900 "${mise}" install
   "${mise}" reshim >/dev/null 2>&1 || true
 }
 
@@ -127,12 +141,19 @@ base_install_tools() {
 # Returns:
 #   0 on success, non-zero on failure
 base_install_claude() {
+  if ! install_wanted "${MUSHER_INSTALL_CLAUDE:-1}"; then
+    log "MUSHER_INSTALL_CLAUDE is off — skipping Claude Code"
+    return 0
+  fi
   if has_cmd claude; then
     log "Claude Code already installed, skipping"
     return 0
   fi
   log "Installing Claude Code (native installer)..."
-  retry 3 5 bash -c 'curl -fsSL https://claude.ai/install.sh | bash'
+  # install.sh itself downloads a platform binary of its own, so the ceiling has
+  # to cover the whole pipeline rather than just the fetch of the script.
+  retry 3 5 bounded 900 bash -c \
+    'curl -fsSL --connect-timeout 10 --max-time 120 https://claude.ai/install.sh | bash'
 }
 
 # --- Verify ---
@@ -149,7 +170,13 @@ base_install_claude() {
 # Returns:
 #   0 if all tools found, 1 if any are missing
 base_verify_tools() {
-  verify_tools gh task codex lefthook claude actionlint shellcheck
+  # Verify what this container was actually asked to install. Checking a CLI the
+  # developer deliberately switched off would report a self-inflicted failure.
+  local -a tools=(gh task lefthook actionlint shellcheck)
+  if install_wanted "${MUSHER_INSTALL_CODEX:-0}"; then tools+=(codex); fi
+  if install_wanted "${MUSHER_INSTALL_CLAUDE:-1}"; then tools+=(claude); fi
+  debug "verifying: ${tools[*]}"
+  verify_tools "${tools[@]}"
 }
 
 # --- Orchestrator ---
@@ -167,6 +194,14 @@ base_setup() {
   base_install_mise
   base_install_tools
   base_install_claude
-  base_verify_tools
+
+  # Verification reports; it no longer aborts. `set -e` used to let one missing
+  # CLI end post-create.sh right here, which skipped the repo-specific setup
+  # that follows it — git hooks and `bun install` — and left the container in a
+  # worse state than the single missing tool warranted. The status rides out on
+  # the return code instead, so the failure is still loud.
+  local verified=0
+  base_verify_tools || verified=$?
   log "Base setup complete"
+  return "${verified}"
 }
