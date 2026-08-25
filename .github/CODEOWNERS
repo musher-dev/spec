@@ -1,24 +1,50 @@
-# See https://docs.github.com/en/repositories/managing-your-repositories-settings-and-features/customizing-your-repository/about-code-owners
+# CODEOWNERS — the ownership half of the selective code-owner review gate.
 #
-# Pattern matching is gitignore-style and the last matching entry wins. The
-# `*` catch-all covers everything; the entries below restate ownership for the
-# areas where a change alters a public contract, so the intent survives a
-# future split of ownership.
+# Docs: https://docs.github.com/en/repositories/managing-your-repositories-settings-and-features/customizing-your-repository/about-code-owners
+# Why it is selective: docs/adr/0015-selective-code-owner-review.md
+# The other half: .github/rulesets/main-branch.json
+#
+# How review works on this repository:
+#
+#   A pull request that touches NO path listed below merges on green CI alone.
+#   The required checks are the gate; no human approval is requested or needed.
+#   A pull request that touches a path listed below additionally requires an
+#   approving review from that path's owner, with every review thread resolved.
+#
+# The ruleset sets `required_approving_review_count: 0`, which is the sanctioned
+# "no blanket reviewers" value, and `require_code_owner_review: true`, which is
+# evaluated per changed file. Listing a path here is therefore a commitment to
+# review every change to it — not a label.
+#
+# Invariants. Each one silently breaks the gate rather than failing loudly, so
+# `task check:rulesets` enforces all of them:
+#
+#   - NEVER add a `*` catch-all. It makes every pull request code-owned and
+#     re-imposes the blanket gate this file exists to retire.
+#   - LAST matching pattern wins. Order broad to specific.
+#   - ALL owners for a pattern go on ONE line. A second line for the same
+#     pattern silently replaces the first rather than adding to it.
+#   - Owners need EXPLICIT write access to this repository. An owner without it
+#     is ignored with no error, and the path quietly becomes unowned.
+#   - `!` negation and `[ ]` ranges do not work here. A path listed with no
+#     owner is the supported way to carve out an explicitly unowned exception.
+#   - An owner's own pull requests are exempt: GitHub cannot request a review
+#     from the author, so authorship waives the requirement for the patterns
+#     that author owns. The `codeowners-notice` workflow posts a comment on
+#     those pull requests so a self-owned edit is at least visible.
 #
 # NOTE: musher-dev/platform's CODEOWNERS names `@merrelljustin`, which is not a
 # real GitHub account (the API returns 404). Do not copy that handle here — a
 # CODEOWNERS entry naming a nonexistent user silently disables the review gate
 # it appears to configure.
+#
+# What is deliberately NOT owned: `specifications/` and `conformance/` carry the
+# normative contract, and GOVERNANCE.md still requires maintainer approval for a
+# breaking change to either. That obligation is now social rather than
+# mechanical — ADR 0015 records the trade and why it was accepted.
 
-*                       @justinmerrell
-
-# The normative surface. A change here obligates the CLI, the API, and every
-# SDK, and a compatibility break requires a new major directory.
-/specifications/        @justinmerrell
-/conformance/           @justinmerrell
-
-# Architecture decisions are immutable once accepted; supersede, never rewrite.
-/docs/adr/              @justinmerrell
-
-# Release, publication, and branch-protection configuration.
-/.github/               @justinmerrell
+# The gate cannot be changed unreviewed. GitHub's own recommendation: protect
+# CODEOWNERS with CODEOWNERS, and protect the ruleset the same way — between
+# them these two paths are the whole control.
+/.github/CODEOWNERS      @justinmerrell
+/.github/rulesets/       @justinmerrell
