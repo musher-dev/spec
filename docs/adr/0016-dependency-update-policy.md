@@ -112,7 +112,26 @@ conventional-*shaped* prefix. Whether the type and scope in that prefix are real
 remains the check's business; correcting them here would paper over exactly the
 `dependabot.yml` bug described above.
 
-### 4. Every copy of the vocabulary is checked, including the bot's
+### 4. The merged subject is the one that was validated
+
+`squash_merge_commit_title` moves from GitHub's default `COMMIT_OR_PR_TITLE` to
+`PR_TITLE`. Under the default, a pull request with exactly one commit lands
+*that commit's* subject rather than its title — and normalising the title does
+nothing about Dependabot's commit message, which stays capitalised. #67 landed
+on `main` as `build(deps-dev): Bump the tooling group across 1 directory with 5
+updates` after being validated as `bump`. Decision 3 would have been true of
+every pull request and false of every merge.
+
+It is not only the bot's problem. Any single-commit pull request landed a
+subject that only the local commit-msg hook had seen, and that hook checks the
+type, not the case. `PR_TITLE` makes the string CI validates and the string that
+reaches `main` the same string, for everyone.
+
+Being a repository setting rather than a ruleset field, nothing in
+`.github/rulesets/` can carry it; it is recorded as invariant 7 in
+`.github/rulesets/RULESETS.md` with the command to verify it.
+
+### 5. Every copy of the vocabulary is checked, including the bot's
 
 `tools/src/commits.ts` now reads `.github/dependabot.yml` and
 `.github/CONTRIBUTING.md` alongside the three files it already reconciled. A
@@ -125,7 +144,7 @@ A `commits` job in `.config/lefthook.yml` runs the check before the push as well
 as in CI. The prefixes in `dependabot.yml` are exercised once a week by a bot
 nobody watches, which is the longest possible feedback loop for a typo.
 
-### 5. `wrangler` is excluded from the grouped update
+### 6. `wrangler` is excluded from the grouped update
 
 GOVERNANCE.md → Tooling dependencies names `wrangler` as the only dependency
 here handed a credential, and rests its guarantee on that exact pin moving "only
@@ -169,7 +188,7 @@ revisiting the first time a major lands broken, not before.
 Dependency updates merge on green CI without a bypass. They are correctly typed
 and scoped, so they read as maintenance in `git log` and cannot cut a release.
 The vocabulary now has five copies and a check that holds all five, rather than
-three copies and two that drifted unobserved. `wrangler` moves only in a pull
+three copies and two that drifted unobserved. What CI validates is what lands. `wrangler` moves only in a pull
 request opened for it.
 
 The normalisation step is not a gate; the action in the same job is. Because

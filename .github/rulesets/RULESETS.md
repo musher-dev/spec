@@ -60,8 +60,8 @@ thread resolved. `0` is GitHub's sanctioned "no blanket reviewers" value, and
 the code-owner requirement is evaluated per changed file.
 [ADR 0015](../../docs/adr/0015-selective-code-owner-review.md) says why.
 
-Six invariants keep the mechanism working. Each one breaks it *silently* — the
-first four are checked by `task check:rulesets` (RUL-05..RUL-09); the last two
+Seven invariants keep the mechanism working. Each one breaks it *silently* — the
+first four are checked by `task check:rulesets` (RUL-05..RUL-09); the last three
 are only visible against live GitHub state:
 
 1. **No `*` catch-all in `.github/CODEOWNERS`.** It makes every pull request
@@ -83,6 +83,15 @@ are only visible against live GitHub state:
 6. **No org-level ruleset may impose an approval count on this repository.**
    Same aggregation. `spec` is deliberately absent from the org `pr-workflow`
    ruleset's include list; do not add it.
+7. **`squash_merge_commit_title` stays `PR_TITLE`.** It is a repository setting,
+   not a ruleset field, so nothing in this directory can carry it. Under the
+   default `COMMIT_OR_PR_TITLE`, a pull request with exactly one commit lands
+   *that commit's* subject rather than the title `Conventional PR title`
+   validated — so a subject no CI check ever read reaches `main`. It already
+   has: #67 was validated as `build(deps-dev): bump the tooling group …` and
+   landed as `Bump …`. Verify with `gh api repos/musher-dev/spec --jq
+   .squash_merge_commit_title`. See
+   [ADR 0016](../../docs/adr/0016-dependency-update-policy.md).
 
 **An owner's own pull requests are exempt.** GitHub cannot request a review from
 the author, so authorship waives the requirement for the patterns that author
