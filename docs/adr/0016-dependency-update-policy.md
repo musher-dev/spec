@@ -83,20 +83,34 @@ specification release whichever of them is used.
 
 ### 3. The capitalised subject is corrected, not excused
 
-`.github/workflows/dependabot-title.yml` lowercases the first letter of the
-subject on a Dependabot pull request, and the title check then judges the result
-like any other. The rule stays single: there is no author exempt from it, and
-nothing lands on `main` reading `Bump`.
+The first step of the `Conventional PR title` job in
+`.github/workflows/lint-pr.yml` lowercases the first letter of the subject on a
+Dependabot pull request. The action then judges the corrected title like any
+other. The rule stays single: there is no author exempt from it, and nothing
+lands on `main` reading `Bump`.
 
-The workflow needs `pull_request_target` — a `pull_request` run on a Dependabot
-pull request holds a read-only token and cannot retitle anything — which means
-it runs from the base branch holding a write token. Three properties keep that
-safe, and are stated in the file so they survive editing: it never checks out
-the head (there is no checkout step), the title reaches the shell through `env:`
-rather than a `${{ }}` expansion inside `run:`, and it rewrites case only, after
-a conventional-*shaped* prefix. Whether the type and scope in that prefix are
-real remains the title check's business; correcting them here would paper over
-exactly the `dependabot.yml` bug described above.
+**It has to be the same job, not a workflow of its own.** That was tried first,
+and it does not hold: a retitle made with `GITHUB_TOKEN` does not trigger a new
+workflow run — GitHub suppresses that to prevent loops — so the title check sits
+on the red it produced *before* the edit, with a title that is now correct, until
+some unrelated event happens to re-run it. On #66 that red simply stayed. On #60
+it cleared, but only because Dependabot pushed again a minute later, which is
+luck rather than design.
+
+Correcting the title in the step before the check closes the race, and it works
+because `amannn/action-semantic-pull-request` re-reads the title from the REST
+API rather than trusting the event payload — deliberately, for exactly this
+reason. Confirmed empirically: re-running the stale failed run on #66, with its
+original payload, passed.
+
+The job runs on `pull_request_target`, so it holds a write token while running
+from the base branch. Three properties keep that safe, and are stated in the
+file so they survive editing: it never checks out the head (there is no checkout
+step), values from the pull request reach the shell through `env:` rather than a
+`${{ }}` expansion inside `run:`, and it rewrites case only, after a
+conventional-*shaped* prefix. Whether the type and scope in that prefix are real
+remains the check's business; correcting them here would paper over exactly the
+`dependabot.yml` bug described above.
 
 ### 4. Every copy of the vocabulary is checked, including the bot's
 
@@ -132,6 +146,9 @@ is a weaker thing to maintain than a rule with none.
 **Relax `subjectPattern` for everyone** — retires a repository-wide convention
 to accommodate a bot, and takes the guard away from humans too.
 
+**A separate normaliser workflow** — cleaner to read, and broken for the reason
+in decision 3: nothing re-runs the check it invalidates.
+
 **Exempt bot commits from the DCO check entirely** — simpler than matching on
 name, and wrong: Dependabot's sign-off is real and there is no reason to stop
 reading it. Skipping the check would also skip it for any future app whose
@@ -155,11 +172,9 @@ The vocabulary now has five copies and a check that holds all five, rather than
 three copies and two that drifted unobserved. `wrangler` moves only in a pull
 request opened for it.
 
-`dependabot-title.yml` is a normaliser, not a gate. Like
-`codeowners-notice.yml` it must never be added to the required checks in
-`.github/rulesets/main-branch.json`. Expect one transient red on `opened`: the
-title check and the normaliser start together, the normaliser edits the title,
-and the edit re-runs the check green.
+The normalisation step is not a gate; the action in the same job is. Because
+they share a run, a Dependabot pull request goes green on its first attempt
+rather than showing a transient red that something else has to clear.
 
 ## Follow-ups
 
