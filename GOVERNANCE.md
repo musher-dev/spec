@@ -176,6 +176,12 @@ model and why the ledger exists.
 This repository publishes **data artifacts only**: JSON Schema documents,
 Markdown prose, and conformance fixture archives.
 
+The generated pages at `https://schemas.musher.dev/` — the index pages and the
+`/reference/` tree — are a rendering of those artifacts rather than a fourth
+kind. They are informative, they are regenerated on every deploy, and no release
+archive carries them: a tagged release ships the Markdown, never the HTML. See
+[ADR 0017](docs/adr/0017-generated-field-reference.md).
+
 It deliberately does not publish a reference validator binary, a shared
 validation library, WebAssembly modules, or generated language packages. A
 reference implementation becomes the de facto standard, hides normative

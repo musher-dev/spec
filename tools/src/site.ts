@@ -24,10 +24,13 @@
  * The guarantee that the bytes themselves never change is made here too, and
  * checked by `task check:published`.
  */
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { buildCatalog } from './catalog.ts'
-import { isShallow } from './git.ts'
+import { isShallow, listTreeFiles, readBlobAtRef } from './git.ts'
+import { escapeHtml, link, page } from './html.ts'
+import { type ProseContext, readOutline, renderProse } from './prose.ts'
+import { buildReference, renderReference } from './reference.ts'
 import {
   discoverReleases,
   LEDGER_FILE,
@@ -57,6 +60,7 @@ export interface SiteResult {
   readonly pinned: number
   readonly aliases: number
   readonly pages: number
+  readonly reference: number
   readonly rules: number
 }
 
@@ -122,6 +126,35 @@ function write(path: string, contents: string): void {
 /** `sha256sum` output format, so `sha256sum -c` verifies a download unchanged. */
 function checksumFile(hash: string, fileName: string): string {
   return `${hash}  ${fileName}\n`
+}
+
+/** The one top-level path a family may not be named after. */
+const RESERVED_PATH = 'reference'
+
+/**
+ * One rendered reference: a family at a version, and the bytes it describes.
+ *
+ * The bytes come from the ref the alias serves, never from the working tree,
+ * so a released family's page describes its release. That bug is invisible
+ * today — with no tags, a working-tree reference would pass every check and
+ * start lying on the first release.
+ */
+interface ReferenceTarget {
+  readonly family: string
+  readonly major: string
+  /** `v1` for the moving alias, `v1.2.0` for an exact release. */
+  readonly version: string
+  readonly bundle: string
+  readonly spec: string | null
+  /** The family's validated example documents, at the same ref. */
+  readonly examples: readonly ExampleDoc[]
+  readonly ref: string
+  readonly schemaPath: string
+}
+
+interface ExampleDoc {
+  readonly name: string
+  readonly body: string
 }
 
 interface PublishedVersion {
@@ -231,6 +264,24 @@ export function assembleSite(options: SiteOptions): SiteResult {
     )
   }
 
+  // `/reference/` is the generated reference's namespace, and `discoverFamilies`
+  // accepts any lowercase-kebab directory name. A family called `reference`
+  // would publish into it and its pinned `/reference/v1.0.0/*` immutable rule
+  // would collide with the namespace on Cache-Control. Refuse by name, so the
+  // failure says what is wrong rather than reporting an overlapping splat.
+  for (const name of [
+    ...discoverFamilies(repoRoot).map((family) => family.name),
+    ...releases.map((release) => release.family),
+  ]) {
+    if (name === RESERVED_PATH) {
+      throw new Error(
+        `specifications/${RESERVED_PATH}/ would publish under /${RESERVED_PATH}/, which the ` +
+          'generated reference already owns. A family cannot be named after a reserved ' +
+          'top-level path. See docs/adr/0017.',
+      )
+    }
+  }
+
   rmSync(siteDir, { recursive: true, force: true })
   mkdirSync(siteDir, { recursive: true })
 
@@ -249,7 +300,53 @@ export function assembleSite(options: SiteOptions): SiteResult {
   // ---------------------------------------------------------------------------
   const newestByMajor = new Map<string, Release>()
   const versionsByFamily = new Map<string, PublishedVersion[]>()
+  const references: ReferenceTarget[] = []
   let pinned = 0
+
+  /** `spec.md` as it stood at a ref, or null where that ref carries none. */
+  const specAt = (family: string, major: string, ref: string): string | null => {
+    if (ref === 'main') {
+      const local = discoverFamilies(repoRoot).find((f) => f.name === family && f.major === major)
+      return local !== undefined && existsSync(local.specPath)
+        ? readFileSync(local.specPath, 'utf8')
+        : null
+    }
+    const blob = readBlobAtRef(repoRoot, ref, `specifications/${family}/${major}/spec.md`)
+    return blob === null ? null : blob.toString('utf8')
+  }
+
+  /**
+   * The example documents as they stood at a ref.
+   *
+   * `check:examples` validates every one of these against its family's bundle,
+   * and its docblock has always said they are "copied verbatim into the
+   * documentation site". Until now nothing copied them, so the claim rested on
+   * an intention. Reading them at the same ref as the schema is what keeps it
+   * true for a released version as well as for `main`.
+   */
+  const examplesAt = (family: string, major: string, ref: string): ExampleDoc[] => {
+    const isExample = (path: string): boolean => path.endsWith('.yaml') || path.endsWith('.yml')
+    if (ref === 'main') {
+      const local = discoverFamilies(repoRoot).find((f) => f.name === family && f.major === major)
+      if (local === undefined || !existsSync(local.examplesDir)) return []
+      return readdirSync(local.examplesDir)
+        .filter(isExample)
+        .sort()
+        .map((name) => ({ name, body: readFileSync(join(local.examplesDir, name), 'utf8') }))
+    }
+    const dir = `specifications/${family}/${major}/examples`
+    return listTreeFiles(repoRoot, ref, dir)
+      .filter(isExample)
+      .sort()
+      .map((path) => {
+        const blob = readBlobAtRef(repoRoot, ref, path)
+        return {
+          name: path.slice(dir.length + 1),
+          body: blob === null ? '' : blob.toString('utf8'),
+        }
+      })
+      .filter((example) => example.body !== '')
+  }
 
   for (const release of releases) {
     const loaded = loadRelease(repoRoot, release, ledger)
@@ -263,6 +360,19 @@ export function assembleSite(options: SiteOptions): SiteResult {
     cacheRules.push({ source: `/${dir}/*`, headers: [IMMUTABLE] })
     console.log(`  ✓ /${dir}/${fileName} (immutable)`)
     pinned += 1
+
+    references.push({
+      family: release.family,
+      major: release.major,
+      version: `v${release.version}`,
+      // The tag's own bytes. `published` differs only by its restamped `$id`,
+      // and the prose at that tag describes `source`.
+      bundle: loaded.source.toString('utf8'),
+      spec: specAt(release.family, release.major, release.tag),
+      examples: examplesAt(release.family, release.major, release.tag),
+      ref: release.tag,
+      schemaPath: `/${dir}/${fileName}`,
+    })
 
     // `releases` is sorted oldest-first, so the last write per major wins.
     newestByMajor.set(`${release.family}/${release.major}`, release)
@@ -296,6 +406,16 @@ export function assembleSite(options: SiteOptions): SiteResult {
     emit(path, contents)
     cacheRules.push({ source: `/${path}`, headers: [REVALIDATE] })
     aliases.push({ family, major, path: `/${path}`, ref })
+    references.push({
+      family,
+      major,
+      version: major,
+      bundle: contents,
+      spec: specAt(family, major, ref),
+      examples: examplesAt(family, major, ref),
+      ref,
+      schemaPath: `/${path}`,
+    })
     console.log(`  ✓ /${path} (alias → ${origin})`)
   }
 
@@ -353,8 +473,9 @@ export function assembleSite(options: SiteOptions): SiteResult {
   // ---------------------------------------------------------------------------
   // The human entry point. Generated rather than committed for the reason
   // `docs/traceability.md` is: a page someone has to remember to update is a
-  // page that is wrong. Deliberately thin — this is a registry, and the
-  // normative prose stays in each family's spec.md.
+  // page that is wrong. The registry index stays thin; the reference below it
+  // carries the field-level detail, and nothing either emits is normative.
+  // See docs/adr/0017.
   // ---------------------------------------------------------------------------
   const families = [
     ...new Set([...aliases.map((a) => a.family), ...versionsByFamily.keys()]),
@@ -378,6 +499,68 @@ export function assembleSite(options: SiteOptions): SiteResult {
   pages += 1
   console.log(`  ✓ ${pages} page(s)`)
 
+  // ---------------------------------------------------------------------------
+  // The generated reference. A separate top-level namespace rather than a page
+  // inside `/<family>/v<X.Y.Z>/`, because that directory is immutable for a
+  // year: a rendering must stay fixable, while the bytes it describes must not.
+  // Takes no `_headers` rule, exactly as the index pages do not.
+  // ---------------------------------------------------------------------------
+  const rendered = [...references].sort((a, b) =>
+    `${a.family}/${a.version}`.localeCompare(`${b.family}/${b.version}`),
+  )
+  for (const target of rendered) {
+    const base = `${RESERVED_PATH}/${target.family}/${target.version}`
+    const prosePath = target.spec === null ? null : `/${base}/spec/`
+    const context: ProseContext | null =
+      target.spec === null
+        ? null
+        : {
+            base: `/${base}/spec/`,
+            outline: readOutline(target.spec),
+            resolveLink: linkResolver(target, rendered),
+          }
+
+    if (target.spec !== null) {
+      emit(
+        `${base}/spec/index.html`,
+        page(
+          `${target.family} ${target.version} specification`,
+          [
+            `<p class="muted">${link(`/${base}/`, 'Reference')} / ${escapeHtml(target.family)} ` +
+              `/ ${escapeHtml(target.version)}</p>`,
+            renderProse(target.spec, context, `${target.family}/${target.major}/spec.md`),
+            `<footer>${link(`/${base}/`, 'Field reference')} · ` +
+              `${link(target.schemaPath, 'JSON Schema')} · ` +
+              `${link(proseUrl(target.family, target.major, target.ref), 'Source')}</footer>`,
+          ].join('\n'),
+        ),
+      )
+    }
+
+    const examplesPath = target.examples.length === 0 ? null : `/${base}/examples/`
+    if (examplesPath !== null) {
+      emit(`${base}/examples/index.html`, renderExamples(target, base))
+    }
+
+    const model = buildReference(JSON.parse(target.bundle) as Json, target.family, target.version)
+    emit(
+      `${base}/index.html`,
+      page(
+        `${model.title} — ${target.version}`,
+        renderReference(model, {
+          schemaPath: target.schemaPath,
+          prosePath,
+          examplesPath,
+          sourceUrl: proseUrl(target.family, target.major, target.ref),
+          links: context,
+        }),
+      ),
+    )
+    for (const notice of model.notes) console.log(`  · ${target.family}: ${notice}`)
+  }
+  emit(`${RESERVED_PATH}/index.html`, renderReferenceIndex(rendered))
+  console.log(`  ✓ /${RESERVED_PATH}/ (${rendered.length} reference(s))`)
+
   // The pages take no rule of their own. Cloudflare Pages already serves an
   // uncontested asset as `public, max-age=0, must-revalidate`, which is what an
   // index wants; and a rule would have to guess whether the request path is
@@ -396,57 +579,147 @@ export function assembleSite(options: SiteOptions): SiteResult {
     console.log(`  · ${notice}`)
   }
 
-  return { pinned, aliases: aliases.length, pages, rules: rules.length }
+  return {
+    pinned,
+    aliases: aliases.length,
+    pages,
+    reference: rendered.length,
+    rules: rules.length,
+  }
 }
 
 // =============================================================================
 // Pages
 // =============================================================================
 
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
+/**
+ * Rewrite a relative link out of `spec.md` into one this origin can serve.
+ *
+ * Three shapes, and a fourth that fails the build. Another family's prose
+ * becomes a link into its own rendered page at the same version, so a reader
+ * following a cross-family citation stays on the site. Everything else inside
+ * the repository becomes a blob URL at the ref being described, so it resolves
+ * to what this page describes rather than to `main`. A target that matches
+ * neither throws: `check:links` exists because a citation that still looks like
+ * a link and goes nowhere is worse than none, and generated output earns the
+ * same rule.
+ */
+function linkResolver(
+  target: ReferenceTarget,
+  rendered: readonly ReferenceTarget[],
+): (href: string) => string {
+  const from = `specifications/${target.family}/${target.major}`
+  return (href: string): string => {
+    if (href.startsWith('#') || /^[a-z][a-z0-9+.-]*:/i.test(href)) return href
+
+    const [rawPath = '', fragment] = href.split('#')
+    const resolved = posixResolve(from, rawPath)
+    const suffix = fragment === undefined ? '' : `#${fragment}`
+    if (resolved === null) {
+      throw new Error(
+        `${from}/spec.md: link target ${href} escapes the repository and cannot be rewritten. ` +
+          'Add a case to linkResolver rather than publishing a link that goes nowhere.',
+      )
+    }
+
+    const sibling = /^specifications\/([a-z0-9-]+)\/(v\d+)\/spec\.md$/.exec(resolved)
+    if (sibling !== null) {
+      const [, family = '', major = ''] = sibling
+      // The same version shape the reader is on: an exact release cites the
+      // prose of its own moment, an alias cites the moving one.
+      const peer =
+        rendered.find((r) => r.family === family && r.version === target.version) ??
+        rendered.find((r) => r.family === family && r.version === major)
+      if (peer !== undefined) return `/${RESERVED_PATH}/${family}/${peer.version}/spec/${suffix}`
+    }
+
+    return `${REPO_URL}/blob/${target.ref}/${resolved}${suffix}`
+  }
 }
 
-const STYLE = [
-  ':root{color-scheme:light dark;--muted:#5c5f66;--rule:#8884}',
-  '@media(prefers-color-scheme:dark){:root{--muted:#9aa0a6}}',
-  'body{margin:0 auto;max-width:54rem;padding:2.5rem 1.25rem 4rem;',
-  'font:16px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}',
-  'h1{font-size:1.5rem;margin:0 0 .25rem}h2{font-size:1rem;margin:2.5rem 0 .5rem}',
-  'p{margin:.5rem 0}.lead,footer,.muted{color:var(--muted)}',
-  'table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.9375rem}',
-  'th,td{border-bottom:1px solid var(--rule);padding:.5rem .6rem;text-align:left;',
-  'vertical-align:top}',
-  'th{font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}',
-  'code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.875rem}',
-  '.hash{color:var(--muted);word-break:break-all;font-size:.8125rem}',
-  'footer{margin-top:3.5rem;padding-top:1rem;border-top:1px solid var(--rule);font-size:.875rem}',
-].join('')
+/** Resolve `../../x/y.md` against a repository-relative directory. */
+function posixResolve(from: string, href: string): string | null {
+  const parts = from.split('/')
+  for (const segment of href.split('/')) {
+    if (segment === '.' || segment === '') continue
+    if (segment === '..') {
+      if (parts.pop() === undefined) return null
+      continue
+    }
+    parts.push(segment)
+  }
+  return parts.length === 0 ? null : parts.join('/')
+}
 
-function page(title: string, body: string): string {
-  return [
-    '<!doctype html>',
-    '<html lang="en">',
-    '<meta charset="utf-8">',
-    '<meta name="viewport" content="width=device-width,initial-scale=1">',
-    `<title>${escapeHtml(title)}</title>`,
-    `<style>${STYLE}</style>`,
-    body,
-    '',
-  ].join('\n')
+/**
+ * A family's example documents, verbatim.
+ *
+ * Verbatim is the point: `check:examples` validates exactly these bytes against
+ * the bundle on the same commit, so what a reader copies is what CI proved
+ * valid. Reformatting them here would publish something nothing had checked.
+ */
+function renderExamples(target: ReferenceTarget, base: string): string {
+  const blocks = target.examples.map((example) =>
+    [
+      `<h2 id="${escapeHtml(example.name)}">${escapeHtml(example.name)}</h2>`,
+      `<pre><code>${escapeHtml(example.body)}</code></pre>`,
+    ].join('\n'),
+  )
+
+  return page(
+    `${target.family} ${target.version} examples`,
+    [
+      `<p class="muted">${link(`/${base}/`, 'Reference')} / ${escapeHtml(target.family)} ` +
+        `/ ${escapeHtml(target.version)}</p>`,
+      `<h1>${escapeHtml(target.family)} examples</h1>`,
+      '<p class="lead">Every example below is validated against the schema on this page ' +
+        'in CI, so an example that does not validate fails the build rather than shipping.</p>',
+      `<nav class="toc">${target.examples
+        .map((e) => `<a href="#${encodeURIComponent(e.name)}">${escapeHtml(e.name)}</a>`)
+        .join('')}</nav>`,
+      ...blocks,
+      `<footer>${[
+        link(`/${base}/`, 'Field reference'),
+        link(target.schemaPath, 'JSON Schema'),
+      ].join(' · ')}</footer>`,
+    ].join('\n'),
+  )
+}
+
+/** The reference's own index: every family and version rendered. */
+function renderReferenceIndex(rendered: readonly ReferenceTarget[]): string {
+  const rows = rendered
+    .map(
+      (target) =>
+        `<tr><td>${link(`/${RESERVED_PATH}/${target.family}/${target.version}/`, target.family)}</td>` +
+        `<td><code>${escapeHtml(target.version)}</code></td>` +
+        `<td>${target.spec === null ? '<span class="muted">—</span>' : link(`/${RESERVED_PATH}/${target.family}/${target.version}/spec/`, 'specification')}</td>` +
+        `<td>${target.examples.length === 0 ? '<span class="muted">—</span>' : link(`/${RESERVED_PATH}/${target.family}/${target.version}/examples/`, `${target.examples.length}`)}</td>` +
+        `<td>${link(target.schemaPath, 'schema')}</td></tr>`,
+    )
+    .join('')
+
+  return page(
+    'Musher schema reference',
+    [
+      `<p class="muted">${link('/', 'Schemas')} / reference</p>`,
+      '<h1>Musher schema reference</h1>',
+      '<p class="lead">A field-by-field reference for each document family, generated from the ' +
+        "schema bundle it describes, beside that family's specification.</p>",
+      '<table><thead><tr><th>Family</th><th>Version</th><th>Specification</th>' +
+        '<th>Examples</th><th>Schema</th></tr></thead><tbody>' +
+        rows +
+        '</tbody></table>',
+      '<p class="muted">Generated from the bytes each version serves, and informative. The ' +
+        'specification and the schema bundle are what govern.</p>',
+      `<footer>${link('/', 'Index')}</footer>`,
+    ].join('\n'),
+  )
 }
 
 /** A `spec.md` on GitHub, at the ref the reader is actually looking at. */
 function proseUrl(family: string, major: string, ref: string): string {
   return `${REPO_URL}/blob/${ref}/specifications/${family}/${major}/spec.md`
-}
-
-function link(href: string, text: string): string {
-  return `<a href="${escapeHtml(href)}">${escapeHtml(text)}</a>`
 }
 
 function renderIndex(
@@ -465,6 +738,7 @@ function renderIndex(
       `<td>${latest === undefined ? '<span class="muted">unreleased</span>' : escapeHtml(latest.version)}</td>`,
       `<td>${versions.length === 0 ? '<span class="muted">—</span>' : link(`/${family}/versions.json`, 'versions.json')}</td>`,
       `<td>${alias === undefined ? '<span class="muted">—</span>' : link(proseUrl(family, alias.major, alias.ref), 'spec.md')}</td>`,
+      `<td>${alias === undefined ? '<span class="muted">—</span>' : link(`/${RESERVED_PATH}/${family}/${alias.major}/`, 'reference')}</td>`,
       '</tr>',
     ].join('')
   })
@@ -478,12 +752,15 @@ function renderIndex(
       `publication ledger live in ${link(REPO_URL, 'musher-dev/spec')}.</p>`,
       '<table>',
       '<thead><tr><th>Family</th><th>Alias</th><th>Latest</th><th>Versions</th>',
-      '<th>Prose</th></tr></thead>',
+      '<th>Prose</th><th>Reference</th></tr></thead>',
       `<tbody>${rows.join('')}</tbody>`,
       '</table>',
       '<p>An alias moves within its major version as backward-compatible additions ship.',
       'Automation must pin an exact version instead — those paths are rebuilt from their git',
       'tags on every deploy, carry an <code>$id</code> naming that exact URL, and never change.</p>',
+      `<p>The ${link(`/${RESERVED_PATH}/`, 'reference')} explains each family field by field, ` +
+        'beside its specification. It is generated from the bytes each version serves, and is ' +
+        'informative — the specification and the bundle are what govern.</p>',
       `<footer>${[
         link('/catalog.json', 'catalog.json'),
         link('/published.json', 'published.json'),
@@ -552,11 +829,24 @@ function renderFamilyIndex(
           '</table>',
         ]
 
+  const newest = [...aliases]
+    .map((a) => a.major)
+    .sort((a, b) => Number(a.slice(1)) - Number(b.slice(1)))
+    .pop()
+
   return page(
     `${family} schemas`,
     [
       `<p>${link('/', 'Musher schemas')}</p>`,
       `<h1>${escapeHtml(family)}</h1>`,
+      // The newest major, not the first: `aliases` arrives in release order, so
+      // once a family has both v1 and v2 the first entry is the older one.
+      ...(newest === undefined
+        ? []
+        : [
+            `<p>${link(`/${RESERVED_PATH}/${family}/${newest}/`, 'Read the reference')}` +
+              ' — every field, beside the specification.</p>',
+          ]),
       '<h2>Alias</h2>',
       ...alias,
       '<h2>Published versions</h2>',
@@ -576,10 +866,11 @@ function renderNotFound(): string {
     [
       '<h1>Not found</h1>',
       '<p>No schema is published at this path.</p>',
-      '<p class="muted">This host serves two path shapes per family —',
+      '<p class="muted">This host serves two schema path shapes per family —',
       '<code>/&lt;family&gt;/v1/&lt;family&gt;.schema.json</code> for the moving alias and',
       '<code>/&lt;family&gt;/v1.2.0/&lt;family&gt;.schema.json</code> for an exact version.',
       'A version that was never released has no URL; nothing is ever unpublished.</p>',
+      `<p class="muted">The generated reference is under ${link(`/${RESERVED_PATH}/`, '/reference/')}.</p>`,
       `<p>${link('/', 'Index')}</p>`,
     ].join('\n'),
   )

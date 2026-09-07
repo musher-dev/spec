@@ -275,7 +275,9 @@ function checkMetaValid(doc: { [k: string]: Json }, rel: string, failures: Failu
  */
 const EXTENSION_KEYWORDS = [
   // Names the key of a map-valued object, for documentation renderers. The
-  // keys are chosen by the document author, so no schema can name them.
+  // keys are chosen by the document author, so no schema can name them. It
+  // sits on the `$def` that is the map's value type, or — where that value is
+  // an inline scalar with no definition to carry it — on the map itself.
   'x-additionalPropertiesName',
   // Which `oneOf` branch a reader should expect, keyed on a property. The
   // adjacent `oneOf` and `const` do the actual validation; this is a rendering

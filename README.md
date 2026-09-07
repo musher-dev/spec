@@ -20,11 +20,11 @@ Each family is an independently versioned document contract. All three share the
 `{ specVersion, kind, metadata, spec }` envelope described in
 [ADR 0001](docs/adr/0001-canonical-repository-architecture.md).
 
-| Family | `kind` | Describes | Schema |
-|---|---|---|---|
-| [`component`](specifications/component/v1/) | `COMPONENT` | One reusable workload definition — source, runtime shape, health, and configuration contract. | [`component.schema.json`](specifications/component/v1/schemas/dist/component.schema.json) |
-| [`blueprint`](specifications/blueprint/v1/) | `BLUEPRINT` | A composition of components into a single deployable application. | [`blueprint.schema.json`](specifications/blueprint/v1/schemas/dist/blueprint.schema.json) |
-| [`listing`](specifications/listing/v1/) | `LISTING` | The catalog storefront entry for a blueprint or component. | [`listing.schema.json`](specifications/listing/v1/schemas/dist/listing.schema.json) |
+| Family | `kind` | Describes | Schema | Reference |
+|---|---|---|---|---|
+| [`component`](specifications/component/v1/) | `COMPONENT` | One reusable workload definition — source, runtime shape, health, and configuration contract. | [`component.schema.json`](specifications/component/v1/schemas/dist/component.schema.json) | [reference](https://schemas.musher.dev/reference/component/v1/) |
+| [`blueprint`](specifications/blueprint/v1/) | `BLUEPRINT` | A composition of components into a single deployable application. | [`blueprint.schema.json`](specifications/blueprint/v1/schemas/dist/blueprint.schema.json) | [reference](https://schemas.musher.dev/reference/blueprint/v1/) |
+| [`listing`](specifications/listing/v1/) | `LISTING` | The catalog storefront entry for a blueprint or component. | [`listing.schema.json`](specifications/listing/v1/schemas/dist/listing.schema.json) | [reference](https://schemas.musher.dev/reference/listing/v1/) |
 
 ## Using the schemas
 
@@ -78,6 +78,18 @@ its first tag the alias serves what is committed on `main`.
 
 `https://schemas.musher.dev/` is browsable: it lists every family, and each
 family's page lists every version it has published with that version's checksum.
+`/reference/<family>/v1/` carries a field-by-field reference generated from that
+family's bundle, beside its `spec.md` rendered as HTML.
+
+Every version the host serves has one — the moving alias at
+`/reference/<family>/v1/` and each exact release at
+`/reference/<family>/v1.2.0/` — and each describes the bytes that version
+serves, so the documentation and the schema beside it are never different bytes.
+
+A reference page is regenerated on every deploy and is **not** immutable, which
+is why it lives outside the release directory rather than inside it: a rendering
+may be corrected, and the schema it describes may not. Nothing there is
+normative. See [ADR 0017](docs/adr/0017-generated-field-reference.md).
 
 Every schema is served as `application/schema+json` with CORS open, so a
 browser-based validator can fetch it. An exact-version path is

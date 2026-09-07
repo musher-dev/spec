@@ -41,7 +41,8 @@
           "additionalProperties": {
             "type": "string"
           },
-          "type": "object"
+          "type": "object",
+          "x-additionalPropertiesName": "argumentName"
         },
         "builderImage": {
           "description": "Buildpacks builder image, or null when not building with buildpacks.",

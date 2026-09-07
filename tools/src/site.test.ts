@@ -94,6 +94,159 @@ function resolve(rules: readonly HeaderRule[], path: string): Map<string, string
 }
 
 describe('assembleSite', () => {
+  // ---------------------------------------------------------------------------
+  // The generated reference.
+  // ---------------------------------------------------------------------------
+
+  const PROSE = '## <a id="scope"></a>1. Released prose\n'
+  const DRAFT = '## <a id="scope"></a>1. Unreleased prose\n'
+
+  test('the reference describes the tag the alias serves, not the working tree', () => {
+    // The bug this rules out is invisible today: with no tags, a reference
+    // built from the working tree passes everything and starts lying on the
+    // first release.
+    const fx = fixture()
+    fx.writeFile('specifications/component/v1/spec.md', PROSE)
+    release(
+      fx,
+      'component',
+      'v1',
+      '1.0.0',
+      fx.bundleDoc('component', 'v1', {
+        properties: { released: { type: 'string', description: 'shipped in 1.0.0' } },
+      }),
+    )
+
+    fx.writeFile('specifications/component/v1/spec.md', DRAFT)
+    fx.writeBundle(
+      'component',
+      'v1',
+      fx.bundleDoc('component', 'v1', {
+        properties: { unreleased: { type: 'string', description: 'only on main' } },
+      }),
+    )
+    fx.commit('feat(component): add a field that is not released')
+
+    assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site') })
+
+    for (const version of ['v1', 'v1.0.0']) {
+      const reference = readSite(fx, 'reference', 'component', version, 'index.html')
+      expect(reference).toContain('released')
+      expect(reference).not.toContain('only on main')
+      const prose = readSite(fx, 'reference', 'component', version, 'spec', 'index.html')
+      expect(prose).toContain('Released prose')
+      expect(prose).not.toContain('Unreleased prose')
+    }
+  })
+
+  test('an untagged family renders from the working tree', () => {
+    const fx = fixture()
+    fx.writeFile('specifications/component/v1/spec.md', PROSE)
+    fx.writeBundle(
+      'component',
+      'v1',
+      fx.bundleDoc('component', 'v1', { properties: { drafted: { type: 'string' } } }),
+    )
+    fx.commit('feat(component): draft')
+
+    assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site') })
+    expect(readSite(fx, 'reference', 'component', 'v1', 'index.html')).toContain('drafted')
+  })
+
+  test('no reference path draws a Cache-Control header', () => {
+    const fx = fixture()
+    fx.writeFile('specifications/component/v1/spec.md', PROSE)
+    release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
+
+    const site = join(fx.root, 'site')
+    assembleSite({ repoRoot: fx.root, siteDir: site })
+    const rules = parseHeaders(readFileSync(join(site, '_headers'), 'utf8'))
+
+    const referencePaths = servedPaths(site).filter((path) => path.startsWith('/reference/'))
+    expect(referencePaths.length).toBeGreaterThan(0)
+    for (const path of referencePaths) {
+      expect(resolve(rules, path).get('Cache-Control')).toBeUndefined()
+      // The shape rule still reaches them, which is what makes them fetchable.
+      expect(resolve(rules, path).get('Access-Control-Allow-Origin')).toEqual(['*'])
+    }
+  })
+
+  test('the reference costs no header rules, however many versions it renders', () => {
+    const fx = fixture()
+    fx.writeFile('specifications/component/v1/spec.md', PROSE)
+    release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
+    release(fx, 'component', 'v1', '1.1.0', fx.bundleDoc('component', 'v1'))
+    release(fx, 'component', 'v1', '1.2.0', fx.bundleDoc('component', 'v1'))
+
+    const site = join(fx.root, 'site')
+    assembleSite({ repoRoot: fx.root, siteDir: site })
+    expect(readFileSync(join(site, '_headers'), 'utf8')).not.toContain('/reference')
+    expect(servedPaths(site).filter((p) => p.startsWith('/reference/')).length).toBeGreaterThan(3)
+  })
+
+  test('the examples page carries every example, verbatim, from the same ref', () => {
+    const fx = fixture()
+    fx.writeFile('specifications/component/v1/spec.md', PROSE)
+    fx.writeFile(
+      'specifications/component/v1/examples/minimal.yaml',
+      'kind: COMPONENT # released\n',
+    )
+    release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
+
+    // Move both the example and add a second one on main.
+    fx.writeFile('specifications/component/v1/examples/minimal.yaml', 'kind: COMPONENT # on main\n')
+    fx.writeFile('specifications/component/v1/examples/extra.yaml', 'kind: COMPONENT # new\n')
+    fx.commit('docs(component): revise the examples')
+
+    assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site') })
+
+    const pinned = readSite(fx, 'reference', 'component', 'v1.0.0', 'examples', 'index.html')
+    expect(pinned).toContain('kind: COMPONENT # released')
+    expect(pinned).not.toContain('on main')
+    expect(pinned).not.toContain('extra.yaml')
+
+    const alias = readSite(fx, 'reference', 'component', 'v1', 'examples', 'index.html')
+    expect(alias).toContain('kind: COMPONENT # released')
+  })
+
+  test('a family with no examples gets no examples page and no link to one', () => {
+    const fx = fixture()
+    fx.writeFile('specifications/component/v1/spec.md', PROSE)
+    fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1'))
+    fx.commit('feat(component): a family with no examples')
+
+    const site = join(fx.root, 'site')
+    assembleSite({ repoRoot: fx.root, siteDir: site })
+    expect(servedPaths(site)).not.toContain('/reference/component/v1/examples/index.html')
+    expect(readSite(fx, 'reference', 'component', 'v1', 'index.html')).not.toContain(
+      'href="/reference/component/v1/examples/"',
+    )
+  })
+
+  test('a family named after the reference namespace is refused by name', () => {
+    const fx = fixture()
+    fx.writeBundle('reference', 'v1', fx.bundleDoc('reference', 'v1'))
+    fx.commit('feat: a family that would collide')
+    expect(() => assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site') })).toThrow(
+      /reserved top-level path/,
+    )
+  })
+
+  test('a ref carrying no spec.md renders no prose page and offers no link to one', () => {
+    const fx = fixture()
+    fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1'))
+    fx.commit('feat(component): a bundle with no prose beside it')
+
+    const site = join(fx.root, 'site')
+    assembleSite({ repoRoot: fx.root, siteDir: site })
+    expect(servedPaths(site)).not.toContain('/reference/component/v1/spec/index.html')
+    // Not a bare '/spec/': the GitHub source link legitimately carries
+    // `musher-dev/spec/blob/...`. What must be absent is the on-origin page.
+    expect(readSite(fx, 'reference', 'component', 'v1', 'index.html')).not.toContain(
+      'href="/reference/component/v1/spec/"',
+    )
+  })
+
   test('a pinned path does not move when main moves', () => {
     const fx = fixture()
     release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))

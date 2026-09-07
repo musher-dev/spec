@@ -40,6 +40,7 @@
           "additionalProperties": {
             "type": "string"
           },
+          "x-additionalPropertiesName": "argumentName",
           "description": "Build arguments keyed by argument name, injected into the image build context (Docker ARG). Build-time configuration only — runtime configuration rides on the workload's envVars.",
           "type": "object"
         },
