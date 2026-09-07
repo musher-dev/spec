@@ -151,9 +151,25 @@ function splitTables(markdown: string, where: string): Segment[] {
     run = []
   }
 
+  let fence: string | null = null
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i] ?? ''
     const next = lines[i + 1] ?? ''
+    // A fenced block is opaque. Without this, a pipe table shown *as an
+    // example* inside a fence would be lifted out as a real table and its
+    // closing fence would re-open a code block, swallowing the rest of the
+    // document — silently, which is the one outcome this module refuses.
+    const opener = /^(```+|~~~+)/.exec(line.trim())
+    if (fence === null && opener !== null) {
+      fence = opener[1] ?? '```'
+      run.push(line)
+      continue
+    }
+    if (fence !== null) {
+      if (line.trim().startsWith(fence)) fence = null
+      run.push(line)
+      continue
+    }
     if (!line.startsWith('|') || !DELIMITER.test(next)) {
       run.push(line)
       continue
@@ -176,6 +192,13 @@ function splitTables(markdown: string, where: string): Segment[] {
 
 /** Split one row into cells, refusing the one shape a naive split would mangle. */
 function cells(row: string, where: string, line: number): string[] {
+  if (row.includes('\\|')) {
+    throw new Error(
+      `${where}:${line}: a table cell escapes a pipe. Tables here are split on the ` +
+        'pipe, so this row cannot be rendered faithfully. Reword the cell, or teach ' +
+        'prose.ts to parse the row properly.',
+    )
+  }
   for (const span of row.match(/`[^`\n]*`/g) ?? []) {
     if (span.includes('|')) {
       throw new Error(
@@ -205,12 +228,33 @@ const renderer = new HtmlRenderer({ safe: false })
 function rewrite(root: Node, context: ProseContext | null): void {
   const walker = root.walker()
   let step = walker.next()
+  /**
+   * Depth of enclosing links. A citation inside a link's own label must be
+   * left alone: wrapping it makes a nested `<a>`, which HTML forbids and the
+   * parser splits into siblings, and the inner href would be resolved against
+   * *this* document — so `[component §3](../../component/v1/spec.md#…)` would
+   * render a "§3" pointing at this family's §3 instead of component's.
+   */
+  let inLink = 0
   while (step !== null) {
     const node = step.node
-    if (step.entering && node.type === 'link' && node.destination !== null && context !== null) {
-      node.destination = context.resolveLink(node.destination)
+    if (node.type === 'link') {
+      if (step.entering) {
+        if (node.destination !== null && context !== null) {
+          node.destination = context.resolveLink(node.destination)
+        }
+        inLink += 1
+      } else {
+        inLink -= 1
+      }
     }
-    if (step.entering && node.type === 'text' && node.literal !== null && context !== null) {
+    if (
+      step.entering &&
+      inLink === 0 &&
+      node.type === 'text' &&
+      node.literal !== null &&
+      context !== null
+    ) {
       linkifyCitations(node, context)
     }
     step = walker.next()

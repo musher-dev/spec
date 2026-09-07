@@ -97,8 +97,8 @@ export interface Discriminator {
 
 export type Shape =
   | { readonly kind: 'scalar'; readonly type: string }
-  | { readonly kind: 'enum'; readonly type: string; readonly values: readonly string[] }
-  | { readonly kind: 'const'; readonly type: string; readonly value: Json }
+  | { readonly kind: 'enum'; readonly type: string | undefined; readonly values: readonly Json[] }
+  | { readonly kind: 'const'; readonly type: string | undefined; readonly value: Json }
   | { readonly kind: 'ref'; readonly target: string }
   | { readonly kind: 'array'; readonly items: Shape }
   | {
@@ -381,15 +381,29 @@ class Builder {
     if (Array.isArray(node.type)) {
       this.fail(pointer, 'declares an array "type", which no Musher schema uses — add a case')
     }
-    if ('const' in node) {
-      return {
-        shape: { kind: 'const', type: type ?? 'string', value: node.const as Json },
-        nullable: false,
+    // `KNOWN_KEYS` gates the *name* of a keyword. These four are named there
+    // because they are legitimate inside a conditional, where `predicateOf`
+    // and `effectsOf` read them — but in shape position this reader has no
+    // case for any of them, and returning a bare `object` or `any` would drop
+    // a type, a nested field set, or a negation without a word. Refuse instead.
+    for (const unhandled of ['allOf', 'not', 'if', 'properties'] as const) {
+      if (node[unhandled] !== undefined) {
+        this.fail(
+          pointer,
+          `carries "${unhandled}" where a shape is expected. No Musher schema does this ` +
+            'today; add a case rather than letting the page render it as an untyped value.',
+        )
       }
     }
+    if ('const' in node) {
+      return { shape: { kind: 'const', type, value: node.const as Json }, nullable: false }
+    }
     if (Array.isArray(node.enum)) {
-      const values = node.enum.filter((v): v is string => typeof v === 'string')
-      return { shape: { kind: 'enum', type: type ?? 'string', values }, nullable: false }
+      // Every member, whatever its type, and the declared type as declared.
+      // Filtering to strings would delete a numeric or null member from the
+      // page silently; defaulting the type to `string` would label an untyped
+      // enum as something the schema never said.
+      return { shape: { kind: 'enum', type, values: node.enum as Json[] }, nullable: false }
     }
     if (type !== undefined) return { shape: { kind: 'scalar', type }, nullable: false }
     return { shape: { kind: 'any', constraints: this.constraintsOf(node) }, nullable: false }
@@ -548,8 +562,9 @@ class Builder {
       .sort()
       .map((name) => this.typeOf(this.defs[name] as Json, name, `/$defs/${name}`))
 
+    const root = this.typeOf(this.bundle, ROOT, '')
     const anchors = new Set<string>()
-    for (const type of [...types, this.typeOf(this.bundle, ROOT, '')]) {
+    for (const type of [...types, root]) {
       for (const anchor of [type.anchor, ...type.fields.map((f) => f.anchor)]) {
         if (anchors.has(anchor)) this.fail('', `produces the anchor ${anchor} twice`)
         anchors.add(anchor)
@@ -563,7 +578,7 @@ class Builder {
       description:
         typeof this.bundle.description === 'string' ? this.bundle.description : undefined,
       comment: typeof this.bundle.$comment === 'string' ? this.bundle.$comment : undefined,
-      root: this.typeOf(this.bundle, ROOT, ''),
+      root,
       types,
       notes: this.notes,
     }
@@ -609,6 +624,11 @@ function note(comment: string | undefined, context: PageContext, summary: string
   return `<details class="note"><summary>${escapeHtml(summary)}</summary><div>${prose(comment, context)}</div></details>`
 }
 
+/** A schema value as a reader sees it: a string as itself, anything else as JSON. */
+function literal(value: Json): string {
+  return typeof value === 'string' ? value : JSON.stringify(value)
+}
+
 function typeLink(name: string): string {
   return `<a href="#${encodeURIComponent(name)}"><code>${escapeHtml(name)}</code></a>`
 }
@@ -618,10 +638,18 @@ function describeShape(shape: Shape): string {
   switch (shape.kind) {
     case 'scalar':
       return escapeHtml(shape.type)
-    case 'enum':
-      return `${escapeHtml(shape.type)} — one of ${shape.values.map((v) => `<code>${escapeHtml(v)}</code>`).join(', ')}`
-    case 'const':
-      return `${escapeHtml(shape.type)} — always <code>${escapeHtml(JSON.stringify(shape.value))}</code>`
+    case 'enum': {
+      const members = shape.values.map((v) => `<code>${escapeHtml(literal(v))}</code>`).join(', ')
+      return shape.type === undefined
+        ? `one of ${members}`
+        : `${escapeHtml(shape.type)} — one of ${members}`
+    }
+    case 'const': {
+      const value = `<code>${escapeHtml(literal(shape.value))}</code>`
+      return shape.type === undefined
+        ? `always ${value}`
+        : `${escapeHtml(shape.type)} — always ${value}`
+    }
     case 'ref':
       return typeLink(shape.target)
     case 'array':
@@ -695,10 +723,10 @@ function renderConditions(type: TypeDoc, context: PageContext): string {
     const when = phraseWhen(condition.when)
     const lines = [
       ...condition.consequent.map(
-        (e) => `<p>${when}, <code>${escapeHtml(e.field)}</code> ${escapeHtml(e.detail)}.</p>`,
+        (e) => `<p>${when}, <code>${escapeHtml(e.field)}</code> ${detail(e, context)}.</p>`,
       ),
       ...condition.alternative.map(
-        (e) => `<p>Otherwise, <code>${escapeHtml(e.field)}</code> ${escapeHtml(e.detail)}.</p>`,
+        (e) => `<p>Otherwise, <code>${escapeHtml(e.field)}</code> ${detail(e, context)}.</p>`,
       ),
     ]
     // Where the condition resists phrasing, its authored rationale is the only
@@ -709,6 +737,20 @@ function renderConditions(type: TypeDoc, context: PageContext): string {
     return lines.join('\n')
   })
   return `<div class="rules"><p class="meta">Conditional rules</p>\n${rows.join('\n')}</div>`
+}
+
+/**
+ * An effect's phrasing, as prose.
+ *
+ * `rulePhrase` writes field names in backticks because that is how this
+ * repository writes a field name. Escaping the string would print the
+ * backticks; rendering it as CommonMark turns them into `<code>`.
+ */
+function detail(effect: Effect, context: PageContext): string {
+  return renderInline(effect.detail, context.links)
+    .trim()
+    .replace(/^<p>/, '')
+    .replace(/<\/p>$/, '')
 }
 
 function phraseWhen(predicate: Predicate): string {

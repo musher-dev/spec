@@ -113,6 +113,52 @@ describe('renderProse', () => {
   })
 })
 
+describe('what the renderer refuses or leaves alone', () => {
+  test('a citation inside a link label is left alone', () => {
+    // `[component §3](../../component/v1/spec.md#compatibility)` must not gain
+    // an inner <a>: HTML forbids nesting, and the inner href would resolve
+    // against THIS document, sending "§3" to this family's §3 instead.
+    const outline = '## <a id="identity"></a>3. Identity\n'
+    const html = renderProse(
+      `${outline}\n[component §3](../../component/v1/spec.md#compatibility)\n`,
+      context(outline, () => '/reference/component/v1/spec/#compatibility'),
+      SPEC,
+    )
+    expect(html).toContain('>component §3</a>')
+    expect(html).not.toMatch(/<a [^>]*>[^<]*<a /)
+  })
+
+  test('a citation outside a link is still linked', () => {
+    const outline = '## <a id="identity"></a>3. Identity\n'
+    const html = renderProse(`${outline}\nSee §3.\n`, context(outline), SPEC)
+    expect(html).toContain('#identity"')
+  })
+
+  test('a pipe table inside a fenced block stays inside the fence', () => {
+    const html = renderProse(
+      'Before\n\n```\n| a | b |\n|---|---|\n| 1 | 2 |\n```\n\nAfter\n',
+      null,
+      SPEC,
+    )
+    // Lifting it out would leave the closing fence re-opening a code block and
+    // swallowing everything after it.
+    expect(html).not.toContain('<table>')
+    expect(html).toContain('<p>After</p>')
+  })
+
+  test('a real table after a fenced block is still rendered', () => {
+    const html = renderProse('```\ncode\n```\n\n| a |\n|---|\n| 1 |\n', null, SPEC)
+    expect(html).toContain('<table>')
+    expect(html).toContain('<td>1</td>')
+  })
+
+  test('a row escaping a pipe is refused rather than mis-split', () => {
+    expect(() => renderProse('| x \\| y | z |\n|---|---|\n| 1 | 2 |\n', null, SPEC)).toThrow(
+      /escapes a pipe/,
+    )
+  })
+})
+
 describe('renderInline', () => {
   test('renders a reStructuredText double-backtick span as code', () => {
     expect(renderInline('A node names ``component``.', null)).toContain('<code>component</code>')

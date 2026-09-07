@@ -81,10 +81,14 @@ family's page lists every version it has published with that version's checksum.
 `/reference/<family>/v1/` carries a field-by-field reference generated from that
 family's bundle, beside its `spec.md` rendered as HTML.
 
-The reference describes what the alias serves — the newest release once a family
-is tagged, and what is committed on `main` before that — so the documentation and
-the schema beside it are never different bytes. It is regenerated on every deploy
-and is not pinned: there is no exact-version reference URL, and nothing there is
+Every version the host serves has one — the moving alias at
+`/reference/<family>/v1/` and each exact release at
+`/reference/<family>/v1.2.0/` — and each describes the bytes that version
+serves, so the documentation and the schema beside it are never different bytes.
+
+A reference page is regenerated on every deploy and is **not** immutable, which
+is why it lives outside the release directory rather than inside it: a rendering
+may be corrected, and the schema it describes may not. Nothing there is
 normative. See [ADR 0017](docs/adr/0017-generated-field-reference.md).
 
 Every schema is served as `application/schema+json` with CORS open, so a

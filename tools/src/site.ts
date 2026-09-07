@@ -829,13 +829,24 @@ function renderFamilyIndex(
           '</table>',
         ]
 
+  const newest = [...aliases]
+    .map((a) => a.major)
+    .sort((a, b) => Number(a.slice(1)) - Number(b.slice(1)))
+    .pop()
+
   return page(
     `${family} schemas`,
     [
       `<p>${link('/', 'Musher schemas')}</p>`,
       `<h1>${escapeHtml(family)}</h1>`,
-      `<p>${link(`/${RESERVED_PATH}/${family}/${aliases[0]?.major ?? 'v1'}/`, 'Read the reference')}` +
-        ' — every field, beside the specification.</p>',
+      // The newest major, not the first: `aliases` arrives in release order, so
+      // once a family has both v1 and v2 the first entry is the older one.
+      ...(newest === undefined
+        ? []
+        : [
+            `<p>${link(`/${RESERVED_PATH}/${family}/${newest}/`, 'Read the reference')}` +
+              ' — every field, beside the specification.</p>',
+          ]),
       '<h2>Alias</h2>',
       ...alias,
       '<h2>Published versions</h2>',

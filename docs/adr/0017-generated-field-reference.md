@@ -88,29 +88,36 @@ The bug this rules out is invisible today. No family is tagged, so a reference
 built from the working tree would pass every check and start lying on the first
 release.
 
-### 4. The reference is not pinned, and takes no cache rule
+### 4. Every version gets a reference, and none of them is immutable
 
-There is no exact-version reference URL. Three reasons, and the second is the one
-that decides it.
+The reference is rendered for each version the registry serves: the moving alias
+and every exact release. A reader who pinned `/component/v1.2.0/component.schema.json`
+— pinned it precisely so it would not move — can read the fields of the bytes in
+front of them rather than of whatever `main` says today.
 
-The `_headers` budget. §2 fixed it at 90 of Cloudflare's 100 and made a release
-cost exactly one rule, leaving room for roughly eighty versions. A per-version
-reference directory would make a release cost two.
+What those pages are not is immutable, and the distinction is the whole reason
+the namespace is top-level instead of a directory inside the release.
 
-Immutability. A pinned URL's bytes never change, and `check:published` hashes the
-schema, not a rendering. HTML at a pinned path would have to be rewritten
-whenever the renderer improved, at a URL this repository documents as immutable
-forever, with nothing to catch it. Not publishing HTML there is how that promise
-stays true rather than becoming quietly false.
+`/<family>/v<X.Y.Z>/` carries one `immutable` rule for a year, and
+`check:published` hashes the schema rather than any rendering. HTML there would
+be bytes at a URL this repository documents as immutable forever that had to be
+rewritten whenever the renderer improved, with nothing to catch it. Under
+`/reference/` the same page is a rendering that may be corrected, and a fix
+reaches every version including released ones.
 
-Cost. The namespace takes no `_headers` rule at all. §2's "Silence is safe" gives
-an uncontested asset `public, max-age=0, must-revalidate`, which is what a page
-regenerated on every deploy wants, and it is what §4's index pages already get
-for the same reason. Adding a family adds no rules.
+Nothing under `/reference/` takes an `_headers` rule at all. [ADR
+0012](0012-cloudflare-pages-publication.md) §2's "Silence is safe" gives an
+uncontested asset `public, max-age=0, must-revalidate`, which is what a
+regenerated page wants, and it is what that ADR's index pages already get for
+the same reason. So a release costs pages, not rules: the budget is untouched
+however many versions accumulate, and adding a family adds nothing to it.
+
+The release archive is unaffected either way. `release.yml` names its inputs
+explicitly and ships the Markdown, never the rendering.
 
 A family named `reference` would publish under this namespace and collide with
 it. `site.ts` rejects one by name, because the alternative is a build failure
-about a splat.
+about an overlapping splat.
 
 ### 5. The renderer admits the two elements the linter admits
 
@@ -156,7 +163,11 @@ controls. None of them know about `x-musher-discriminator`,
 conformance fixtures cite — and the most established of them documents Draft-07
 while every bundle here is 2020-12.
 
-**Render the prose at every pinned version too.** §4 of the Decision.
+**Render only the moving alias.** It would halve the generated pages. It would
+also leave a reader on an exact-version schema URL with no reference for the
+bytes in front of them, which is the reader most likely to want one. Since the
+namespace takes no cache rules, the saving is disk on a static host rather than
+anything in the contract.
 
 **Emit `Deprecation` and `Sunset` headers while `_headers` is being touched.**
 [ADR 0012](0012-cloudflare-pages-publication.md) follow-up 1, deliberately left

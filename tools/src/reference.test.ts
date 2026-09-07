@@ -296,6 +296,44 @@ describe('refusals and totality', () => {
   })
 })
 
+describe('what the model refuses or keeps', () => {
+  test('every enum member survives, whatever its type', () => {
+    const f = field(withField({ type: 'string', enum: ['A', 1, null, 'B'] }), 'T', 'f')
+    expect(f.shape).toEqual({ kind: 'enum', type: 'string', values: ['A', 1, null, 'B'] })
+  })
+
+  test('an untyped enum is not relabelled as a string', () => {
+    const f = field(withField({ enum: [1, 2] }), 'T', 'f')
+    expect(f.shape).toEqual({ kind: 'enum', type: undefined, values: [1, 2] })
+  })
+
+  for (const keyword of ['allOf', 'not', 'if', 'properties']) {
+    test(`${keyword} in shape position is refused, not rendered as an untyped value`, () => {
+      // Legitimate inside a conditional, where predicateOf and effectsOf read
+      // it; meaningless here, and returning `any` would drop a whole type.
+      expect(() => model(withField({ type: 'object', [keyword]: {} }))).toThrow(
+        new RegExp(`carries "${keyword}" where a shape is expected`),
+      )
+    })
+  }
+
+  test('a note from the root type is recorded once, not twice', () => {
+    const built = buildReference(
+      {
+        $schema: 'x',
+        $id: 'y',
+        title: 'T',
+        type: 'object',
+        additionalProperties: false,
+        properties: { m: { type: 'object', additionalProperties: { type: 'string' } } },
+      },
+      'component',
+      'v1',
+    )
+    expect(built.notes).toHaveLength(1)
+  })
+})
+
 describe('determinism', () => {
   test('types come out sorted however they went in', () => {
     const forward = model({ A: { type: 'object' }, B: { type: 'object' }, C: { type: 'object' } })
