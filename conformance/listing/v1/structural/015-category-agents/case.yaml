@@ -1,0 +1,18 @@
+# The AGENTS shelf, exercised. `category` is a closed vocabulary this repository
+# decides (§4.2, ADR 0003 placement one), so a term exists exactly when the
+# schema says it does — this document is rejected by every release before the
+# one that admits the term, and accepted by every release after.
+#
+# Nothing about the item is agent-specific: a category is how a buyer browses,
+# not what the software is built with, and the technology belongs in `tags`.
+specVersion: v1
+kind: LISTING
+metadata:
+  slug: openclaw
+  version: 1
+spec:
+  listingKind: COMPONENT
+  displayName: OpenClaw
+  summary: A self-hosted assistant that runs scheduled tasks and tools on your own infrastructure
+  category: AGENTS
+  lifecycleStage: BETA

@@ -1,0 +1,20 @@
+# The other half of structural-015, and the rule neither had a fixture for
+# before: `category` is a closed enum, so a term the schema does not carry is
+# rejected rather than passed through as a storefront's problem.
+#
+# This is what makes admitting a term a deliberate act. Without it the
+# vocabulary's closedness is asserted only in prose, and a future change that
+# opened the field — a `type: string` with the enum dropped — would break no
+# test. `AI_AGENTS` is used deliberately: a near-miss on a real term is the
+# spelling a publisher actually reaches for.
+specVersion: v1
+kind: LISTING
+metadata:
+  slug: openclaw
+  version: 1
+spec:
+  listingKind: COMPONENT
+  displayName: OpenClaw
+  summary: A self-hosted assistant that runs scheduled tasks and tools on your own infrastructure
+  category: AI_AGENTS
+  lifecycleStage: BETA

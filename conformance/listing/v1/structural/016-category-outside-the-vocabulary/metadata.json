@@ -1,0 +1,7 @@
+{
+  "id": "structural-016-category-outside-the-vocabulary",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/listing/v1/spec.md#vocabularies",
+  "summary": "A category outside the closed vocabulary is rejected."
+}

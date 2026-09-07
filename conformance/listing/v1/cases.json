@@ -93,6 +93,16 @@
       "path": "structural/014-url-field-uppercase-disallowed-scheme"
     },
     {
+      "id": "structural-015-category-agents",
+      "phase": "structural",
+      "path": "structural/015-category-agents"
+    },
+    {
+      "id": "structural-016-category-outside-the-vocabulary",
+      "phase": "structural",
+      "path": "structural/016-category-outside-the-vocabulary"
+    },
+    {
       "id": "semantic-001-duplicate-screenshot-basename",
       "phase": "semantic",
       "path": "semantic/001-duplicate-screenshot-basename"
