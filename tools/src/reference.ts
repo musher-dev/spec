@@ -22,6 +22,8 @@
  *
  * NON-NORMATIVE, like everything under tools/.
  */
+import { escapeHtml, link } from './html.ts'
+import { type ProseContext, renderInline } from './prose.ts'
 import { isObject, type Json } from './spec.ts'
 
 /** Constraints worth showing beside a field. Ordered as they are rendered. */
@@ -116,8 +118,13 @@ export type Shape =
   | { readonly kind: 'alternation'; readonly branches: readonly Shape[] }
   /** The `false` subschema: present in no valid document. */
   | { readonly kind: 'forbidden' }
-  /** `true`, `{}`, or a node carrying only annotations. */
-  | { readonly kind: 'any' }
+  /**
+   * A node with no type of its own. It may still assert: the two branches of
+   * `BlueprintNode.component` are bare `pattern`s, and they are the entire
+   * difference between the two forms — dropping them would render the field as
+   * "any value, or any value".
+   */
+  | { readonly kind: 'any'; readonly constraints: readonly Constraint[] }
 
 export interface FieldDoc {
   readonly name: string
@@ -289,7 +296,7 @@ class Builder {
    */
   shapeOf(raw: Json, pointer: string): { shape: Shape; nullable: boolean } {
     if (raw === false) return { shape: { kind: 'forbidden' }, nullable: false }
-    if (raw === true) return { shape: { kind: 'any' }, nullable: false }
+    if (raw === true) return { shape: { kind: 'any', constraints: [] }, nullable: false }
     if (!isObject(raw)) this.fail(pointer, `is ${JSON.stringify(raw)}, which is not a schema`)
 
     const node = raw
@@ -375,7 +382,7 @@ class Builder {
       return { shape: { kind: 'enum', type: type ?? 'string', values }, nullable: false }
     }
     if (type !== undefined) return { shape: { kind: 'scalar', type }, nullable: false }
-    return { shape: { kind: 'any' }, nullable: false }
+    return { shape: { kind: 'any', constraints: this.constraintsOf(node) }, nullable: false }
   }
 
   /** One `if` read as a statement about a field, or `opaque` where it is not. */
@@ -563,4 +570,203 @@ class Builder {
 export function buildReference(bundle: Json, family: string, version: string): ReferenceModel {
   if (!isObject(bundle)) throw new Error(`${family}/${version}: bundle is not an object`)
   return new Builder(bundle, `${family}/${version}`).build(family, version)
+}
+
+// ===== Rendering =====================================================
+//
+// The model above decides what a construct means. Everything below decides
+// only how to say it, and may be changed without touching a guarantee.
+
+export interface PageContext {
+  /** Where this family's bundle is served, for the "get the schema" action. */
+  readonly schemaPath: string
+  /** Where the rendered prose is, or null when the ref carries no spec.md. */
+  readonly prosePath: string | null
+  /** The GitHub blob of the prose, at the ref being described. */
+  readonly sourceUrl: string
+  readonly links: ProseContext | null
+}
+
+function prose(text: string | undefined, context: PageContext): string {
+  return text === undefined ? '' : renderInline(text, context.links)
+}
+
+/** An informative aside: rationale the schema author wrote for a reader. */
+function note(comment: string | undefined, context: PageContext, summary: string): string {
+  if (comment === undefined) return ''
+  return `<details class="note"><summary>${escapeHtml(summary)}</summary><div>${prose(comment, context)}</div></details>`
+}
+
+function typeLink(name: string): string {
+  return `<a href="#${encodeURIComponent(name)}"><code>${escapeHtml(name)}</code></a>`
+}
+
+/** One shape as a phrase, with every nested type linked rather than inlined. */
+function describeShape(shape: Shape): string {
+  switch (shape.kind) {
+    case 'scalar':
+      return escapeHtml(shape.type)
+    case 'enum':
+      return `${escapeHtml(shape.type)} — one of ${shape.values.map((v) => `<code>${escapeHtml(v)}</code>`).join(', ')}`
+    case 'const':
+      return `${escapeHtml(shape.type)} — always <code>${escapeHtml(JSON.stringify(shape.value))}</code>`
+    case 'ref':
+      return typeLink(shape.target)
+    case 'array':
+      return `array of ${describeShape(shape.items)}`
+    case 'map': {
+      const key = `<code>${escapeHtml(shape.keyName)}</code>`
+      const grammar =
+        shape.keyPattern === undefined
+          ? ''
+          : ` matching <code>${escapeHtml(shape.keyPattern)}</code>`
+      return `mapping, keyed by ${key}${grammar}, to ${describeShape(shape.value)}`
+    }
+    case 'union':
+      return shape.discriminator === undefined
+        ? `one of ${shape.branches.map(describeShape).join(', ')}`
+        : `one of, by <code>${escapeHtml(shape.discriminator.propertyName)}</code>: ${shape.discriminator.branches
+            .map((b) => `<code>${escapeHtml(b.label ?? '')}</code> → ${typeLink(b.target)}`)
+            .join(', ')}`
+    case 'alternation':
+      return `one of ${shape.branches.length} forms: ${shape.branches.map(describeShape).join(', or ')}`
+    case 'forbidden':
+      return 'must not be present'
+    case 'any': {
+      if (shape.constraints.length === 0) return 'any value'
+      return shape.constraints
+        .map((c) => `${escapeHtml(c.name)} <code>${escapeHtml(String(c.value))}</code>`)
+        .join(', ')
+    }
+  }
+}
+
+function renderConstraints(field: FieldDoc): string {
+  const parts = field.constraints.map(
+    (c) => `${escapeHtml(c.name)} <code>${escapeHtml(JSON.stringify(c.value))}</code>`,
+  )
+  // `default` is an annotation. Saying "default" unqualified would claim a
+  // validator inserts it, and none does; see ADR 0008.
+  if (field.documented !== undefined) {
+    parts.push(
+      field.documented.value === null
+        ? 'absent means <code>null</code>'
+        : `documented default <code>${escapeHtml(JSON.stringify(field.documented.value))}</code>`,
+    )
+  }
+  return parts.length === 0 ? '' : `<p class="meta">${parts.join(' · ')}</p>`
+}
+
+function renderField(field: FieldDoc, context: PageContext): string {
+  const badges = [
+    field.required
+      ? '<span class="badge req">required</span>'
+      : '<span class="badge">optional</span>',
+    field.nullable ? '<span class="badge">nullable</span>' : '',
+  ].join('')
+  return [
+    `<div class="field" id="${escapeHtml(field.anchor)}">`,
+    `<div class="name">${escapeHtml(field.name)} ${badges}</div>`,
+    `<p class="meta">${describeShape(field.shape)}</p>`,
+    prose(field.description, context),
+    renderConstraints(field),
+    note(field.comment, context, 'Authoring note'),
+    '</div>',
+  ]
+    .filter((part) => part !== '')
+    .join('\n')
+}
+
+function renderConditions(type: TypeDoc, context: PageContext): string {
+  if (type.conditions.length === 0) return ''
+  const rows = type.conditions.map((condition) => {
+    const when = phraseWhen(condition.when)
+    const lines = [
+      ...condition.consequent.map(
+        (e) => `<p>${when}, <code>${escapeHtml(e.field)}</code> ${escapeHtml(e.detail)}.</p>`,
+      ),
+      ...condition.alternative.map(
+        (e) => `<p>Otherwise, <code>${escapeHtml(e.field)}</code> ${escapeHtml(e.detail)}.</p>`,
+      ),
+    ]
+    // Where the condition resists phrasing, its authored rationale is the only
+    // readable form of the rule, so it is shown rather than hidden.
+    if (condition.when.kind === 'opaque' && condition.comment !== undefined) {
+      lines.unshift(`<p class="muted">${prose(condition.comment, context)}</p>`)
+    }
+    return lines.join('\n')
+  })
+  return `<div class="rules"><p class="meta">Conditional rules</p>\n${rows.join('\n')}</div>`
+}
+
+function phraseWhen(predicate: Predicate): string {
+  switch (predicate.kind) {
+    case 'const':
+      return `When <code>${escapeHtml(predicate.field)}</code> is <code>${escapeHtml(String(predicate.value))}</code>`
+    case 'enum':
+      return `When <code>${escapeHtml(predicate.field)}</code> is ${predicate.values
+        .map((v) => `<code>${escapeHtml(String(v))}</code>`)
+        .join(' or ')}`
+    case 'pattern':
+      return `When <code>${escapeHtml(predicate.field)}</code> matches <code>${escapeHtml(predicate.pattern)}</code>`
+    case 'notConst':
+      return `When <code>${escapeHtml(predicate.field)}</code> is not <code>${escapeHtml(String(predicate.value))}</code>`
+    case 'all':
+      return predicate.of
+        .map(phraseWhen)
+        .join(', and ')
+        .replace(/, and When /g, ' and ')
+    case 'opaque':
+      return 'Under the condition above'
+  }
+}
+
+function renderType(type: TypeDoc, context: PageContext, heading: string): string {
+  const key =
+    type.keyName === undefined
+      ? ''
+      : `<p class="meta">Used as a map value, keyed by <code>${escapeHtml(type.keyName)}</code>.</p>`
+  return [
+    `<h2 id="${escapeHtml(type.anchor)}">${escapeHtml(heading)}</h2>`,
+    prose(type.description, context),
+    key,
+    note(type.comment, context, 'Authoring note'),
+    renderConditions(type, context),
+    type.fields.map((field) => renderField(field, context)).join('\n'),
+  ]
+    .filter((part) => part !== '')
+    .join('\n')
+}
+
+/** The whole field reference for one family at one version. */
+export function renderReference(model: ReferenceModel, context: PageContext): string {
+  const actions = [
+    link(context.schemaPath, 'JSON Schema'),
+    context.prosePath === null ? '' : link(context.prosePath, 'Specification'),
+    link(context.sourceUrl, 'Source'),
+  ]
+    .filter((a) => a !== '')
+    .join(' · ')
+
+  const toc = [model.root, ...model.types]
+    .map((type) => `<a href="#${escapeHtml(type.anchor)}">${escapeHtml(type.name)}</a>`)
+    .join('')
+
+  return [
+    `<p class="muted">${link('/reference/', 'Reference')} / ${escapeHtml(model.family)}</p>`,
+    `<h1>${escapeHtml(model.title)}</h1>`,
+    model.description === undefined ? '' : `<p class="lead">${escapeHtml(model.description)}</p>`,
+    `<p>${actions}</p>`,
+    // The status note every page carries. The rendering is a view of the
+    // normative artifacts, never a fourth one; see ADR 0017.
+    '<p class="muted">This reference is generated from the schema bundle and is informative. ' +
+      'Where it differs from the specification, the specification governs. ' +
+      'A documented default is an annotation: no validator inserts it.</p>',
+    model.comment === undefined ? '' : `<p class="muted">${escapeHtml(model.comment)}</p>`,
+    `<h2>Contents</h2><nav class="toc">${toc}</nav>`,
+    renderType(model.root, context, `${model.family} document`),
+    ...model.types.map((type) => renderType(type, context, type.name)),
+  ]
+    .filter((part) => part !== '')
+    .join('\n')
 }
