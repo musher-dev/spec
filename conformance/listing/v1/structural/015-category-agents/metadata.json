@@ -1,0 +1,7 @@
+{
+  "id": "structural-015-category-agents",
+  "phase": "structural",
+  "expected": "pass",
+  "clause": "specifications/listing/v1/spec.md#vocabularies",
+  "summary": "AGENTS is a member of the category vocabulary."
+}
