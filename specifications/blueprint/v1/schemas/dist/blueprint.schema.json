@@ -274,7 +274,8 @@
           "componentVersion": false
         }
       },
-      "type": "object"
+      "type": "object",
+      "x-additionalPropertiesName": "nodeName"
     },
     "BlueprintParameter": {
       "description": "An install-form parameter composed at the graph layer (map value; keyed by key).",

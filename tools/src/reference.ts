@@ -248,7 +248,17 @@ class Builder {
     return node.type === 'object' && isObject(node.additionalProperties)
   }
 
-  private keyNameOf(value: Shape): string | undefined {
+  /**
+   * What a map's keys are called.
+   *
+   * Two placements, most specific first. The annotation usually sits on the
+   * `$def` that is the map's value type, which is where six of the seven are;
+   * but a map whose value is an inline scalar — `ComponentBuild.arguments` — has
+   * no definition to carry it, so the map itself may name its key instead.
+   */
+  private keyNameOf(node: { [k: string]: Json }, value: Shape): string | undefined {
+    const here = node['x-additionalPropertiesName']
+    if (typeof here === 'string') return here
     if (value.kind !== 'ref') return undefined
     const target = this.defs[value.target]
     if (!isObject(target)) return undefined
@@ -341,7 +351,7 @@ class Builder {
         node.additionalProperties as Json,
         `${pointer}/additionalProperties`,
       )
-      const annotated = this.keyNameOf(value.shape)
+      const annotated = this.keyNameOf(node, value.shape)
       if (annotated === undefined) {
         this.notes.push(
           `${pointer}: map key unnamed — its value type carries no x-additionalPropertiesName`,
@@ -582,6 +592,8 @@ export interface PageContext {
   readonly schemaPath: string
   /** Where the rendered prose is, or null when the ref carries no spec.md. */
   readonly prosePath: string | null
+  /** Where the validated examples are, or null when the ref carries none. */
+  readonly examplesPath: string | null
   /** The GitHub blob of the prose, at the ref being described. */
   readonly sourceUrl: string
   readonly links: ProseContext | null
@@ -743,6 +755,7 @@ export function renderReference(model: ReferenceModel, context: PageContext): st
   const actions = [
     link(context.schemaPath, 'JSON Schema'),
     context.prosePath === null ? '' : link(context.prosePath, 'Specification'),
+    context.examplesPath === null ? '' : link(context.examplesPath, 'Examples'),
     link(context.sourceUrl, 'Source'),
   ]
     .filter((a) => a !== '')

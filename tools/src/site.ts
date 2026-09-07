@@ -24,10 +24,10 @@
  * The guarantee that the bytes themselves never change is made here too, and
  * checked by `task check:published`.
  */
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { buildCatalog } from './catalog.ts'
-import { isShallow, readBlobAtRef } from './git.ts'
+import { isShallow, listTreeFiles, readBlobAtRef } from './git.ts'
 import { escapeHtml, link, page } from './html.ts'
 import { type ProseContext, readOutline, renderProse } from './prose.ts'
 import { buildReference, renderReference } from './reference.ts'
@@ -146,8 +146,15 @@ interface ReferenceTarget {
   readonly version: string
   readonly bundle: string
   readonly spec: string | null
+  /** The family's validated example documents, at the same ref. */
+  readonly examples: readonly ExampleDoc[]
   readonly ref: string
   readonly schemaPath: string
+}
+
+interface ExampleDoc {
+  readonly name: string
+  readonly body: string
 }
 
 interface PublishedVersion {
@@ -308,6 +315,39 @@ export function assembleSite(options: SiteOptions): SiteResult {
     return blob === null ? null : blob.toString('utf8')
   }
 
+  /**
+   * The example documents as they stood at a ref.
+   *
+   * `check:examples` validates every one of these against its family's bundle,
+   * and its docblock has always said they are "copied verbatim into the
+   * documentation site". Until now nothing copied them, so the claim rested on
+   * an intention. Reading them at the same ref as the schema is what keeps it
+   * true for a released version as well as for `main`.
+   */
+  const examplesAt = (family: string, major: string, ref: string): ExampleDoc[] => {
+    const isExample = (path: string): boolean => path.endsWith('.yaml') || path.endsWith('.yml')
+    if (ref === 'main') {
+      const local = discoverFamilies(repoRoot).find((f) => f.name === family && f.major === major)
+      if (local === undefined || !existsSync(local.examplesDir)) return []
+      return readdirSync(local.examplesDir)
+        .filter(isExample)
+        .sort()
+        .map((name) => ({ name, body: readFileSync(join(local.examplesDir, name), 'utf8') }))
+    }
+    const dir = `specifications/${family}/${major}/examples`
+    return listTreeFiles(repoRoot, ref, dir)
+      .filter(isExample)
+      .sort()
+      .map((path) => {
+        const blob = readBlobAtRef(repoRoot, ref, path)
+        return {
+          name: path.slice(dir.length + 1),
+          body: blob === null ? '' : blob.toString('utf8'),
+        }
+      })
+      .filter((example) => example.body !== '')
+  }
+
   for (const release of releases) {
     const loaded = loadRelease(repoRoot, release, ledger)
     const fileName = `${release.family}.schema.json`
@@ -329,6 +369,7 @@ export function assembleSite(options: SiteOptions): SiteResult {
       // and the prose at that tag describes `source`.
       bundle: loaded.source.toString('utf8'),
       spec: specAt(release.family, release.major, release.tag),
+      examples: examplesAt(release.family, release.major, release.tag),
       ref: release.tag,
       schemaPath: `/${dir}/${fileName}`,
     })
@@ -371,6 +412,7 @@ export function assembleSite(options: SiteOptions): SiteResult {
       version: major,
       bundle: contents,
       spec: specAt(family, major, ref),
+      examples: examplesAt(family, major, ref),
       ref,
       schemaPath: `/${path}`,
     })
@@ -495,6 +537,11 @@ export function assembleSite(options: SiteOptions): SiteResult {
       )
     }
 
+    const examplesPath = target.examples.length === 0 ? null : `/${base}/examples/`
+    if (examplesPath !== null) {
+      emit(`${base}/examples/index.html`, renderExamples(target, base))
+    }
+
     const model = buildReference(JSON.parse(target.bundle) as Json, target.family, target.version)
     emit(
       `${base}/index.html`,
@@ -503,6 +550,7 @@ export function assembleSite(options: SiteOptions): SiteResult {
         renderReference(model, {
           schemaPath: target.schemaPath,
           prosePath,
+          examplesPath,
           sourceUrl: proseUrl(target.family, target.major, target.ref),
           links: context,
         }),
@@ -603,6 +651,41 @@ function posixResolve(from: string, href: string): string | null {
   return parts.length === 0 ? null : parts.join('/')
 }
 
+/**
+ * A family's example documents, verbatim.
+ *
+ * Verbatim is the point: `check:examples` validates exactly these bytes against
+ * the bundle on the same commit, so what a reader copies is what CI proved
+ * valid. Reformatting them here would publish something nothing had checked.
+ */
+function renderExamples(target: ReferenceTarget, base: string): string {
+  const blocks = target.examples.map((example) =>
+    [
+      `<h2 id="${escapeHtml(example.name)}">${escapeHtml(example.name)}</h2>`,
+      `<pre><code>${escapeHtml(example.body)}</code></pre>`,
+    ].join('\n'),
+  )
+
+  return page(
+    `${target.family} ${target.version} examples`,
+    [
+      `<p class="muted">${link(`/${base}/`, 'Reference')} / ${escapeHtml(target.family)} ` +
+        `/ ${escapeHtml(target.version)}</p>`,
+      `<h1>${escapeHtml(target.family)} examples</h1>`,
+      '<p class="lead">Every example below is validated against the schema on this page ' +
+        'in CI, so an example that does not validate fails the build rather than shipping.</p>',
+      `<nav class="toc">${target.examples
+        .map((e) => `<a href="#${encodeURIComponent(e.name)}">${escapeHtml(e.name)}</a>`)
+        .join('')}</nav>`,
+      ...blocks,
+      `<footer>${[
+        link(`/${base}/`, 'Field reference'),
+        link(target.schemaPath, 'JSON Schema'),
+      ].join(' · ')}</footer>`,
+    ].join('\n'),
+  )
+}
+
 /** The reference's own index: every family and version rendered. */
 function renderReferenceIndex(rendered: readonly ReferenceTarget[]): string {
   const rows = rendered
@@ -611,6 +694,7 @@ function renderReferenceIndex(rendered: readonly ReferenceTarget[]): string {
         `<tr><td>${link(`/${RESERVED_PATH}/${target.family}/${target.version}/`, target.family)}</td>` +
         `<td><code>${escapeHtml(target.version)}</code></td>` +
         `<td>${target.spec === null ? '<span class="muted">—</span>' : link(`/${RESERVED_PATH}/${target.family}/${target.version}/spec/`, 'specification')}</td>` +
+        `<td>${target.examples.length === 0 ? '<span class="muted">—</span>' : link(`/${RESERVED_PATH}/${target.family}/${target.version}/examples/`, `${target.examples.length}`)}</td>` +
         `<td>${link(target.schemaPath, 'schema')}</td></tr>`,
     )
     .join('')
@@ -623,7 +707,7 @@ function renderReferenceIndex(rendered: readonly ReferenceTarget[]): string {
       '<p class="lead">A field-by-field reference for each document family, generated from the ' +
         "schema bundle it describes, beside that family's specification.</p>",
       '<table><thead><tr><th>Family</th><th>Version</th><th>Specification</th>' +
-        '<th>Schema</th></tr></thead><tbody>' +
+        '<th>Examples</th><th>Schema</th></tr></thead><tbody>' +
         rows +
         '</tbody></table>',
       '<p class="muted">Generated from the bytes each version serves, and informative. The ' +

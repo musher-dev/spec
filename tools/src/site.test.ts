@@ -184,6 +184,45 @@ describe('assembleSite', () => {
     expect(servedPaths(site).filter((p) => p.startsWith('/reference/')).length).toBeGreaterThan(3)
   })
 
+  test('the examples page carries every example, verbatim, from the same ref', () => {
+    const fx = fixture()
+    fx.writeFile('specifications/component/v1/spec.md', PROSE)
+    fx.writeFile(
+      'specifications/component/v1/examples/minimal.yaml',
+      'kind: COMPONENT # released\n',
+    )
+    release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
+
+    // Move both the example and add a second one on main.
+    fx.writeFile('specifications/component/v1/examples/minimal.yaml', 'kind: COMPONENT # on main\n')
+    fx.writeFile('specifications/component/v1/examples/extra.yaml', 'kind: COMPONENT # new\n')
+    fx.commit('docs(component): revise the examples')
+
+    assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site') })
+
+    const pinned = readSite(fx, 'reference', 'component', 'v1.0.0', 'examples', 'index.html')
+    expect(pinned).toContain('kind: COMPONENT # released')
+    expect(pinned).not.toContain('on main')
+    expect(pinned).not.toContain('extra.yaml')
+
+    const alias = readSite(fx, 'reference', 'component', 'v1', 'examples', 'index.html')
+    expect(alias).toContain('kind: COMPONENT # released')
+  })
+
+  test('a family with no examples gets no examples page and no link to one', () => {
+    const fx = fixture()
+    fx.writeFile('specifications/component/v1/spec.md', PROSE)
+    fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1'))
+    fx.commit('feat(component): a family with no examples')
+
+    const site = join(fx.root, 'site')
+    assembleSite({ repoRoot: fx.root, siteDir: site })
+    expect(servedPaths(site)).not.toContain('/reference/component/v1/examples/index.html')
+    expect(readSite(fx, 'reference', 'component', 'v1', 'index.html')).not.toContain(
+      'href="/reference/component/v1/examples/"',
+    )
+  })
+
   test('a family named after the reference namespace is refused by name', () => {
     const fx = fixture()
     fx.writeBundle('reference', 'v1', fx.bundleDoc('reference', 'v1'))

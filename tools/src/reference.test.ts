@@ -328,7 +328,9 @@ describe('the published bundles', () => {
     })
   }
 
-  test('the map keys still missing an annotation are exactly the two known ones', () => {
+  test('every map in every bundle names its key', () => {
+    // The reference falls back to a generic label rather than failing, so
+    // without this a newly added map would quietly ship a page saying `name`.
     const notes = families.flatMap(
       (family) =>
         buildReference(
@@ -337,9 +339,6 @@ describe('the published bundles', () => {
           family.major,
         ).notes,
     )
-    expect(notes.sort()).toEqual([
-      '/$defs/BlueprintSpec/properties/components: map key unnamed — its value type carries no x-additionalPropertiesName',
-      '/$defs/ComponentBuild/properties/arguments: map key unnamed — its value type carries no x-additionalPropertiesName',
-    ])
+    expect(notes).toEqual([])
   })
 })

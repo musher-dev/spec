@@ -187,10 +187,20 @@ into a documentation change would make both harder to review.
 
 ## Follow-ups
 
-1. Retire the hand-written pages in `musher-dev/platform`: stub `component-spec`
-   and `blueprint-spec`, add `listing-spec`, and delete the drifted example
-   rather than correcting it. Nothing in this repository can do it, and it must
-   not start before `/reference/` is deployed.
+1. Retire the hand-written field tables in `musher-dev/platform`. The two pages
+   there are not the same artifact and do not take the same treatment.
+   `reference/component-spec` documents the authoring document, so its field
+   tables give way to a link here — while keeping what this repository does not
+   define and should not: the three-block ownership model, the lifecycle states
+   and the operations that drive them, and the monotonic-version rule.
+   `reference/blueprint-spec` documents the compose endpoint's request body
+   rather than the blueprint document, so it is reframed and linked, never
+   retired; stubbing it would delete the only public description of that
+   endpoint's shape. A `listing` page is added, which has never existed. The
+   drifted `component.yaml` example is deleted rather than corrected, because a
+   corrected copy is still a copy and will drift again on the next minor.
+   Nothing in this repository can do any of it, and none of it may start before
+   `/reference/` is deployed.
 2. Consider publishing `docs/traceability.md` under `/reference/`. It is the map
    from a requirement to the clause stating it and the cases pinning it, it is
    already generated, and it is currently readable only on GitHub.
