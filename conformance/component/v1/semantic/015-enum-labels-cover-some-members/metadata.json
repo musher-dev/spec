@@ -1,0 +1,8 @@
+{
+  "id": "semantic-015-enum-labels-cover-some-members",
+  "phase": "semantic",
+  "expected": "pass",
+  "clause": "specifications/component/v1/spec.md#install-form",
+  "requirements": ["COMP-UI-005"],
+  "summary": "A member left unlabelled is offered as it is spelled, and is not an error."
+}

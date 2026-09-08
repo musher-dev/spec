@@ -26,6 +26,7 @@ spec:
         ui:
           label: Database address
         platformDefault:
+          type: SELF_ADDRESS
           source: PUBLIC_ADDRESS
           endpoint: db
     outputs: {}

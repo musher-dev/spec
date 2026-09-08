@@ -1,0 +1,7 @@
+{
+  "id": "structural-051-connection-input-with-platform-default",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#inputs",
+  "summary": "A CONNECTION input carrying a platform default is rejected."
+}

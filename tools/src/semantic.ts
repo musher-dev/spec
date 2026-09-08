@@ -103,6 +103,45 @@ function imageTag(ref: string): string | undefined {
   return colon === -1 ? undefined : afterSlash.slice(colon + 1)
 }
 
+/**
+ * Component `COMP-UI-005` — every `ui.enumLabels` key MUST be a member of the
+ * sibling `schema.enum`.
+ *
+ * Shared, because a blueprint parameter carries the `ui` block component §6.4
+ * defines and answers to the same rule. `fields` is the mapping holding them —
+ * `spec.contract.inputs` on a component, `spec.parameters` on a blueprint — and
+ * `base` is the pointer that mapping sits at.
+ *
+ * `semantic` rather than `structural` because it relates a mapping's keys to a
+ * sibling array's items, which no JSON Schema keyword expresses. The reverse
+ * direction is deliberately not an error: a member with no label is offered as
+ * it is spelled, which is what every document written before the field existed
+ * already does.
+ */
+function checkEnumLabels(fields: Json | undefined, base: string, out: Diagnostic[]): void {
+  for (const field of keysOf(fields).sort()) {
+    const declaration = child(fields, field)
+    const labels = child(child(declaration, 'ui'), 'enumLabels')
+    if (labels === undefined || labels === null) continue
+
+    const members = child(child(declaration, 'schema'), 'enum')
+    const known = new Set(
+      Array.isArray(members) ? members.filter((m) => typeof m === 'string') : [],
+    )
+
+    // Sorted so two implementations anchor the same diagnostic first when a
+    // document mislabels more than one member; a mapping supplies no order.
+    for (const member of keysOf(labels).sort()) {
+      if (known.has(member)) continue
+      out.push({
+        code: 'ERR_UNKNOWN_ENUM_MEMBER',
+        path: `${base}/${token(field)}/ui/enumLabels/${token(member)}`,
+        message: `"${member}" is not a member of the enum declared beside it`,
+      })
+    }
+  }
+}
+
 /** Component §5.1 — a reference MUST NOT carry a floating tag. */
 function checkImageRef(document: Json, out: Diagnostic[]): void {
   const source = child(child(child(document, 'spec'), 'workload'), 'source')
@@ -1123,9 +1162,15 @@ export function semanticDiagnostics(
     checkImageRef(document, out)
     checkEndpointReferences(document, out)
     checkEnvVarKeys(document, out)
+    checkEnumLabels(
+      child(child(child(document, 'spec'), 'contract'), 'inputs'),
+      '/spec/contract/inputs',
+      out,
+    )
   }
   if (family.name === 'blueprint') {
     checkConnectionRoles(document, out)
+    checkEnumLabels(child(child(document, 'spec'), 'parameters'), '/spec/parameters', out)
   }
   if (family.name === 'listing') {
     checkScreenshotBasenames(document, out)

@@ -1,0 +1,24 @@
+# COMP-UI-005 reaches the override path too. The component half is component
+# semantic/014; this pins that writing spec.parameters is not a way around it.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  version: 1
+spec:
+  components:
+    db:
+      component: ./components/postgres.yaml
+      size: general.standard.small
+      connections: {}
+  parameters:
+    backend:
+      schema:
+        type: STRING
+        enum:
+          - S3
+          - AZURE
+      ui:
+        label: Storage backend
+        enumLabels:
+          AZUR: Azure Blob Storage

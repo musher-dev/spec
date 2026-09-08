@@ -1,0 +1,12 @@
+{
+  "id": "structural-045-timezone-format-value",
+  "phase": "structural",
+  "expected": "pass",
+  "clause": "specifications/component/v1/spec.md#value-schema",
+  "requirements": ["COMP-VAL-004"],
+  "summary": "A STRING value may be refined as an IANA time-zone identifier.",
+  "effective": {
+    "/spec/contract/inputs/timezone/schema/isSensitive": false,
+    "/spec/contract/inputs/timezone/schema/semanticType": null
+  }
+}

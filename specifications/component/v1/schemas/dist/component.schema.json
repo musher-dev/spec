@@ -326,7 +326,7 @@
       "additionalProperties": false,
       "allOf": [
         {
-          "$comment": "spec.md §6.1. suppliedBy defaults to USER, and a default is invisible to a validator, so the USER branch is the `else` — an absent suppliedBy takes it.",
+          "$comment": "spec.md §6.1. suppliedBy defaults to USER, and a default is invisible to a validator, so the USER branch is the `else` — an absent suppliedBy takes it. The CONNECTION branch also forbids both platform-side value sources: a wire already answers the question they answer, and §6.1 recorded the platformDefault half of that as a gap rather than a decision.",
           "else": {
             "properties": {
               "ui": {
@@ -349,6 +349,12 @@
           },
           "then": {
             "properties": {
+              "generator": {
+                "type": "null"
+              },
+              "platformDefault": {
+                "type": "null"
+              },
               "ui": {
                 "type": "null"
               }
@@ -356,7 +362,7 @@
           }
         },
         {
-          "$comment": "spec.md §6.1: a generated value is secret material. isSensitive is required explicitly because its default is false — the wrong answer here — while suppliedBy is only constrained when written, because its default is already USER.",
+          "$comment": "spec.md §6.1: a generated value is secret material. isSensitive is required explicitly because its default is false — the wrong answer here — while suppliedBy is only constrained when written, because its default is already USER. A platformDefault is forbidden beside it because minting a value and deriving one are two answers to the same question.",
           "if": {
             "properties": {
               "generator": {
@@ -371,6 +377,9 @@
           },
           "then": {
             "properties": {
+              "platformDefault": {
+                "type": "null"
+              },
               "schema": {
                 "properties": {
                   "isSensitive": {
@@ -491,11 +500,40 @@
       "type": "object"
     },
     "ComponentInputUi": {
-      "description": "Presentation metadata for a USER-supplied input.\n\nThe install-form control is derived from the input's schema (enum →\nselect, BOOLEAN → toggle, EMAIL format → email field, sensitive →\nmasked field) — only the label needs declaring.",
+      "description": "Presentation metadata for a USER-supplied input. The control itself is derived from the value's schema rather than declared here; spec.md §6.4 defines that derivation, and this block carries only what a derivation cannot supply.",
       "additionalProperties": false,
       "properties": {
+        "enumLabels": {
+          "description": "Human-readable label for each enum member, keyed by the member it names. A member left unlabelled is offered as it is spelled.",
+          "$comment": "spec.md §6.4. Keyed by member rather than held in a parallel array, so the labels cannot fall out of step with the members by length or by order, and so a member labelled twice is ERR_DUPLICATE_KEY in the parser phase. A member with no entry is offered as it is spelled; an entry naming no member is ERR_UNKNOWN_ENUM_MEMBER in the semantic phase, which is where a rule relating a mapping's keys to a sibling array's items can be decided at all.",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object",
+          "x-additionalPropertiesName": "enumMember"
+        },
+        "examples": {
+          "description": "Example values illustrating the form a value takes. Never submitted — a value that is actually submitted is schema.default.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "label": {
           "description": "Human-readable label shown on the install form.",
+          "type": "string"
+        },
+        "order": {
+          "description": "Relative position of the field within the form. Lower sorts first; an input declaring no order sorts after every input that declares one.",
+          "type": "integer"
+        },
+        "prominence": {
+          "description": "Standing of the field in the form: PRIMARY is offered directly, SECONDARY behind a disclosure the deploying user opens.",
+          "default": "PRIMARY",
+          "enum": [
+            "PRIMARY",
+            "SECONDARY"
+          ],
           "type": "string"
         }
       },
@@ -620,7 +658,8 @@
       "x-additionalPropertiesName": "outputName"
     },
     "ComponentPlatformDefault": {
-      "description": "Default derived from the component's own public addressing. Which endpoint it derives from is named rather than assumed, because spec.md §5.2 permits more than one PUBLIC endpoint.",
+      "description": "Default the platform supplies when the deploying user does not. Which endpoint a SELF_ADDRESS default derives from is named rather than assumed, because spec.md §5.2 permits more than one PUBLIC endpoint.",
+      "$comment": "spec.md §6.1. `type` names the kind of default, and is REQUIRED rather than defaulted for the reason the generator branch gives for isSensitive: a discriminator a document may omit is one two implementations may read differently. One kind exists, so this is a tagged object rather than a oneOf; a second becomes a branch beside it, and a document written against this one still validates.",
       "additionalProperties": false,
       "properties": {
         "endpoint": {
@@ -646,10 +685,18 @@
             "PUBLIC_PORT"
           ],
           "type": "string"
+        },
+        "type": {
+          "description": "Kind of default. SELF_ADDRESS derives the value from this component's own public addressing.",
+          "enum": [
+            "SELF_ADDRESS"
+          ],
+          "type": "string"
         }
       },
       "required": [
-        "source"
+        "source",
+        "type"
       ],
       "type": "object"
     },
@@ -839,14 +886,16 @@
           "type": "array"
         },
         "format": {
-          "description": "Semantic refinement of a STRING value: EMAIL, URI, ENDPOINT_URL, or CONNECTION_STRING; null when unrefined. MUST be null where the type is not STRING.",
+          "description": "Semantic refinement of a STRING value: EMAIL, URI, ENDPOINT_URL, CONNECTION_STRING, HOSTNAME, or TIMEZONE; null when unrefined. MUST be null where the type is not STRING. spec.md §6.3 names where each convention is published.",
           "anyOf": [
             {
               "enum": [
                 "EMAIL",
                 "URI",
                 "ENDPOINT_URL",
-                "CONNECTION_STRING"
+                "CONNECTION_STRING",
+                "HOSTNAME",
+                "TIMEZONE"
               ],
               "type": "string"
             },

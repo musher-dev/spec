@@ -1,0 +1,35 @@
+# `AZUR` is a typo for `AZURE`. Nothing structural can see it: JSON Schema has
+# no keyword relating a mapping's keys to a sibling array's items, which is why
+# this is semantic. Unreported, the label simply never appears and the member is
+# offered under its own spelling — a defect with no symptom, for the life of the
+# document.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+    endpoints:
+      web:
+        containerPort: 8080
+        protocol: HTTP
+        visibility: PRIVATE
+  contract:
+    inputs:
+      backend:
+        schema:
+          type: STRING
+          enum:
+            - S3
+            - GCS
+            - AZURE
+        ui:
+          label: Storage backend
+          enumLabels:
+            S3: Amazon S3
+            AZUR: Azure Blob Storage
+    outputs: {}

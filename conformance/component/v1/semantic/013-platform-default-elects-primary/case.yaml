@@ -31,5 +31,6 @@ spec:
         ui:
           label: Broker address
         platformDefault:
+          type: SELF_ADDRESS
           source: PUBLIC_ADDRESS
     outputs: {}

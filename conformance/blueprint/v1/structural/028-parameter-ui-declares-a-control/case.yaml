@@ -1,0 +1,21 @@
+# The component half of this rule is component structural/048. This family
+# carries its own ui block, so the closedness has to be pinned on both sides or
+# an override becomes the way to declare a control the derivation forbids.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  version: 1
+spec:
+  components:
+    db:
+      component: ./components/postgres.yaml
+      size: general.standard.small
+      connections: {}
+  parameters:
+    backend:
+      schema:
+        type: STRING
+      ui:
+        label: Storage backend
+        widget: SELECT

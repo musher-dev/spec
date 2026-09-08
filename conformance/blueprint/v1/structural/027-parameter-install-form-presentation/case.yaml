@@ -1,0 +1,41 @@
+# A parameter carries the ui block component §6.4 defines, unchanged. Fixtured
+# here rather than only in the component family because this family carries its
+# own copy of that block: a fixture over there proves nothing about a blueprint,
+# and the two would drift apart silently with CI green.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  version: 1
+spec:
+  components:
+    db:
+      component: ./components/postgres.yaml
+      size: general.standard.small
+      connections: {}
+  parameters:
+    backend:
+      schema:
+        type: STRING
+        enum:
+          - S3
+          - GCS
+        default: S3
+      isRequired: false
+      ui:
+        label: Storage backend
+        order: 1
+        enumLabels:
+          S3: Amazon S3
+          GCS: Google Cloud Storage
+    hostname:
+      schema:
+        type: STRING
+        format: HOSTNAME
+      isRequired: false
+      ui:
+        label: Public hostname
+        order: 2
+        prominence: SECONDARY
+        examples:
+          - wiki.example.com

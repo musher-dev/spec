@@ -1,0 +1,29 @@
+# The counterpart this family never had. §5.1 derives a platform default onto a
+# parameter, so an authored override has to be able to carry one too — §5.3
+# already reasons that way about a generated secret: without the same field
+# here, moving a platform-filled value onto the override path is enough to lose
+# the fact that it is filled at all, and the form asks for something the
+# platform was going to supply.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  version: 1
+spec:
+  components:
+    db:
+      component: ./components/postgres.yaml
+      size: general.standard.small
+      connections: {}
+  parameters:
+    publicUrl:
+      schema:
+        type: STRING
+        format: URI
+      isRequired: false
+      platformDefault:
+        type: SELF_ADDRESS
+        source: PUBLIC_URL
+      ui:
+        label: Public URL
+        prominence: SECONDARY

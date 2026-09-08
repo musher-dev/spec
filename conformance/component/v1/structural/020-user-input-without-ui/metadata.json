@@ -3,5 +3,6 @@
   "phase": "structural",
   "expected": "fail",
   "clause": "specifications/component/v1/spec.md#inputs",
+  "requirements": ["COMP-UI-001"],
   "summary": "A USER input omitting ui is rejected, including when suppliedBy is defaulted."
 }

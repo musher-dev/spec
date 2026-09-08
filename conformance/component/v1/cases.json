@@ -288,6 +288,46 @@
       "path": "structural/044-format-on-a-non-string-value"
     },
     {
+      "id": "structural-045-timezone-format-value",
+      "phase": "structural",
+      "path": "structural/045-timezone-format-value"
+    },
+    {
+      "id": "structural-046-format-outside-the-vocabulary",
+      "phase": "structural",
+      "path": "structural/046-format-outside-the-vocabulary"
+    },
+    {
+      "id": "structural-047-install-form-presentation",
+      "phase": "structural",
+      "path": "structural/047-install-form-presentation"
+    },
+    {
+      "id": "structural-048-ui-declares-a-control",
+      "phase": "structural",
+      "path": "structural/048-ui-declares-a-control"
+    },
+    {
+      "id": "structural-049-prominence-outside-the-vocabulary",
+      "phase": "structural",
+      "path": "structural/049-prominence-outside-the-vocabulary"
+    },
+    {
+      "id": "structural-050-platform-default-without-a-kind",
+      "phase": "structural",
+      "path": "structural/050-platform-default-without-a-kind"
+    },
+    {
+      "id": "structural-051-connection-input-with-platform-default",
+      "phase": "structural",
+      "path": "structural/051-connection-input-with-platform-default"
+    },
+    {
+      "id": "structural-052-generated-input-with-platform-default",
+      "phase": "structural",
+      "path": "structural/052-generated-input-with-platform-default"
+    },
+    {
       "id": "semantic-001-floating-tag-image-reference",
       "phase": "semantic",
       "path": "semantic/001-floating-tag-image-reference"
@@ -351,6 +391,16 @@
       "id": "semantic-013-platform-default-elects-primary",
       "phase": "semantic",
       "path": "semantic/013-platform-default-elects-primary"
+    },
+    {
+      "id": "semantic-014-enum-label-names-no-member",
+      "phase": "semantic",
+      "path": "semantic/014-enum-label-names-no-member"
+    },
+    {
+      "id": "semantic-015-enum-labels-cover-some-members",
+      "phase": "semantic",
+      "path": "semantic/015-enum-labels-cover-some-members"
     }
   ]
 }

@@ -1,0 +1,8 @@
+{
+  "id": "semantic-014-enum-label-names-no-member",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#install-form",
+  "requirements": ["COMP-UI-005"],
+  "summary": "An enumLabels key naming no member of the sibling enum is rejected."
+}

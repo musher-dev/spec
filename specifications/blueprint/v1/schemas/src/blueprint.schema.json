@@ -278,7 +278,7 @@
       "x-additionalPropertiesName": "nodeName"
     },
     "BlueprintParameter": {
-      "$comment": "spec.md §5.3: a generated value is secret material, and isSensitive is required explicitly because its default is false — the wrong answer here. The derived path inherits the marking from the input, which component §6.1 already obliges; this keeps the authored path from being the way to lose it. Mirrors ComponentInput's generator branch.",
+      "$comment": "spec.md §5.3: a generated value is secret material, and isSensitive is required explicitly because its default is false — the wrong answer here. The derived path inherits the marking from the input, which component §6.1 already obliges; this keeps the authored path from being the way to lose it. A platformDefault is forbidden beside a generator for the same reason it is on an input: minting a value and deriving one are two answers to one question. Mirrors ComponentInput's generator branch.",
       "additionalProperties": false,
       "description": "An install-form parameter composed at the graph layer (map value; keyed by key).",
       "if": {
@@ -295,6 +295,9 @@
       },
       "then": {
         "properties": {
+          "platformDefault": {
+            "type": "null"
+          },
           "schema": {
             "properties": {
               "isSensitive": {
@@ -331,6 +334,18 @@
           ],
           "default": null,
           "description": "Auto-generation spec when the platform mints the value at deploy time, or null when the deploying user supplies it."
+        },
+        "platformDefault": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BlueprintPlatformDefault"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Default the platform supplies when the deploying user does not; null when it does not supply one. A SELF_ADDRESS default resolves against each node this parameter covers."
         },
         "isRequired": {
           "default": false,
@@ -388,11 +403,40 @@
       "type": "object"
     },
     "BlueprintParameterUi": {
+      "$comment": "spec.md §5.3, the block component §6.4 defines. The control is derived from the value's schema rather than declared, so this carries only what a derivation cannot supply.",
       "additionalProperties": false,
       "description": "Presentation metadata for an install-form parameter.",
       "properties": {
+        "enumLabels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Human-readable label for each enum member, keyed by the member it names. A member left unlabelled is offered as it is spelled.",
+          "type": "object",
+          "x-additionalPropertiesName": "enumMember"
+        },
+        "examples": {
+          "description": "Example values illustrating the form a value takes. Never submitted — a value that is actually submitted is schema.default.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "label": {
           "description": "Human-readable label shown on the install form.",
+          "type": "string"
+        },
+        "order": {
+          "description": "Relative position of the field within the form. Lower sorts first; a parameter declaring no order sorts after every parameter that declares one.",
+          "type": "integer"
+        },
+        "prominence": {
+          "default": "PRIMARY",
+          "description": "Standing of the field in the form: PRIMARY is offered directly, SECONDARY behind a disclosure the deploying user opens.",
+          "enum": [
+            "PRIMARY",
+            "SECONDARY"
+          ],
           "type": "string"
         }
       },
@@ -478,7 +522,9 @@
                 "EMAIL",
                 "URI",
                 "ENDPOINT_URL",
-                "CONNECTION_STRING"
+                "CONNECTION_STRING",
+                "HOSTNAME",
+                "TIMEZONE"
               ],
               "type": "string"
             },
@@ -487,7 +533,7 @@
             }
           ],
           "default": null,
-          "description": "Semantic refinement of a STRING value: EMAIL, URI, ENDPOINT_URL, or CONNECTION_STRING; null when unrefined. MUST be null where the type is not STRING."
+          "description": "Semantic refinement of a STRING value: EMAIL, URI, ENDPOINT_URL, CONNECTION_STRING, HOSTNAME, or TIMEZONE; null when unrefined. MUST be null where the type is not STRING. Component spec.md §6.3 names where each convention is published."
         },
         "isSensitive": {
           "default": false,
@@ -518,6 +564,48 @@
         }
       },
       "required": [
+        "type"
+      ],
+      "type": "object"
+    },
+    "BlueprintPlatformDefault": {
+      "$comment": "spec.md §5.3, the block component §6.1 defines. `type` names the kind of default and is REQUIRED rather than defaulted, so a discriminator a document may omit is not one two implementations may read differently.",
+      "additionalProperties": false,
+      "description": "Default the platform supplies when the deploying user does not. Which endpoint a SELF_ADDRESS default derives from is named rather than assumed, because component spec.md §5.2 permits more than one PUBLIC endpoint.",
+      "properties": {
+        "endpoint": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9]{0,19}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Name of the PUBLIC endpoint the value is derived from. Null selects the primary endpoint component spec.md §5.2 elects."
+        },
+        "source": {
+          "description": "What is derived. PUBLIC_HOSTNAME for the endpoint's hostname alone and PUBLIC_URL for its full URL, both from the URL an HTTP-family endpoint publishes; PUBLIC_ADDRESS for the full host:port and PUBLIC_PORT for the port alone, both from the edge address a TCP or UDP endpoint publishes.",
+          "enum": [
+            "PUBLIC_HOSTNAME",
+            "PUBLIC_URL",
+            "PUBLIC_ADDRESS",
+            "PUBLIC_PORT"
+          ],
+          "type": "string"
+        },
+        "type": {
+          "description": "Kind of default. SELF_ADDRESS derives the value from the covered node's own public addressing.",
+          "enum": [
+            "SELF_ADDRESS"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
         "type"
       ],
       "type": "object"

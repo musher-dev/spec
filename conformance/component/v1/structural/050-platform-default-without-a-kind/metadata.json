@@ -1,0 +1,7 @@
+{
+  "id": "structural-050-platform-default-without-a-kind",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#inputs",
+  "summary": "A platform default that does not name its kind is rejected."
+}

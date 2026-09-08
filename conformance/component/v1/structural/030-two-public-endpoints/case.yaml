@@ -29,6 +29,7 @@ spec:
         schema:
           type: STRING
         platformDefault:
+          type: SELF_ADDRESS
           source: PUBLIC_URL
           endpoint: console
         ui:

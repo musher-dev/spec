@@ -25,6 +25,7 @@ spec:
         ui:
           label: Game server port
         platformDefault:
+          type: SELF_ADDRESS
           source: PUBLIC_PORT
           endpoint: game
     outputs: {}

@@ -1,0 +1,8 @@
+{
+  "id": "structural-052-generated-input-with-platform-default",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#inputs",
+  "requirements": ["COMP-GEN-001"],
+  "summary": "An input carrying both a generator and a platform default is rejected."
+}
