@@ -1,0 +1,8 @@
+{
+  "id": "structural-049-prominence-outside-the-vocabulary",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#install-form",
+  "requirements": ["COMP-UI-004"],
+  "summary": "A prominence outside the two-member vocabulary is rejected."
+}

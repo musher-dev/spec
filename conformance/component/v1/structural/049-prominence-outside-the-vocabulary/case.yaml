@@ -1,5 +1,6 @@
-# PUBLIC_URL derives an externally reachable address, and a PRIVATE endpoint
-# has none to give.
+# ADVANCED is the word the proposal reached for, and the vocabulary is
+# PRIMARY/SECONDARY: a field's standing in the form, rather than a judgement
+# about the reader. Pinned so the two members stay two.
 specVersion: v1
 kind: COMPONENT
 metadata:
@@ -11,19 +12,16 @@ spec:
       type: IMAGE
       ref: nginx:1.29.4-alpine
     endpoints:
-      internal:
+      web:
         containerPort: 8080
         protocol: HTTP
         visibility: PRIVATE
   contract:
     inputs:
-      selfUrl:
+      hostname:
         schema:
           type: STRING
-        platformDefault:
-          type: SELF_ADDRESS
-          source: PUBLIC_URL
-          endpoint: internal
         ui:
-          label: Own URL
+          label: Public hostname
+          prominence: ADVANCED
     outputs: {}

@@ -1,0 +1,34 @@
+# A timezone is a closed set of some four hundred terms that IANA revises
+# several times a year. It cannot be an `enum` — nobody inlines four hundred
+# strings into a document, and the list is not stable — and it is not a
+# `pattern`. `format` names the convention and §6.3 names where IANA publishes
+# it, which is all this contract has to say for a renderer to offer the right
+# chooser.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: n8nio/n8n:2.31.6
+    endpoints:
+      web:
+        containerPort: 5678
+        protocol: HTTP
+        visibility: PRIVATE
+  contract:
+    inputs:
+      timezone:
+        schema:
+          type: STRING
+          format: TIMEZONE
+          default: UTC
+        isRequired: false
+        ui:
+          label: Timezone
+        target:
+          envVarKey: GENERIC_TIMEZONE
+    outputs: {}

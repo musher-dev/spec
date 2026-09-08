@@ -3,5 +3,6 @@
   "phase": "structural",
   "expected": "fail",
   "clause": "specifications/component/v1/spec.md#inputs",
+  "requirements": ["COMP-UI-002"],
   "summary": "Presentation metadata on a CONNECTION input is rejected."
 }

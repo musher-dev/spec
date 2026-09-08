@@ -1,0 +1,12 @@
+{
+  "id": "structural-047-install-form-presentation",
+  "phase": "structural",
+  "expected": "pass",
+  "clause": "specifications/component/v1/spec.md#install-form",
+  "requirements": ["COMP-UI-001", "COMP-UI-003", "COMP-UI-004"],
+  "summary": "A USER input may carry a label, an order, a prominence, examples, and enum labels.",
+  "effective": {
+    "/spec/contract/inputs/backend/ui/prominence": "PRIMARY",
+    "/spec/contract/inputs/hostname/ui/prominence": "SECONDARY"
+  }
+}

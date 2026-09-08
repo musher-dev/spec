@@ -1,0 +1,29 @@
+# The decision §6.4 argues for, made executable. A `widget` member is the
+# obvious thing to want and is withheld deliberately: a control declared beside
+# the schema it renders is one fact stated twice, and nothing decides which is
+# wrong when they disagree. This document says a value is free text and says it
+# is a chooser. Rejecting it is what keeps the derivation the only answer.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+    endpoints:
+      web:
+        containerPort: 8080
+        protocol: HTTP
+        visibility: PRIVATE
+  contract:
+    inputs:
+      backend:
+        schema:
+          type: STRING
+        ui:
+          label: Storage backend
+          widget: SELECT
+    outputs: {}

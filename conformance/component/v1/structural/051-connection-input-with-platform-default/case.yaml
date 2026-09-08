@@ -1,5 +1,7 @@
-# A component may front two public URLs. Each is addressed by name, which is
-# what makes the second one no harder than the first.
+# A wire already answers the question a platform default answers, and nothing
+# in the document would say which arrives. §6.1 recorded this as a gap —
+# "suppliedBy is unconstrained by platformDefault in v1" — and a gap the shape
+# can close is not one to describe.
 specVersion: v1
 kind: COMPONENT
 metadata:
@@ -11,27 +13,17 @@ spec:
       type: IMAGE
       ref: nginx:1.29.4-alpine
     endpoints:
-      api:
+      web:
         containerPort: 8080
         protocol: HTTP
         visibility: PUBLIC
-      console:
-        containerPort: 8081
-        protocol: HTTP
-        visibility: PUBLIC
-    health:
-      readiness:
-        path: /healthz
-        endpoint: api
   contract:
     inputs:
-      consoleUrl:
+      databaseUrl:
         schema:
           type: STRING
+        suppliedBy: CONNECTION
         platformDefault:
           type: SELF_ADDRESS
           source: PUBLIC_URL
-          endpoint: console
-        ui:
-          label: Console URL
     outputs: {}

@@ -28,6 +28,7 @@ spec:
         ui:
           label: API hostname
         platformDefault:
+          type: SELF_ADDRESS
           source: PUBLIC_HOSTNAME
           endpoint: api
     outputs: {}

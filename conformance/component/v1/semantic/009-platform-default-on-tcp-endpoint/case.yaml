@@ -25,5 +25,6 @@ spec:
         ui:
           label: Database URL
         platformDefault:
+          type: SELF_ADDRESS
           source: PUBLIC_URL
           endpoint: db

@@ -1,0 +1,33 @@
+# The other direction, and it is deliberately not an error. Every document
+# written before enumLabels existed labels nothing, and a member whose stored
+# term already reads well needs no second spelling. The rule runs one way: a
+# key must name a member, a member need not have a key.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+    endpoints:
+      web:
+        containerPort: 8080
+        protocol: HTTP
+        visibility: PRIVATE
+  contract:
+    inputs:
+      backend:
+        schema:
+          type: STRING
+          enum:
+            - S3
+            - GCS
+            - LOCAL
+        ui:
+          label: Storage backend
+          enumLabels:
+            S3: Amazon S3
+    outputs: {}

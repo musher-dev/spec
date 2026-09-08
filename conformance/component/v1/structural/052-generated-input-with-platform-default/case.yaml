@@ -1,0 +1,35 @@
+# Minting a value and deriving one are two answers to the same question. The
+# document is well formed in every other respect — the generated input is
+# marked sensitive as COMP-GEN-001 obliges — so what this pins is the exclusion
+# and nothing else.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  version: 1
+spec:
+  workload:
+    kind: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+    endpoints:
+      web:
+        containerPort: 8080
+        protocol: HTTP
+        visibility: PUBLIC
+  contract:
+    inputs:
+      secretKey:
+        schema:
+          type: STRING
+          isSensitive: true
+        suppliedBy: USER
+        generator:
+          byteLength: 32
+          encoding: HEX
+        platformDefault:
+          type: SELF_ADDRESS
+          source: PUBLIC_URL
+        ui:
+          label: Secret key
+    outputs: {}

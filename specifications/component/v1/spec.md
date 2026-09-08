@@ -553,22 +553,53 @@ satisfies it and defaults to `USER`.
 | `USER` | The deploying user, through the install form. | REQUIRED |
 | `CONNECTION` | A blueprint connection, from an upstream output. | MUST be null |
 
-A `USER` input needs a label before a form can render it. A `CONNECTION` input
-never reaches the install form, so presentation metadata on one is a statement
-about a form it will never appear on. Both rules are `structural`.
+<a id="COMP-UI-001"></a>**`COMP-UI-001`** — A `USER` input MUST declare `ui`.
+`structural`, `ERR_MISSING_FIELD`. A form cannot render a field it has no label
+for, and `suppliedBy` defaults to `USER`, so an input saying nothing about who
+satisfies it is bound by this.
 
-**A generated input is secret material.** An input carrying `generator` — one
-whose value the platform mints at deploy time — MUST declare `suppliedBy: USER`
-and `schema.isSensitive: true`. Both MUST be written explicitly rather than
-left to a default: `isSensitive` defaults to `false`, and a generated value not
-marked sensitive is echoed back into logs and interfaces. The value rides on a
-`USER` input because that is the slot the install form already reserves for it
-— the user simply does not have to type it.
+<a id="COMP-UI-002"></a>**`COMP-UI-002`** — A `CONNECTION` input's `ui` MUST be
+null. `structural`, `ERR_INVALID_TYPE`. Such an input never reaches the install
+form, so presentation metadata on one is a statement about a form it will never
+appear on.
 
-**A platform default derives the value from the component's own addressing.**
-`platformDefault` is OPTIONAL and null by default. Where it is present, `source`
-is REQUIRED and selects what is derived, and `endpoint` names which endpoint it
-is derived from.
+What `ui` contains, and what a client draws from it, is
+[§6.4](#install-form).
+
+<a id="COMP-GEN-001"></a>**`COMP-GEN-001` — a generated input is secret
+material.** An input carrying `generator` — one whose value the platform mints at
+deploy time — MUST declare `suppliedBy: USER` and `schema.isSensitive: true`, and
+MUST NOT carry a `platformDefault`. Both markings MUST be written explicitly
+rather than left to a default: `isSensitive` defaults to `false`, and a generated
+value not marked sensitive is echoed back into logs and interfaces. All three are
+`structural`.
+
+The value rides on a `USER` input because that is the slot the install form
+already reserves for it — the user simply does not have to type it. A
+`platformDefault` is excluded because minting a value and deriving one are two
+answers to the same question, and nothing would say which arrives.
+
+**A platform default supplies the value the deploying user does not.**
+`platformDefault` is OPTIONAL and null by default. Where it is present, `type`
+is REQUIRED and names the kind of default, `source` is REQUIRED and selects what
+is derived, and `endpoint` names which endpoint it is derived from.
+
+`type` has one member, `SELF_ADDRESS`, which derives the value from the
+component's own public addressing. It is REQUIRED and carries no default, for the
+reason [`COMP-GEN-001`](#COMP-GEN-001) gives for `isSensitive`: a discriminator a
+document may leave out is one two implementations may read differently. A second
+kind is admitted beside this one without invalidating a document written against
+it, which is the whole reason the tag is written now rather than when a second
+kind arrives — adding it later would be adding a required field.
+
+**A platform default does not make a field disappear.** An input carrying one
+still reaches the install form, and still carries `ui`. "This is filled in for
+you, override it only for a custom domain" is a thing worth being able to say,
+and it is the same argument
+[blueprint §5.1](../../blueprint/v1/spec.md#derivation) already makes for a
+generated input. That is why `suppliedBy: USER` beside a `platformDefault` is
+not a contradiction but the ordinary case: the platform fills it, and the user
+may type over it.
 
 There are four sources, and they come in two pairs because
 [§5.2](#endpoints) gives a `PUBLIC` endpoint two address forms:
@@ -620,8 +651,15 @@ rule about the endpoint a reference means reaches it equally.
 
 **A platform default is not a `CONNECTION`.** The value comes from the
 component's own workload, never from an upstream node, which is the same line
-[§6.2](#outputs) draws around an output. `suppliedBy` is unconstrained by
-`platformDefault` in v1 — a gap, recorded rather than described as a decision.
+[§6.2](#outputs) draws around an output. An input declaring
+`suppliedBy: CONNECTION` therefore MUST NOT carry a `platformDefault`, and MUST
+NOT carry a `generator` either: a wire already answers the question both of them
+answer. `structural`, `ERR_INVALID_TYPE` in both cases, anchored at the field
+that should not have been there.
+
+An earlier draft of this section recorded the first of those as a gap —
+"`suppliedBy` is unconstrained by `platformDefault` in v1". It is a gap the
+shape can close, and a gap the shape can close is not one to describe.
 
 ### <a id="outputs"></a>6.2 Outputs
 
@@ -699,11 +737,53 @@ would then disagree about a valid document for a reason neither could see.
 <a id="COMP-VAL-003"></a>**`COMP-VAL-003`** — Where `type` is not `STRING`,
 `format` MUST be null. `structural`, `ERR_INVALID_TYPE`.
 
-Every `format` member — `EMAIL`, `URI`, `ENDPOINT_URL`, `CONNECTION_STRING` —
-names a lexical convention for text. `format: EMAIL` on a `BOOLEAN` describes
-nothing, and that it validates today is an accident of the two fields never
-having been described together. This clause is about the Musher field `format`,
-not the JSON Schema keyword; [§7.2](#format-policy) is that.
+Every `format` member names a lexical convention for text. `format: EMAIL` on a
+`BOOLEAN` describes nothing, and that it validates today is an accident of the
+two fields never having been described together. This clause is about the Musher
+field `format`, not the JSON Schema keyword; [§7.2](#format-policy) is that.
+
+<a id="COMP-VAL-004"></a>**`COMP-VAL-004`** — `format` MUST be null or one of
+six members. Anything else is rejected in the `structural` phase with
+`ERR_INVALID_VALUE`.
+
+| `format` | The text is | Where the convention is published |
+|---|---|---|
+| `EMAIL` | a mailbox address | [RFC 5321 §4.1.2](https://www.rfc-editor.org/rfc/rfc5321#section-4.1.2) |
+| `URI` | a URI | [RFC 3986](https://www.rfc-editor.org/rfc/rfc3986) |
+| `ENDPOINT_URL` | a URL addressing a network service | " |
+| `CONNECTION_STRING` | a backing service's own connection form | the service's |
+| `HOSTNAME` | a host name, and no port | [RFC 1123 §2.1](https://www.rfc-editor.org/rfc/rfc1123#page-13) |
+| `TIMEZONE` | a time-zone identifier | the [IANA Time Zone Database](https://www.iana.org/time-zones) |
+
+The membership is written here rather than left to the schema's `description`,
+which is informative. That is the defect
+[ADR 0013](../../../docs/adr/0013-value-shape-vocabulary.md) closed for `type`,
+and `format` was one sentence away from it.
+
+**`HOSTNAME` is the host alone.** [§6.1](#inputs) already separates the two —
+`PUBLIC_HOSTNAME` derives the host part and `PUBLIC_ADDRESS` the whole
+`host:port` — for the reason given there: a consumer that takes host and port as
+separate settings should not have to split a string this contract had already
+composed. An input receiving one of them can now say which it received.
+
+**`TIMEZONE` names a vocabulary this contract does not decide.** The identifiers
+are IANA's — an `Area/Location` name such as `Europe/London` — and IANA revises
+them several times a year, when a jurisdiction changes its rules and not when
+this repository releases.
+[ADR 0003](../../../docs/adr/0003-controlled-vocabulary-placement.md) §2
+therefore obliges this section to name where they are published and forbids it
+from restating them, dated or otherwise. The `format` member is this contract's;
+the membership behind it is not. A renderer needs no list shipped with it —
+every mainstream runtime already carries the database.
+
+**None of the six is checked.** The paragraph below records that no phase tests a
+value against the shape its `schema` declares, and `format` is no exception. Nor
+is `TIMEZONE` resolved in the `capability` phase, which
+[ADR 0003](../../../docs/adr/0003-controlled-vocabulary-placement.md) §3 reserves
+for a membership a server decides and which nothing here asks it to: an author is
+saying what convention a value follows, not asking for it to be confirmed. That
+is a deviation from ADR 0003 §3's usual routing and is recorded rather than left
+to be noticed.
 
 **`semanticType` is not paired with `type`.** It tags the backing service a
 value addresses rather than the shape the value takes, so nothing here restricts
@@ -719,6 +799,128 @@ beside it; a `JSON` value's `default` is not parsed. None of this is new with
 rather than described aspirationally, because the table above is the first place
 a reader could reasonably expect the check to be. Closing any of them rejects
 documents that validate today.
+
+### <a id="install-form"></a>6.4 Install-form presentation
+
+`ui` is the presentation metadata a `USER` input carries, and this section
+defines it. [`COMP-UI-001`](#inputs) requires one; [`COMP-UI-002`](#inputs)
+forbids one where there is no form to appear on.
+
+<a id="COMP-UI-003"></a>**`COMP-UI-003`** — `label` is `ui`'s only REQUIRED
+member, and `ui` admits no member this section does not name. A missing `label`
+is `ERR_MISSING_FIELD` and an unknown member is `ERR_UNKNOWN_FIELD`, both
+`structural`.
+
+| Member | Presence | Means |
+|---|---|---|
+| `label` | REQUIRED | What the field is called. |
+| `order` | OPTIONAL | Where the field sits. Lower sorts first. |
+| `prominence` | OPTIONAL | How prominently it is offered. Default `PRIMARY`. |
+| `examples` | OPTIONAL | Values illustrating the form the value takes. |
+| `enumLabels` | OPTIONAL | What each `enum` member is called. |
+
+**`ui` says how a value is asked for, never what it is.** Nothing here changes
+what a value means or what would validate, which is what keeps the data contract
+and the rendered control from being two declarations that can disagree. That is
+also why the control itself is not declared — see the derivation below.
+
+<a id="COMP-UI-004"></a>**`COMP-UI-004`** — `prominence` MUST be `PRIMARY` or
+`SECONDARY`. `structural`, `ERR_INVALID_VALUE`. `PRIMARY` is offered directly;
+`SECONDARY` is offered behind a disclosure the deploying user opens. It is
+distinct from `isRequired`: an optional field may be either, and a form of
+eleven fields where three are optional is not the same form as one where three
+are advanced.
+
+**`examples` is never submitted.** It illustrates the form a value takes. A
+value that is actually submitted when the user supplies none is
+[`schema.default`](#value-schema), and the two are different claims — an example
+may be one nobody should deploy. Where a value carries an `enum`, `examples`
+says nothing a chooser does not already show, and a client SHOULD ignore it.
+
+<a id="COMP-UI-005"></a>**`COMP-UI-005`** — Every `enumLabels` key MUST be a
+member of the sibling `schema.enum`. A key naming no member is rejected in the
+`semantic` phase with `ERR_UNKNOWN_ENUM_MEMBER`, anchored at that key.
+
+`enumLabels` is keyed by the member rather than held in a list beside `enum`,
+so the labels cannot fall out of step with the members by length or by order,
+and so a member labelled twice is `ERR_DUPLICATE_KEY` in the `parser` phase
+([§7.1](#yaml-profile)) rather than a rule this section would have to invent. A
+member with no label is offered as it is spelled, which is what a document
+written before this section existed already does. A label naming no member is
+the other direction and is the error: it is a typo that changes nothing a
+validator would otherwise see, and it would stay invisible for the life of the
+document.
+
+The rule is `semantic` rather than `structural` because it relates a mapping's
+keys to a sibling array's items, and JSON Schema has no keyword that does that.
+That is the same line [§7](#validation-layers) draws everywhere else.
+
+**Where the labels live, and why not in `schema`.** `enumLabels` is presentation
+and sits in `ui` with the rest of it.
+[Blueprint §5.2](../../blueprint/v1/spec.md#merge) decides whether two components
+declaring one input agree by comparing their `schema` blocks and deliberately not
+their `ui` blocks. Labels in `schema` would therefore make two components that
+word one enumeration differently a rejected composition —
+`ERR_CONFLICTING_INPUT_SCHEMA` over a difference of phrasing. In `ui` the first
+node's wording wins, which is a presentation decision and is what that section
+already says it is making.
+
+#### The derivation
+
+**The control is derived from the value's `schema`, and this is that
+derivation.** A client rendering the install form MUST derive each field's
+control from the value's `schema` and `ui` as follows, and MUST NOT require any
+further declaration in order to do it. Where more than one row applies, the
+first that applies decides.
+
+| Where the value's `schema` says | The control |
+|---|---|
+| `isSensitive: true` | MUST conceal the value as it is entered, and MUST NOT display a stored one. |
+| a non-empty `enum` | MUST offer those members, under their `enumLabels` wording where one is given, and MUST NOT offer a value outside them. |
+| `type: BOOLEAN` | MUST offer exactly `true` and `false`. |
+| `type: JSON` | SHOULD accept text spanning more than one line. |
+| `format: EMAIL` | SHOULD accept a mailbox address. |
+| `format: TIMEZONE` | SHOULD offer the identifiers [§6.3](#value-schema) names. |
+| anything else | accepts text. |
+
+The order matters in one place and is stated rather than left to chance: a
+secret drawn from an enumeration is concealed rather than listed, because
+`isSensitive` is read first.
+
+**This clause binds an implementation's output rather than a document**, which
+[listing §4.1](../../listing/v1/spec.md#description-markdown) is the only other
+place in these specifications to do. There the grounds were security; here they
+are that this contract has already spent the alternative. `ui` carries a label
+and no control *because* the control is derived, and a `widget` member is
+withheld on the same reasoning — a control declared beside the schema it renders
+is one fact stated twice, with nothing to decide which is wrong when they
+disagree. A derivation that is not written down makes `ui` not a minimal
+contract but an incomplete one, and leaves two conforming implementations free
+to render one document differently with neither of them defective.
+
+**It carries no requirement identifier.** No document can violate it, and
+[conformance/README.md](../../../conformance/README.md#requirements) reserves an
+identifier for a rule one can. What the corpus holds down instead is the rules
+that make the derivation total —
+[`COMP-UI-001`](#inputs) through [`COMP-UI-005`](#install-form) and
+[`COMP-VAL-004`](#value-schema) — each of which is a statement about a document.
+
+**Field order.** A client SHOULD present fields in ascending `ui.order`. An input
+declaring none sorts after every input that declares one, and inputs that tie —
+including all of them, in a document that declares no order at all — sort by
+input name, compared as UTF-8 bytes. The tiebreak is written down for the reason
+[`COMP-ENVVAR-002`](#env-vars) writes down its own: a mapping has no sequence,
+and an order left implicit is whichever order an implementation happens to
+iterate in.
+
+**What this does not constrain.** No widget, no medium, no library, and no
+appearance. Nothing here obliges a control to *reject* a value the `schema`
+would reject: [§6.3](#value-schema) records that no phase tests a value against
+its schema, and this section opens no such phase — the `enum` and `BOOLEAN` rows
+say what a control offers, not what the platform will accept. A client that
+renders every field as a text box and every enumeration as a list of its members
+is defective; one that chooses a different-looking chooser than another client
+is not.
 
 ## <a id="validation-layers"></a>7. Validation layers
 
@@ -907,13 +1109,21 @@ different text and that is expected.
 | `ERR_ENDPOINT_NOT_PUBLIC` | `semantic` | A platform default deriving a public address names a `PRIVATE` endpoint. |
 | `ERR_ENDPOINT_NOT_HTTP` | `semantic` | A probe, or a platform default deriving from a URL, resolves to an endpoint whose protocol is not in the HTTP family. |
 | `ERR_ENDPOINT_NOT_L4` | `semantic` | A platform default deriving an edge address resolves to an endpoint whose protocol is in the HTTP family. |
+| `ERR_UNKNOWN_ENUM_MEMBER` | `semantic` | An `enumLabels` key names no member of the sibling `enum`. |
 | `ERR_VERSION_NOT_MONOTONIC` | `capability` | A published component version is not greater than the lineage's current version. |
 
 The `parser` and `structural` rows are the shared envelope registry: the
 [blueprint](../../blueprint/v1/spec.md#diagnostics) and
 [listing](../../listing/v1/spec.md#diagnostics) families declare themselves
 additions to this table rather than restating it. The `semantic` and
-`capability` rows are this family's own.
+`capability` rows are this family's own, with one named exception:
+`ERR_UNKNOWN_ENUM_MEMBER` belongs to the `ui` block
+[§6.4](#install-form) defines, and a blueprint parameter carries that block
+unchanged ([blueprint §5.3](../../blueprint/v1/spec.md#authored-parameters)), so
+that family reports it too. The row is declared once here rather than restated
+there, which is the rule
+[ADR 0003](../../../docs/adr/0003-controlled-vocabulary-placement.md) §2 applies
+to a vocabulary and this table is no different.
 
 ## <a id="conformance"></a>9. Conformance
 
@@ -958,6 +1168,21 @@ grammar and names where the offered profiles are published, so a slug like
 `general.standard.small` resolves for a reader outside the platform.
 [ADR 0003](../../../docs/adr/0003-controlled-vocabulary-placement.md) records
 the rule that decided it.
+
+**What the install form still cannot say.** [§6.4](#install-form) gives a field
+a name, a position, a standing and a wording for its choices. It gives it no
+**grouping**: an eleven-field form is presented as one list, and a component
+cannot say that three of its fields belong together under a heading.
+
+That is a gap and not an oversight. A group name declared on an input is a claim
+about a form that will also hold *other components'* inputs, which the declaring
+document cannot see — the line [§6.2](#outputs) draws around an output, for the
+same reason. Two components that name one section "Network" and "Networking" are
+both right, [blueprint §5.2](../../blueprint/v1/spec.md#merge) has no basis to
+reconcile them, and no author is in a position to fix it. `order` survives that
+objection because a total order can always be produced from what a merged form
+already has; a grouping cannot. Admitting one later is additive and stays free;
+admitting a bad one is not, so it is recorded here rather than shipped.
 
 What remains for this family is not a gap in the prose. `capability` rules —
 `ERR_UNKNOWN_COMPONENT`, `ERR_VERSION_NOT_MONOTONIC`,
