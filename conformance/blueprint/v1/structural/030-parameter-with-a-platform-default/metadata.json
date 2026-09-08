@@ -1,0 +1,7 @@
+{
+  "id": "structural-030-parameter-with-a-platform-default",
+  "phase": "structural",
+  "expected": "pass",
+  "clause": "specifications/blueprint/v1/spec.md#authored-parameters",
+  "summary": "An authored parameter may carry the platform default an input carries."
+}

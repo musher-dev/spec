@@ -493,6 +493,16 @@ and in no implementation.
 A non-empty mapping is an authored override, used in place of derivation
 rather than merged with it.
 
+**The form has an order, and `parameters` is a mapping.** A mapping carries no
+sequence, so the order fields are presented in is decided by
+[component §6.4](../../component/v1/spec.md#install-form) rather than by the
+document's shape: ascending `ui.order`, a parameter declaring none sorting after
+every parameter that declares one, and ties broken by parameter key compared as
+UTF-8 bytes. That holds on both paths. On the derived path it replaces what was
+previously the only available order — lexicographic node name, then whatever
+order a node's inputs happened to be read in — which was an artefact of
+[§5.2](#merge)'s merge rather than anything an author chose.
+
 ### <a id="derivation"></a>5.1 Derivation
 
 When `parameters` is empty, the effective parameter set is derived from the
@@ -505,11 +515,23 @@ never types a value for it: a client rendering the install form still has to
 know it exists, and "three secrets will be generated for you" is a thing worth
 being able to say.
 
-A derived parameter takes the declaring input's `schema`, `ui` and
-`isRequired` unchanged. [Component §6.1](../../component/v1/spec.md#inputs)
-requires a `USER` input to carry `ui`, so every derived parameter arrives with
-the label a form needs; there is no such thing as a derived parameter that
-cannot be rendered.
+A derived parameter takes the declaring input's `schema`, `ui`, `isRequired`,
+`generator` and `platformDefault` unchanged.
+[Component `COMP-UI-001`](../../component/v1/spec.md#inputs) requires a `USER`
+input to carry `ui`, so every derived parameter arrives with the label a form
+needs; there is no such thing as a derived parameter that cannot be rendered.
+`ui` is the block [component §6.4](../../component/v1/spec.md#install-form)
+defines, and a client renders a derived parameter from it by the derivation that
+section fixes.
+
+**`generator` and `platformDefault` are carried for the reason the paragraph
+above gives.** An earlier draft of this section derived only the first three,
+which left the sentence above it false: a generated input was declared derived so
+that a client could say "three secrets will be generated for you", and then
+arrived as an ordinary field with nothing to say it with. A platform-derived
+input had the same problem and no counterpart on a parameter at all. Both are
+carried, and both are what a client switches on to tell a field the deploying
+user must fill from one the platform fills for them.
 
 ### <a id="merge"></a>5.2 Merge
 
@@ -605,9 +627,17 @@ An input must be covered when every one of these holds:
 | `schema.default` | absent | The component document already supplies it. |
 
 A parameter covers such an input only if it **guarantees a value**: it declares
-`isRequired: true`, or it carries a `generator`, or its `schema` declares a
-`default`. A parameter that names the key and leaves the value optional has
-moved the omission rather than closed it.
+`isRequired: true`, or it carries a `generator`, or it carries a
+`platformDefault`, or its `schema` declares a `default`. A parameter that names
+the key and leaves the value optional has moved the omission rather than closed
+it.
+
+The `platformDefault` branch is there for the same reason the `generator` branch
+is: the value arrives without the deploying user supplying it. Without it, an
+override that does supply the value would fail to cover the input it satisfies,
+and the blueprint would be rejected for an omission that is not one. A
+`SELF_ADDRESS` default on an authored parameter resolves against each node the
+parameter covers.
 
 **`isRequired` reads in opposite directions on the two documents**, and this is
 the rule where that bites. It defaults to `true` on a component input and to

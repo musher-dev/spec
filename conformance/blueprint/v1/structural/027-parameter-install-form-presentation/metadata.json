@@ -1,0 +1,11 @@
+{
+  "id": "structural-027-parameter-install-form-presentation",
+  "phase": "structural",
+  "expected": "pass",
+  "clause": "specifications/blueprint/v1/spec.md#authored-parameters",
+  "requirements": ["COMP-UI-003", "COMP-UI-004"],
+  "summary": "An authored parameter carries the ui block component §6.4 defines.",
+  "effective": {
+    "/spec/parameters/backend/ui/prominence": "PRIMARY"
+  }
+}

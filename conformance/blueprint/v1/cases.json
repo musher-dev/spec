@@ -153,6 +153,26 @@
       "path": "structural/026-json-parameter"
     },
     {
+      "id": "structural-027-parameter-install-form-presentation",
+      "phase": "structural",
+      "path": "structural/027-parameter-install-form-presentation"
+    },
+    {
+      "id": "structural-028-parameter-ui-declares-a-control",
+      "phase": "structural",
+      "path": "structural/028-parameter-ui-declares-a-control"
+    },
+    {
+      "id": "structural-029-parameter-format-outside-the-vocabulary",
+      "phase": "structural",
+      "path": "structural/029-parameter-format-outside-the-vocabulary"
+    },
+    {
+      "id": "structural-030-parameter-with-a-platform-default",
+      "phase": "structural",
+      "path": "structural/030-parameter-with-a-platform-default"
+    },
+    {
       "id": "semantic-001-connection-names-unknown-role",
       "phase": "semantic",
       "path": "semantic/001-connection-names-unknown-role"
@@ -261,6 +281,11 @@
       "id": "semantic-022-identical-input-redeclaration",
       "phase": "semantic",
       "path": "semantic/022-identical-input-redeclaration"
+    },
+    {
+      "id": "semantic-023-parameter-enum-label-names-no-member",
+      "phase": "semantic",
+      "path": "semantic/023-parameter-enum-label-names-no-member"
     }
   ]
 }
