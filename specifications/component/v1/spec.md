@@ -879,7 +879,7 @@ first that applies decides.
 | a non-empty `enum` | MUST offer those members, under their `enumLabels` wording where one is given, and MUST NOT offer a value outside them. |
 | `type: BOOLEAN` | MUST offer exactly `true` and `false`. |
 | `type: JSON` | SHOULD accept text spanning more than one line. |
-| `format: EMAIL` | SHOULD accept a mailbox address. |
+| `format: EMAIL` | SHOULD offer a control specialised for a mailbox address. |
 | `format: TIMEZONE` | SHOULD offer the identifiers [§6.3](#value-schema) names. |
 | anything else | accepts text. |
 
