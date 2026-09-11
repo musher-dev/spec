@@ -1,0 +1,8 @@
+{
+  "id": "structural-066-external-input-with-a-platform-default",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#external",
+  "requirements": ["COMP-EXT-005"],
+  "summary": "A platformDefault on an external component's input is rejected."
+}

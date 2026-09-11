@@ -1,0 +1,25 @@
+# DERIVED means the platform, from the running workload, and there is no
+# running workload. This is the member an author reaches for by habit — every
+# address-publishing output in the corpus is DERIVED — so rejecting it is what
+# keeps the shape honest rather than merely documented.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  revision: 1
+spec:
+  external:
+    resourceType: dev.musher.llm.chat-completions
+  contract:
+    inputs:
+      baseUrl:
+        schema:
+          type: STRING
+          format: ENDPOINT_URL
+        ui:
+          label: API base URL
+    outputs:
+      baseUrl:
+        schema:
+          type: STRING
+          format: ENDPOINT_URL
+        valueFrom: DERIVED

@@ -1,0 +1,8 @@
+{
+  "id": "structural-062-component-with-neither-shape",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#workload",
+  "requirements": ["COMP-EXT-001"],
+  "summary": "A component declaring neither workload nor external is rejected."
+}

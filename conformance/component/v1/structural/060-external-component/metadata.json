@@ -1,0 +1,12 @@
+{
+  "id": "structural-060-external-component",
+  "phase": "structural",
+  "expected": "pass",
+  "clause": "specifications/component/v1/spec.md#external",
+  "requirements": ["COMP-EXT-001", "COMP-EXT-002", "COMP-EXT-003", "COMP-OUT-001"],
+  "summary": "A component declaring external instead of workload, publishing its own inputs, validates.",
+  "effective": {
+    "/spec/contract/inputs/model/required": false,
+    "/spec/contract/inputs/baseUrl/suppliedBy": "USER"
+  }
+}

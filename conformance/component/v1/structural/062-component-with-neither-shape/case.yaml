@@ -1,0 +1,12 @@
+# The other half of COMP-EXT-001, and the case a reviewer needs when reading
+# the diff: `ComponentSpec` stopped requiring `workload`, which reads as a
+# relaxation until this case shows the obligation moved rather than went away.
+# It anchors at /spec because that is the field an author has to add.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  revision: 1
+spec:
+  contract:
+    inputs: {}
+    outputs: {}

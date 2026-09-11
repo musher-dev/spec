@@ -28,9 +28,10 @@ appear in all capitals, as shown here.
 
 ## <a id="scope"></a>1. Scope
 
-A **Component Document** defines one reusable, versioned workload: where its
-image comes from, how it runs, how its health is determined, and what
-configuration it consumes and produces.
+A **Component Document** defines one reusable, versioned graph node: either a
+workload this platform runs — where its image comes from, how it runs, how its
+health is determined — or one it does not, addressed elsewhere. Both kinds say
+what configuration they consume and produce.
 
 A Component Document does not describe a deployment. It is composed into a
 [Blueprint Document](../../blueprint/v1/spec.md), which is what gets deployed.
@@ -209,7 +210,18 @@ worth reading into. Nothing checks a revision offline at all: `minimum: 1` is th
 whole of the `structural` rule, and every other statement in this section is
 either `capability` or a SHOULD.
 
-## <a id="workload"></a>5. Workload
+## <a id="workload"></a>5. The component's shape
+
+A component declares exactly one of `spec.workload` and `spec.external`, and
+which key is present is what says whether this platform runs it.
+[§5.1](#source) through [§5.5](#volumes) describe the first; [§5.6](#external)
+describes the second.
+
+<a id="COMP-EXT-001"></a>**`COMP-EXT-001`** — `spec` MUST declare exactly one of
+`workload` and `external`. `structural`. A document declaring neither is
+`ERR_MISSING_FIELD` at `/spec`, the field an author has to add; one declaring
+both is `ERR_INVALID_VALUE` at `/spec/workload`, the field that should not have
+been there.
 
 `spec.workload` says how the component runs. Its `type` is the runtime shape,
 and the shape decides which of the remaining fields carry meaning.
@@ -561,6 +573,82 @@ described aspirationally so that a reader can tell which silences are
 decisions. Closing either one rejects documents that validate today and is
 therefore a breaking change.
 
+### <a id="external"></a>5.6 External components
+
+`spec.external` says that this platform does not run the component. Present
+instead of [`workload`](#workload), it describes a node addressed elsewhere —
+a service the deploying user already has, or one another provider operates.
+
+```yaml
+spec:
+  external:
+    resourceType: dev.musher.llm.chat-completions
+  contract:
+    inputs: { … }
+    outputs: { … }
+```
+
+**The block carries one field, because there is one thing to say.** An external
+node has no image, no compute, no endpoints, no health and no address of its
+own. What it *is* is named by `resourceType`; what it *holds* arrives through
+[`contract.inputs`](#inputs) like any other configuration, and what it offers
+the rest of the graph leaves through [`contract.outputs`](#outputs).
+
+<a id="COMP-EXT-002"></a>**`COMP-EXT-002`** — `external.resourceType` is
+REQUIRED and takes the grammar [§6.3](#value-schema) fixes. `structural`; an
+absent identifier is `ERR_MISSING_FIELD` and an ungrammatical one
+`ERR_INVALID_VALUE`. It is REQUIRED rather than defaulted for the reason
+[`COMP-GEN-001`](#COMP-GEN-001) gives for `sensitive`: an identifier a document
+may leave out is one two implementations may read differently, and introducing
+it later is introducing a required field later.
+
+**It is the same grammar and the same registry as a value's, read of a
+different thing.** A value's `resourceType` says what that value addresses,
+which is what [blueprint §4.2](../../blueprint/v1/spec.md#connections) compares
+across a wire. This one says what the *node* is, which is what a reader of the
+graph needs in order to see one participant rather than three unrelated
+strings. Three tagged outputs do not compose into a node's identity, and
+electing one of them as the node's would be the designated-primary mistake
+[listing §3](../../listing/v1/spec.md#identity) rejects for a `COMPONENT` item.
+
+<a id="COMP-EXT-003"></a>**`COMP-EXT-003`** — An external component MUST
+publish at least one output. `structural`; an absent `contract` is
+`ERR_MISSING_FIELD` and a `contract` whose `outputs` mapping is empty is
+`ERR_INVALID_VALUE`. The two spellings carry different codes for the reason
+[§5](#workload) gives for a `SERVICE` declaring no endpoint — the author who
+omits the block has not said what the node offers, and the author who writes it
+empty has said, and said nothing.
+
+A node exists in a composition so that something can consume it. One publishing
+nothing is a node nothing can need, which is the same argument that makes a
+`SERVICE` exposing no port a `WORKER` under another name.
+
+<a id="COMP-EXT-004"></a>**`COMP-EXT-004`** — An external component's outputs
+MUST NOT declare `valueFrom: DERIVED`. `structural`, `ERR_INVALID_VALUE`.
+[§6.2](#outputs) makes a `DERIVED` value come from the running workload, and
+there is no running workload. `DECLARED` and `INPUT` both stay available, and
+`INPUT` is the member this shape exists alongside: an external node's values are
+what the deploying user supplies it.
+
+<a id="COMP-EXT-005"></a>**`COMP-EXT-005`** — An external component's inputs
+MUST NOT carry a `platformDefault` or a `generator`. `structural`,
+`ERR_INVALID_VALUE`. It is the pair [§6.1](#inputs) already excludes beside
+`suppliedBy: CONNECTION`, for reasons that survive the change of setting: a
+platform default derives from the component's own public addressing, which an
+external node does not have, and a generator mints a secret this platform would
+then not be sharing with the service that has to accept it.
+
+**The exclusion is about what `SELF_ADDRESS` means.** `platformDefault.type`
+has one member and it reads the component's own addressing. A second kind that
+resolved a value from a resource the organisation already holds would be
+meaningful on exactly this shape; [§10](#known-debt) records the exclusion as
+reviewable when one arrives rather than as a considered permission.
+
+**What v1 does not constrain.** Nothing here reaches the service the node
+addresses. No phase resolves the address, tests that anything answers at it, or
+compares what answers against `resourceType` — and [§11](#security) explains
+why that is a rule rather than an omission.
+
 ## <a id="contract"></a>6. Configuration contract
 
 `spec.contract` is what makes a component composable. `inputs` are values the
@@ -705,16 +793,16 @@ shape can close, and a gap the shape can close is not one to describe.
 
 `schema` and `valueFrom` are REQUIRED.
 
-| `valueFrom` | `value` | Where the value comes from |
+| `valueFrom` | Carries | Where the value comes from |
 |---|---|---|
-| `DECLARED` | REQUIRED, non-empty | This document. |
-| `DERIVED` | MUST NOT be present | The platform, from the running workload. |
+| `DECLARED` | `value`, REQUIRED and non-empty | This document. |
+| `DERIVED` | neither | The platform, from the running workload. |
+| `INPUT` | `input`, REQUIRED | One of this component's own inputs. |
 
 **An output depends on its own node and nothing else.** A `DECLARED` output's
 value is written in this document. A `DERIVED` output's value comes from the
 producing workload's own addressing — its private address, its public URL. An
-output MUST NOT depend on a value the component received over an inbound
-connection.
+`INPUT` output's value is one this component's own contract already receives.
 
 That constraint is what makes an output referenceable at all: a consumer can
 read a producer's output without the producer having first been told anything.
@@ -723,6 +811,39 @@ It is also what lets two components consume each other.
 connection graph, and this rule is why it can: every output in a composition is
 resolvable before any connection is bound, so a cycle among the connections
 leaves nothing unresolved.
+
+**The invariant is resolvability before any edge is bound, and that is what the
+rules below enforce.** A `USER` input resolves when the install form is
+submitted, which is *earlier* than a `DERIVED` output resolves — that one needs
+a running, addressed workload. An input carrying a `generator` is minted at
+deploy time out of nothing. An input carrying a `platformDefault` reads the
+component's own addressing, which [§6.1](#inputs) already calls the same line
+this section draws. Only a `CONNECTION` input resolves after an edge is bound,
+and it is the only one an output may not read.
+
+<a id="COMP-OUT-001"></a>**`COMP-OUT-001`** — `input` is REQUIRED where
+`valueFrom` is `INPUT`, and MUST NOT be present on any other member.
+`structural`; a missing `input` is `ERR_MISSING_FIELD` and one written beside
+`DECLARED` or `DERIVED` is `ERR_INVALID_VALUE`.
+
+<a id="COMP-OUT-002"></a>**`COMP-OUT-002`** — `input` MUST name an input this
+component declares. `semantic`, `ERR_UNKNOWN_INPUT_REFERENCE`, anchored at the
+output's `input`. The name is a mapping key elsewhere in the same document,
+which is the class of reference [§7](#validation-layers) puts in the `semantic`
+phase.
+
+<a id="COMP-OUT-003"></a>**`COMP-OUT-003`** — The named input's `suppliedBy`
+MUST NOT be `CONNECTION`. `semantic`, `ERR_INPUT_NOT_REFERENCEABLE`. An output
+reading a wired input would depend on an inbound edge, which is the dependency
+this section's invariant exists to exclude — and it is what would make
+blueprint §4.2's legal cycles unresolvable rather than merely cyclic.
+
+**An earlier draft of this section stated the invariant as "an output MUST NOT
+depend on a value the component received over an inbound connection".** That is
+a sufficient condition rather than the necessary one, and the necessary one is a
+step weaker: what an output may not read is a value that resolves after an edge
+is bound. `INPUT` is admitted on that reading, and nothing about `DECLARED` or
+`DERIVED` changes.
 
 **Where an output must fit the input it feeds.** An output's `schema` and the
 `schema` of the input it is wired to must agree on `type`, and on
@@ -1179,6 +1300,8 @@ different text and that is expected.
 | `ERR_ENDPOINT_NOT_PUBLIC` | `semantic` | A platform default deriving a public address names a `PRIVATE` endpoint. |
 | `ERR_ENDPOINT_NOT_HTTP` | `semantic` | A probe, or a platform default deriving from a URL, resolves to an endpoint whose protocol is not in the HTTP family. |
 | `ERR_ENDPOINT_NOT_L4` | `semantic` | A platform default deriving an edge address resolves to an endpoint whose protocol is in the HTTP family. |
+| `ERR_INPUT_NOT_REFERENCEABLE` | `semantic` | An `INPUT` output names an input whose `suppliedBy` is `CONNECTION`. |
+| `ERR_UNKNOWN_INPUT_REFERENCE` | `semantic` | An `INPUT` output names no input this component declares. |
 | `ERR_UNKNOWN_ENUM_MEMBER` | `semantic` | An `enumLabels` key names no member of the sibling `enum`. |
 | `ERR_UNKNOWN_RESOURCE_TYPE` | `capability` | A `resourceType` is grammatical but the registry names no such identifier. |
 | `ERR_VERSION_NOT_MONOTONIC` | `capability` | A published component version is not greater than the lineage's current version. |
@@ -1255,6 +1378,36 @@ objection because a total order can always be produced from what a merged form
 already has; a grouping cannot. Admitting one later is additive and stays free;
 admitting a bad one is not, so it is recorded here rather than shipped.
 
+**What an external component still cannot say.** [§5.6](#external) gives a node
+this platform does not run an identity, a set of inputs and a set of outputs.
+What it does not give is a *configured instance* two blueprints share: one saved
+address and credential that three compositions point at. Every deployment
+instantiates its own node and asks for its own values.
+
+That is a gap with a reason rather than an oversight.
+[Blueprint §4.2](../../blueprint/v1/spec.md#connections) is explicit that a
+connection cannot reach outside the graph it is written in, so sharing an
+instance needs a reference form that does, plus a phase to resolve it — a new
+contract surface rather than a field. What *is* reusable today is the
+definition: many blueprints may reference one component document, and
+[listing §3.1](../../listing/v1/spec.md#component-item) already admits a catalog
+item that is a single standalone building block, so a general-purpose external
+component ships as its own item with nothing added to the listing family.
+
+**The `platformDefault` exclusion on an external input is reviewable.**
+[`COMP-EXT-005`](#COMP-EXT-005) rejects the field because its one member reads
+the component's own addressing and an external node has none. A second kind that
+resolved a value from a resource the organisation already holds would be
+meaningful there, and admitting it would be a relaxation rather than a
+narrowing. Recorded so the exclusion is not later read as a decision about
+platform defaults as a class.
+
+**An `input` reference has no grammar of its own.** [§6.2](#outputs)'s `input`
+names a mapping key, and [§6](#contract) fixes the grammar those keys take, so
+the reference is constrained by the same pattern the referent is. That is one
+grammar rather than two, which is deliberate; it is recorded because a reader
+looking for a rule about the reference will find it stated about the key.
+
 What remains for this family is not a gap in the prose. `capability` rules —
 `ERR_UNKNOWN_COMPONENT`, `ERR_VERSION_NOT_MONOTONIC`,
 `ERR_COMPONENT_NOT_PUBLISHED`, `ERR_UNKNOWN_COMPUTE_PROFILE` — carry no
@@ -1317,6 +1470,23 @@ An implementation MUST NOT include resolved configuration values in a diagnostic
 message. Diagnostics are logged, attached to pull requests, and printed in CI
 output, and a validator that echoes the value it rejected turns a validation
 error into a disclosure.
+
+**An external component's address MUST NOT become an egress vector.** The
+address an [external node](#external) is configured with is supplied by an
+author or by a deploying user, which makes it attacker-influenced in the sense
+this section opens with. No phase of this specification resolves it, connects to
+it, or checks that anything answers there, and an implementation MUST NOT do so
+on this contract's behalf: a reachability check against a user-supplied address
+is a server-side request forgery primitive reachable from a catalog submission,
+and it would reach cloud metadata endpoints and private-mesh services as
+readily as the service the author meant. [§5.6](#external) records the same rule
+as a validation silence; it is repeated here because the reason is a security
+one and a reader of that section would otherwise read a gap where there is a
+decision.
+
+The consequence is that `resourceType` and `format: ENDPOINT_URL` on an external
+node are claims, unverified, exactly as [§6.3](#value-schema) records of every
+`format` member. What the node addresses is what its author says it addresses.
 
 **Schema retrieval.** Every published bundle is self-contained: all `$ref`s
 resolve inside `$defs`, and no validator needs a network request to evaluate a

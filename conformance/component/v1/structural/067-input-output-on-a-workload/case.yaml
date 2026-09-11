@@ -1,0 +1,33 @@
+# `valueFrom: INPUT` is not external-only, and this pins that. A workload that
+# republishes a value the deploying user gave it is useful and harmless: the
+# value resolves at form submission, which is earlier than this workload's own
+# DERIVED outputs resolve, so §6.2's invariant is satisfied by a wider margin
+# here than in the case the member was added for.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  revision: 1
+spec:
+  workload:
+    type: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+    endpoints:
+      web:
+        containerPort: 8080
+        protocol: HTTP
+        visibility: PRIVATE
+  contract:
+    inputs:
+      siteTitle:
+        schema:
+          type: STRING
+        ui:
+          label: Site title
+    outputs:
+      siteTitle:
+        schema:
+          type: STRING
+        valueFrom: INPUT
+        input: siteTitle

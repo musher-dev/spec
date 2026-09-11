@@ -1,0 +1,65 @@
+# A node this platform does not run, in full. There is no image and no compute
+# because there is nothing to run; the three values an application needs to
+# reach the service arrive as USER inputs and leave as INPUT outputs, which is
+# what makes them one set rather than three unrelated strings — a consumer
+# wiring two of them from this node is wiring them from one source.
+#
+# The outputs are resolvable at form submission, which is earlier than a
+# DERIVED output resolves, so §6.2's invariant holds and blueprint §4.2's legal
+# cycles stay sound.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  revision: 1
+spec:
+  external:
+    resourceType: dev.musher.llm.chat-completions
+  contract:
+    inputs:
+      baseUrl:
+        schema:
+          type: STRING
+          format: ENDPOINT_URL
+          resourceType: dev.musher.llm.base-url
+        ui:
+          label: API base URL
+          order: 1
+          examples:
+            - https://api.example.com/v1
+      apiKey:
+        schema:
+          type: STRING
+          sensitive: true
+          resourceType: dev.musher.llm.api-key
+        ui:
+          label: API key
+          order: 2
+      model:
+        schema:
+          type: STRING
+          resourceType: dev.musher.llm.model-name
+        required: false
+        ui:
+          label: Model name
+          order: 3
+    outputs:
+      baseUrl:
+        schema:
+          type: STRING
+          format: ENDPOINT_URL
+          resourceType: dev.musher.llm.base-url
+        valueFrom: INPUT
+        input: baseUrl
+      apiKey:
+        schema:
+          type: STRING
+          sensitive: true
+          resourceType: dev.musher.llm.api-key
+        valueFrom: INPUT
+        input: apiKey
+      model:
+        schema:
+          type: STRING
+          resourceType: dev.musher.llm.model-name
+        valueFrom: INPUT
+        input: model

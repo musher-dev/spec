@@ -1,0 +1,8 @@
+{
+  "id": "structural-067-input-output-on-a-workload",
+  "phase": "structural",
+  "expected": "pass",
+  "clause": "specifications/component/v1/spec.md#outputs",
+  "requirements": ["COMP-OUT-001", "COMP-OUT-002", "COMP-OUT-003"],
+  "summary": "An INPUT output is permitted on a workload component, not only on an external one."
+}

@@ -1,0 +1,8 @@
+{
+  "id": "structural-061-external-beside-a-workload",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#workload",
+  "requirements": ["COMP-EXT-001"],
+  "summary": "A component declaring both external and workload is rejected."
+}

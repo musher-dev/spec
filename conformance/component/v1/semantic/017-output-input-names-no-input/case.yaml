@@ -1,0 +1,26 @@
+# A misspelling at one end of a reference whose other end is a mapping key in
+# the same document. `semantic` rather than `structural` because deciding it
+# means comparing a property's value against a sibling mapping's keys, which is
+# the class of rule §7 puts in that phase.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  revision: 1
+spec:
+  external:
+    resourceType: dev.musher.llm.chat-completions
+  contract:
+    inputs:
+      baseUrl:
+        schema:
+          type: STRING
+          format: ENDPOINT_URL
+        ui:
+          label: API base URL
+    outputs:
+      baseUrl:
+        schema:
+          type: STRING
+          format: ENDPOINT_URL
+        valueFrom: INPUT
+        input: baseUrI

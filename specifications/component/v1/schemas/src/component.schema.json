@@ -198,6 +198,24 @@
       ],
       "type": "object"
     },
+    "ComponentExternal": {
+      "$comment": "spec.md §5.6. resourceType is REQUIRED for the reason ADR 0018 §5 gives for platformDefault.type — an identifier a document may leave out is one two implementations may read differently, and introducing it later is introducing a required field later. It is ADR 0009 grammar and ADR 0009 registry, read at node scope rather than value scope: a node identity is a different claim from a value compatibility tag, and three tagged outputs do not compose into one.",
+      "additionalProperties": false,
+      "description": "A node this platform does not run. It has no image, no compute and no address of its own, and what it publishes comes from what the deploying user supplies it. resourceType names what it addresses.",
+      "properties": {
+        "resourceType": {
+          "$comment": "ADR 0009 §1 grammar, read at node scope. The grammar is this contract and the membership is not — an identifier the registry does not name is reserved rather than invalid, which is why ERR_UNKNOWN_RESOURCE_TYPE is capability.",
+          "description": "Namespaced identifier for what this node addresses. The grammar is fixed by spec.md §6.3; the identifiers on offer are published at https://api.musher.dev/v1/reference/resource-types.",
+          "maxLength": 255,
+          "pattern": "^[a-z][a-z0-9]*(\\.[a-z0-9][a-z0-9-]*)+$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "resourceType"
+      ],
+      "type": "object"
+    },
     "ComponentGitRef": {
       "additionalProperties": false,
       "properties": {
@@ -500,36 +518,82 @@
     },
     "ComponentOutput": {
       "additionalProperties": false,
-      "$comment": "spec.md §6.2. valueFrom is required and has two members, so the else branch is exactly DECLARED.",
-      "else": {
-        "properties": {
-          "value": {
-            "minLength": 1,
-            "type": "string"
+      "allOf": [
+        {
+          "$comment": "spec.md §6.2. valueFrom has three members, so the two-branch if/then/else this object carried is no longer total: INPUT would have fallen into the DECLARED branch and been asked for a literal. Each member takes a branch of its own, which is the shape ComponentWorkload uses for type × field validity.",
+          "if": {
+            "properties": {
+              "valueFrom": {
+                "const": "DECLARED"
+              }
+            },
+            "required": [
+              "valueFrom"
+            ]
+          },
+          "then": {
+            "properties": {
+              "input": false,
+              "value": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "value"
+            ]
           }
         },
-        "required": [
-          "value"
-        ]
-      },
-      "if": {
-        "properties": {
-          "valueFrom": {
-            "const": "DERIVED"
+        {
+          "if": {
+            "properties": {
+              "valueFrom": {
+                "const": "DERIVED"
+              }
+            },
+            "required": [
+              "valueFrom"
+            ]
+          },
+          "then": {
+            "properties": {
+              "input": false,
+              "value": false
+            }
           }
         },
-        "required": [
-          "valueFrom"
-        ]
-      },
-      "then": {
-        "properties": {
-          "value": false
+        {
+          "$comment": "spec.md §6.2. An INPUT output reads a value this component own contract already receives, so `input` names which and `value` has nothing to hold. That the named input exists, and that it is not CONNECTION-supplied, are not expressible here — the input names are mapping keys elsewhere in the document, which is the line §7 draws for every reference of this shape.",
+          "if": {
+            "properties": {
+              "valueFrom": {
+                "const": "INPUT"
+              }
+            },
+            "required": [
+              "valueFrom"
+            ]
+          },
+          "then": {
+            "properties": {
+              "value": false
+            },
+            "required": [
+              "input"
+            ]
+          }
         }
-      },
+      ],
       "properties": {
         "description": {
           "description": "Human-readable description of the output. Omitted when none is set.",
+          "type": "string"
+        },
+        "input": {
+          "$comment": "spec.md §6.2. A sibling mapping key rather than a document reference, so it is spelled as the bare noun a probe and a platform default `endpoint` are and does not take ADR 0007 §1 Ref suffix.",
+          "description": "Name of this component own input the value is read from. Required where valueFrom is INPUT and rejected on every other member.",
+          "maxLength": 64,
+          "pattern": "^[a-z][a-zA-Z0-9]{0,63}$",
           "type": "string"
         },
         "schema": {
@@ -541,10 +605,11 @@
           "type": "string"
         },
         "valueFrom": {
-          "description": "DERIVED outputs carry value=null and are platform-populated; DECLARED outputs carry a static value.",
+          "description": "Where the published value comes from: DERIVED from the running workload, DECLARED as a literal in this document, or INPUT read from one of this component own inputs.",
           "enum": [
             "DERIVED",
-            "DECLARED"
+            "DECLARED",
+            "INPUT"
           ],
           "type": "string"
         }
@@ -649,19 +714,135 @@
     },
     "ComponentSpec": {
       "additionalProperties": false,
+      "allOf": [
+        {
+          "$comment": "spec.md §5. A component is one of two things, and the key that is present says which: `workload` is a workload this platform runs, `external` is a node it does not. Spelled as an anyOf over `required` rather than as a oneOf so a document naming neither reports ERR_MISSING_FIELD at /spec — the field an author has to add — rather than a branch count; the exclusion below is what makes it exactly one. A spec-level `type` tag was the alternative and would have been a required field on every document ever written, with a oneOf at `spec` putting every default beneath it beyond the effective-value resolution ADR 0008 requires.",
+          "anyOf": [
+            {
+              "properties": {
+                "workload": {
+                  "type": "object"
+                }
+              },
+              "required": [
+                "workload"
+              ]
+            },
+            {
+              "properties": {
+                "external": {
+                  "type": "object"
+                }
+              },
+              "required": [
+                "external"
+              ]
+            }
+          ]
+        },
+        {
+          "$comment": "spec.md §5.6. Naming both is not a composition: a node this platform does not run has nothing for a workload block to describe. The false schema anchors the diagnostic at the field that should not have been there, which is the shape BlueprintNode already uses for `revision` on a repo-local reference.",
+          "if": {
+            "properties": {
+              "external": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "external"
+            ]
+          },
+          "then": {
+            "properties": {
+              "workload": false
+            }
+          }
+        },
+        {
+          "$comment": "spec.md §5.6. An external node exists to publish values another node consumes, so one publishing nothing is a node nothing can need — the argument §5 makes for a SERVICE that exposes no endpoint. An absent contract is a missing field and an empty outputs mapping an invalid value, which is that section two-spelling distinction.",
+          "if": {
+            "properties": {
+              "external": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "external"
+            ]
+          },
+          "then": {
+            "properties": {
+              "contract": {
+                "properties": {
+                  "outputs": {
+                    "minProperties": 1
+                  }
+                },
+                "required": [
+                  "outputs"
+                ]
+              }
+            },
+            "required": [
+              "contract"
+            ]
+          }
+        },
+        {
+          "$comment": "spec.md §5.6. DERIVED means the platform, from the running workload (§6.2), and there is no running workload here. DECLARED and INPUT both stay available. A platformDefault derives from the component own public addressing and a generator mints a secret this platform would not be sharing with the service that has to accept it — the same pair, for the same reason, that §6.1 forbids beside suppliedBy: CONNECTION.",
+          "if": {
+            "properties": {
+              "external": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "external"
+            ]
+          },
+          "then": {
+            "properties": {
+              "contract": {
+                "properties": {
+                  "inputs": {
+                    "additionalProperties": {
+                      "properties": {
+                        "generator": false,
+                        "platformDefault": false
+                      }
+                    }
+                  },
+                  "outputs": {
+                    "additionalProperties": {
+                      "properties": {
+                        "valueFrom": {
+                          "not": {
+                            "const": "DERIVED"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
       "properties": {
         "contract": {
           "$ref": "#/$defs/ComponentContract",
           "description": "The composition contract: typed inputs the component needs and outputs it publishes."
+        },
+        "external": {
+          "$ref": "#/$defs/ComponentExternal",
+          "description": "What this component addresses when this platform does not run it. Present instead of workload, never beside it."
         },
         "workload": {
           "$ref": "#/$defs/ComponentWorkload",
           "description": "How the component runs: source, runtime shape, endpoints, and configuration."
         }
       },
-      "required": [
-        "workload"
-      ],
       "type": "object"
     },
     "ComponentValueGenerator": {

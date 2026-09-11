@@ -1,0 +1,18 @@
+# The identifier is what the node *is*, so a block without one describes
+# nothing. It is REQUIRED rather than defaulted for the reason COMP-GEN-001
+# gives for `sensitive`: an identifier a document may leave out is one two
+# implementations may read differently.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  revision: 1
+spec:
+  external: {}
+  contract:
+    inputs: {}
+    outputs:
+      baseUrl:
+        schema:
+          type: STRING
+        valueFrom: DECLARED
+        value: https://api.example.com/v1

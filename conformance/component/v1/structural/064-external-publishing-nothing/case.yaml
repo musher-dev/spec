@@ -1,0 +1,20 @@
+# A node exists in a composition so that something can consume it, and one
+# publishing nothing is a node nothing can need — the argument §5 makes for a
+# SERVICE that exposes no endpoint. The block is written and left empty, which
+# §5 distinguishes from omitting it: the author has said, and said nothing.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  revision: 1
+spec:
+  external:
+    resourceType: dev.musher.llm.chat-completions
+  contract:
+    inputs:
+      baseUrl:
+        schema:
+          type: STRING
+          format: ENDPOINT_URL
+        ui:
+          label: API base URL
+    outputs: {}

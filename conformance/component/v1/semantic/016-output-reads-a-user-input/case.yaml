@@ -1,0 +1,40 @@
+# The positive side of COMP-OUT-002 and COMP-OUT-003 together: the named input
+# exists and a wire does not fill it. A generated input is the interesting one
+# to include — its value is minted at deploy time out of nothing, so it resolves
+# before any edge is bound, which is the invariant §6.2 actually states.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  revision: 1
+spec:
+  workload:
+    type: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+    endpoints:
+      web:
+        containerPort: 8080
+        protocol: HTTP
+        visibility: PRIVATE
+  contract:
+    inputs:
+      apiToken:
+        schema:
+          type: STRING
+          sensitive: true
+        suppliedBy: USER
+        generator:
+          byteLength: 32
+          encoding: HEX
+        ui:
+          label: API token
+        target:
+          envVarKey: API_TOKEN
+    outputs:
+      apiToken:
+        schema:
+          type: STRING
+          sensitive: true
+        valueFrom: INPUT
+        input: apiToken

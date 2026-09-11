@@ -1,0 +1,8 @@
+{
+  "id": "structural-065-external-output-derived",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#external",
+  "requirements": ["COMP-EXT-004"],
+  "summary": "A DERIVED output on an external component is rejected; there is no running workload."
+}

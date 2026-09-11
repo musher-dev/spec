@@ -325,6 +325,50 @@ function checkEndpointReferences(document: Json, out: Diagnostic[]): void {
 }
 
 /**
+ * Component §6.2 — an `INPUT` output reads one of its own component's inputs,
+ * and may not read one a wire fills.
+ *
+ * The invariant §6.2 states is resolvability before any edge is bound. A `USER`
+ * input resolves at form submission, which is earlier than a `DERIVED` output
+ * resolves; only a `CONNECTION` input resolves after an edge, so only that one
+ * is excluded. Two codes rather than one, on §6.1's precedent for an endpoint
+ * reference: naming nothing and naming the wrong kind read differently to an
+ * author.
+ */
+function checkOutputInputReferences(document: Json, out: Diagnostic[]): void {
+  const contract = child(child(document, 'spec'), 'contract')
+  const inputs = child(contract, 'inputs')
+  const outputs = child(contract, 'outputs')
+
+  for (const name of keysOf(outputs)) {
+    const output = child(outputs, name)
+    if (asString(child(output, 'valueFrom')) !== 'INPUT') continue
+
+    const reference = asString(child(output, 'input'))
+    if (reference === undefined) continue // COMP-OUT-001, structural
+    const pointer = `/spec/contract/outputs/${token(name)}/input`
+
+    const input = child(inputs, reference)
+    if (input === undefined) {
+      out.push({
+        code: 'ERR_UNKNOWN_INPUT_REFERENCE',
+        path: pointer,
+        message: `output "${name}" reads input "${reference}", which this component does not declare`,
+      })
+      continue
+    }
+
+    if (child(input, 'suppliedBy') === 'CONNECTION') {
+      out.push({
+        code: 'ERR_INPUT_NOT_REFERENCEABLE',
+        path: pointer,
+        message: `output "${name}" reads input "${reference}", which a connection fills`,
+      })
+    }
+  }
+}
+
+/**
  * Component §5.3 — every environment-variable key is declared exactly once,
  * across both the places that declare one.
  *
@@ -1180,6 +1224,7 @@ export function semanticDiagnostics(
   if (family.name === 'component') {
     checkImageRef(document, out)
     checkEndpointReferences(document, out)
+    checkOutputInputReferences(document, out)
     checkEnvVarKeys(document, out)
     checkEnumLabels(
       child(child(child(document, 'spec'), 'contract'), 'inputs'),

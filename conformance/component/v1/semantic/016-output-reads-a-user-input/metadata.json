@@ -1,0 +1,8 @@
+{
+  "id": "semantic-016-output-reads-a-user-input",
+  "phase": "semantic",
+  "expected": "pass",
+  "clause": "specifications/component/v1/spec.md#outputs",
+  "requirements": ["COMP-OUT-002", "COMP-OUT-003"],
+  "summary": "An INPUT output reading a generated USER input is accepted."
+}
