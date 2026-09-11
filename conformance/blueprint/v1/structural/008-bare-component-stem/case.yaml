@@ -6,11 +6,11 @@ specVersion: v1
 kind: BLUEPRINT
 metadata:
   slug: postgres
-  version: 1
+  revision: 1
 spec:
   components:
     db:
-      component: postgres
+      componentRef: postgres
       size: general.standard.small
       connections: {}
   parameters: {}

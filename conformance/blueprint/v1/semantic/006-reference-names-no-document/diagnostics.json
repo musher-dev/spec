@@ -1,7 +1,7 @@
 [
   {
     "code": "ERR_COMPONENT_NOT_FOUND",
-    "path": "/spec/components/db/component"
+    "path": "/spec/components/db/componentRef"
   },
   {
     "code": "ERR_UNREFERENCED_COMPONENT",

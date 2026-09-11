@@ -1,0 +1,29 @@
+# An input name is bound by key across three documents — the input, the
+# connection key that fills it, and the parameter that covers it — so two
+# spellings of one name are two names. `DATABASE_URL` is the spelling that
+# made that mistake easy: it is the environment-variable key wearing the
+# input's clothes, and the env key is what `target` carries. §6 fixes the
+# grammar so the two cannot be confused.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  revision: 1
+spec:
+  workload:
+    type: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+    endpoints:
+      web:
+        containerPort: 8080
+        protocol: HTTP
+        visibility: PRIVATE
+  contract:
+    inputs:
+      DATABASE_URL:
+        schema:
+          type: STRING
+        ui:
+          label: Database URL
+    outputs: {}

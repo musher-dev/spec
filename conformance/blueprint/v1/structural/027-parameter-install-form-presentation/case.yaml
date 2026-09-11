@@ -6,11 +6,11 @@ specVersion: v1
 kind: BLUEPRINT
 metadata:
   slug: acme-wiki
-  version: 1
+  revision: 1
 spec:
   components:
     db:
-      component: ./components/postgres.yaml
+      componentRef: ./components/postgres.yaml
       size: general.standard.small
       connections: {}
   parameters:
@@ -21,7 +21,7 @@ spec:
           - S3
           - GCS
         default: S3
-      isRequired: false
+      required: false
       ui:
         label: Storage backend
         order: 1
@@ -32,7 +32,7 @@ spec:
       schema:
         type: STRING
         format: HOSTNAME
-      isRequired: false
+      required: false
       ui:
         label: Public hostname
         order: 2

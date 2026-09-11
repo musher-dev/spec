@@ -1,6 +1,6 @@
 [
   {
     "code": "ERR_INVALID_VALUE",
-    "path": "/spec/components/db/advanced/storageClass"
+    "path": "/spec/components/db/placement/storageClass"
   }
 ]

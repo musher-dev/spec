@@ -13,23 +13,23 @@ specVersion: v1
 kind: BLUEPRINT
 metadata:
   slug: acme-wiki
-  version: 1
+  revision: 1
 spec:
   components:
     api:
-      component: 018f6b3a-4c21-7b8e-9d5f-2a1c6e0b4d73
-      componentVersion: 3
+      componentRef: 018f6b3a-4c21-7b8e-9d5f-2a1c6e0b4d73
+      revision: 3
       size: general.standard.small
       connections: {}
     db:
-      component: ./components/postgres.yaml
+      componentRef: ./components/postgres.yaml
       size: general.standard.small
       connections: {}
   parameters:
     apiKey:
       schema:
         type: STRING
-        isSensitive: true
-      isRequired: true
+        sensitive: true
+      required: true
       ui:
         label: API key

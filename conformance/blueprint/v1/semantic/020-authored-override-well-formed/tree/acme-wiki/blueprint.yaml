@@ -9,22 +9,22 @@
 #
 # The override then answers to §5.3 instead, and satisfies all three rules. The
 # key names an input both nodes declare, so it is not unbound. It declares
-# `isRequired: true`, so it guarantees the value neither node can do without.
+# `required: true`, so it guarantees the value neither node can do without.
 # And its `type` agrees with both — the disagreement is over `pattern`, which
 # §5.3 does not compare, and which is why one parameter can reconcile the two.
 specVersion: v1
 kind: BLUEPRINT
 metadata:
   slug: acme-wiki
-  version: 1
+  revision: 1
 spec:
   components:
     api:
-      component: ./components/api.yaml
+      componentRef: ./components/api.yaml
       size: general.standard.small
       connections: {}
     db:
-      component: ./components/postgres.yaml
+      componentRef: ./components/postgres.yaml
       size: general.standard.small
       connections: {}
   parameters:
@@ -32,7 +32,7 @@ spec:
       schema:
         type: STRING
         pattern: ^.{12,}$
-        isSensitive: true
-      isRequired: true
+        sensitive: true
+      required: true
       ui:
         label: Administrator password

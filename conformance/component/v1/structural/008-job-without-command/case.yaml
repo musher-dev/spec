@@ -4,10 +4,10 @@
 specVersion: v1
 kind: COMPONENT
 metadata:
-  version: 1
+  revision: 1
 spec:
   workload:
-    kind: JOB
+    type: JOB
     source:
       type: IMAGE
       ref: ghcr.io/musher-dev/migrate:2.0.1

@@ -7,7 +7,7 @@
   "summary": "A NUMBER value constrained to whole numbers by a pattern validates.",
   "effective": {
     "/spec/contract/inputs/port/schema/format": null,
-    "/spec/contract/inputs/port/schema/isSensitive": false,
+    "/spec/contract/inputs/port/schema/sensitive": false,
     "/spec/contract/inputs/port/schema/semanticType": null
   }
 }

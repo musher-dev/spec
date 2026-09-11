@@ -2,6 +2,6 @@
   "id": "structural-020-constraint-term-not-a-token",
   "phase": "structural",
   "expected": "fail",
-  "clause": "specifications/blueprint/v1/spec.md#advanced-constraints",
-  "summary": "An advanced pin whose value is not a lowercase token is rejected."
+  "clause": "specifications/blueprint/v1/spec.md#placement-constraints",
+  "summary": "A placement pin whose value is not a lowercase token is rejected."
 }

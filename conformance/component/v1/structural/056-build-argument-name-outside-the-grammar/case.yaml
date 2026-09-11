@@ -1,0 +1,25 @@
+# A build argument becomes an environment variable in the build context, so it
+# is bound by the POSIX shape §5.3 requires of a runtime key rather than by a
+# grammar of its own. `node-version` is the spelling a Dockerfile author reaches
+# for and the one a shell cannot set, which is why the rule is a grammar and not
+# a convention.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  revision: 1
+spec:
+  workload:
+    type: SERVICE
+    source:
+      type: GIT
+      repositoryUrl: https://github.com/acme/web.git
+      build:
+        strategy: DOCKERFILE
+        dockerfilePath: Dockerfile
+        arguments:
+          node-version: "22"
+    endpoints:
+      web:
+        containerPort: 8080
+        protocol: HTTP
+        visibility: PRIVATE

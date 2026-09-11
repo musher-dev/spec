@@ -328,6 +328,26 @@
       "path": "structural/052-generated-input-with-platform-default"
     },
     {
+      "id": "structural-053-input-name-outside-the-grammar",
+      "phase": "structural",
+      "path": "structural/053-input-name-outside-the-grammar"
+    },
+    {
+      "id": "structural-054-output-name-outside-the-grammar",
+      "phase": "structural",
+      "path": "structural/054-output-name-outside-the-grammar"
+    },
+    {
+      "id": "structural-055-volume-name-outside-the-grammar",
+      "phase": "structural",
+      "path": "structural/055-volume-name-outside-the-grammar"
+    },
+    {
+      "id": "structural-056-build-argument-name-outside-the-grammar",
+      "phase": "structural",
+      "path": "structural/056-build-argument-name-outside-the-grammar"
+    },
+    {
       "id": "semantic-001-floating-tag-image-reference",
       "phase": "semantic",
       "path": "semantic/001-floating-tag-image-reference"

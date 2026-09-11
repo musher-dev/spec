@@ -53,7 +53,7 @@ The blueprint is the unit of deployment.
 ```yaml
 specVersion: v1
 kind: BLUEPRINT
-metadata: { slug: …, version: … }
+metadata: { slug: …, revision: … }
 spec: { components: {…}, parameters: {…} }
 ```
 
@@ -64,7 +64,7 @@ compatibility rules in
 
 ## <a id="identity"></a>3. Identity
 
-`metadata` carries `slug` and `version`, and nothing else. A record identifier
+`metadata` carries `slug` and `revision`, and nothing else. A record identifier
 and a concurrency token — the `id` and `rowVersion` an API carries on a
 declarative apply — describe a row in a control plane, not a document. They
 MUST NOT appear on a blueprint document, and a validator MUST reject them with
@@ -76,7 +76,7 @@ are measured against the item root defined below.
 | ID | Rule | Diagnostic |
 |---|---|---|
 | <a id="BP-ID-001"></a>`BP-ID-001` | `metadata.slug` MUST equal the item directory name. | `ERR_SLUG_MISMATCH` |
-| <a id="BP-ID-002"></a>`BP-ID-002` | `metadata.version` MUST equal the sibling listing's `metadata.version`. | `ERR_VERSION_MISMATCH` |
+| <a id="BP-ID-002"></a>`BP-ID-002` | `metadata.revision` MUST equal the sibling listing's `metadata.revision`. | `ERR_VERSION_MISMATCH` |
 | <a id="BP-ID-003"></a>`BP-ID-003` | Every component document in the item MUST be referenced by some node. | `ERR_UNREFERENCED_COMPONENT` |
 
 **An unreferenced component document is an error, not dead weight.** A
@@ -146,7 +146,7 @@ the wires feeding it ([§4.2](#connections)), and the compute it runs on
 
 ### <a id="component-reference"></a>4.1 Component reference
 
-A node names the component it deploys with a single field, `component`. The
+A node names the component it deploys with a single field, `componentRef`. The
 **form** of the value selects how it resolves. There is exactly one field for
 this concept; a second parallel key naming the same slot is what made the
 earlier dialects mutually unreadable.
@@ -161,22 +161,22 @@ document has exactly one spelling.
 
 ```yaml
 db:
-  component: ./components/postgres.yaml
+  componentRef: ./components/postgres.yaml
   size: general.standard.small
   connections: {}
 ```
 
-`componentVersion` MUST NOT be present. The version deployed is the referenced
-document's `metadata.version`, so a second version here could contradict it
+The node's `revision` MUST NOT be present. The revision deployed is the referenced
+document's `metadata.revision`, so a second revision here could contradict it
 with no rule saying which wins.
 
-**Published.** The reference is the component's UUID, and `componentVersion`
+**Published.** The reference is the component's UUID, and `revision`
 MUST be present.
 
 ```yaml
 db:
-  component: 550e8400-e29b-41d4-a716-446655440000
-  componentVersion: 3
+  componentRef: 550e8400-e29b-41d4-a716-446655440000
+  revision: 3
   size: general.standard.small
   connections: {}
 ```
@@ -200,7 +200,7 @@ that phase MUST NOT require network access. A published reference cannot be
 resolved under that constraint and therefore belongs to the `capability`
 phase, server-side. An offline client MUST NOT report a published reference as
 unresolvable; it has not been given the means to check. A published reference
-naming no component, or naming one without the requested `componentVersion`,
+naming no component, or naming one without the requested `revision`,
 MUST be rejected with `ERR_UNKNOWN_COMPONENT`.
 
 Resolving is not the whole of it. A component the catalog holds but has not
@@ -224,7 +224,7 @@ a reference naming no document with `ERR_COMPONENT_NOT_FOUND`. Both are
 property of the resolved location, not of the spelling.
 
 **Reserved.** A third form, `<publisher>/<slug>`, is reserved for a public
-registry and is not implemented. It will require `componentVersion`. Until it
+registry and is not implemented. It will require `revision`. Until it
 is specified, a reference of that shape matches no form and is rejected.
 
 ### <a id="connections"></a>4.2 Connections
@@ -234,7 +234,7 @@ where it comes from. A component never declares who consumes it.
 
 ```yaml
 connections:
-  DATABASE_URL:
+  databaseUrl:
     fromRole: db
     fromOutput: connectionString
 ```
@@ -257,6 +257,14 @@ key naming no input of the component that node deploys is `ERR_UNKNOWN_INPUT`
 carrying the same argument. A wire whose two ends are each checked and whose
 consumer end is not is a wire that can be misspelled at one end only.
 
+**A connection key is an input name, and takes the input grammar.** A key MUST
+match `^[a-z][a-zA-Z0-9]{0,63}$`, and one that does not is rejected in the
+`structural` phase with `ERR_INVALID_VALUE`. It is not a second vocabulary: the
+key *is* the input being filled, so
+[component §6](../../component/v1/spec.md#contract) fixes the grammar and this
+section inherits it. In particular a key is not the environment-variable name
+the value lands on — that is the consuming input's `target`.
+
 Uniqueness needs no rule. One input cannot take two wires, because the map key
 is what names it — a second wire to the same input is a repeated mapping key
 and therefore `ERR_DUPLICATE_KEY` in the `parser` phase. That is a property of
@@ -266,7 +274,7 @@ how a connection is spelled, not an omission from this section.
 `suppliedBy: CONNECTION` is satisfied by a wire and by nothing else
 ([component §6.1](../../component/v1/spec.md#inputs)) — it never reaches the
 install form, so a graph that leaves one unwired has no later chance to supply
-it. Where such an input is also `isRequired` — which is its default — and no
+it. Where such an input is also `required` — which is its default — and no
 connection on that node names it, the blueprint is rejected with
 `ERR_UNWIRED_REQUIRED_INPUT`, anchored at the node's `connections`. An optional
 `CONNECTION` input MAY be left unwired.
@@ -323,7 +331,7 @@ Postgres connection string and a MySQL one are both `STRING`, both plausibly
 other is the mistake the tag exists to catch.
 
 **What v1 does not compare.** `format`, `enum`, `pattern`, `default` and
-`isSensitive` take no part in the decision. A producer whose `pattern` admits
+`sensitive` take no part in the decision. A producer whose `pattern` admits
 more than the consumer's does is accepted, and nothing checks that a
 non-sensitive output is not wired into a sensitive input. Those silences are
 gaps rather than considered permissions, recorded here so a reader can tell the
@@ -361,12 +369,12 @@ afterwards.
 a provider-neutral machine tier, not a raw resource request. A component
 document carries no compute of its own
 ([component §5](../../component/v1/spec.md#workload)), so the node is the only
-place it can be said, and two blueprints MAY run the same component version at
+place it can be said, and two blueprints MAY run the same component revision at
 different sizes without forking it.
 
 ```yaml
 db:
-  component: ./components/postgres.yaml
+  componentRef: ./components/postgres.yaml
   size: general.standard.medium
   connections: {}
 ```
@@ -390,7 +398,7 @@ of one.
 A tier names a capability band rather than a workload — for the `gpu` and
 `accelerator` families, `economy` through `premium` run entry inference to
 frontier training. The exact accelerator is not encoded in the slug; it is
-pinned, if at all, by [§4.4](#advanced-constraints).
+pinned, if at all, by [§4.4](#placement-constraints).
 
 **A grammatical slug is not necessarily an offered one.** Which profiles are
 actually available is not a property of this document, and a node naming one
@@ -430,23 +438,23 @@ point of naming a tier rather than a machine: a name like `4vcpu-16gb` fixes
 numbers it cannot keep, promising identical silicon across hardware generations
 that do not deliver it.
 
-### <a id="advanced-constraints"></a>4.4 Advanced constraints
+### <a id="placement-constraints"></a><a id="advanced-constraints"></a>4.4 Placement constraints
 
-`advanced` is OPTIONAL and narrows the hosts a node may be placed on. Absent,
+`placement` is OPTIONAL and narrows the hosts a node may be placed on. Absent,
 `null`, and a block whose every pin is unset all mean the same thing: no
 constraints. A pin whose value is an array means "any" when the array is empty,
 and MUST NOT repeat a term.
 
 | Pin | Narrows |
 |---|---|
-| `cpuArchitecture` | Permitted CPU architectures |
+| `cpuArchitectures` | Permitted CPU architectures |
 | `cpuDedication` | `shared` or `dedicated` |
-| `acceleratorMinVramGb` | Accelerator VRAM floor |
-| `acceleratorRuntime` | Required accelerator runtimes |
+| `minAcceleratorMemoryGiB` | Accelerator VRAM floor |
+| `acceleratorRuntimes` | Required accelerator runtimes |
 | `acceleratorInterconnect` | Required accelerator interconnect |
-| `acceleratorSkuClass` | Exact accelerator SKU class |
+| `acceleratorSKUClass` | Exact accelerator SKU class |
 | `storageClass` | Required storage class |
-| `storageMinIops` | Provisioned IOPS floor |
+| `minStorageIOPS` | Provisioned IOPS floor |
 | `networkClass` | Required network class |
 
 **A pin narrows placement and nothing else.** `size` remains what the node runs
@@ -484,6 +492,12 @@ which point they take the same shape `size` has above.
 `spec.parameters` is the install form: what a deploying user is asked for once,
 for the whole composition, rather than once per node.
 
+**A parameter name is an input name.** A key of `spec.parameters` MUST match
+`^[a-z][a-zA-Z0-9]{0,63}$` and is rejected in the `structural` phase with
+`ERR_INVALID_VALUE` otherwise. [§5.3](#authored-parameters) makes the key the
+whole of the correspondence between a parameter and the inputs it covers, so a
+parameter spelled outside the input grammar could cover nothing.
+
 **Absent and empty mean the same thing.** Both say "derive the form from the
 graph". An earlier draft of this section asserted a difference between them;
 nothing in the document distinguishes a missing key from an empty mapping, and
@@ -515,7 +529,7 @@ never types a value for it: a client rendering the install form still has to
 know it exists, and "three secrets will be generated for you" is a thing worth
 being able to say.
 
-A derived parameter takes the declaring input's `schema`, `ui`, `isRequired`,
+A derived parameter takes the declaring input's `schema`, `ui`, `required`,
 `generator` and `platformDefault` unchanged.
 [Component `COMP-UI-001`](../../component/v1/spec.md#inputs) requires a `USER`
 input to carry `ui`, so every derived parameter arrives with the label a form
@@ -559,7 +573,7 @@ redeclaration is absorbed in silence — two components that agree on what
 different words would be the only way to trip this.
 
 Two declarations are identical when their `schema` blocks are equal once
-defaults are applied. `ui` and `isRequired` are not compared: they describe how
+defaults are applied. `ui` and `required` are not compared: they describe how
 a value is asked for, not what it is, and the first node's presentation winning
 is a presentation decision rather than a contract one.
 
@@ -621,13 +635,13 @@ An input must be covered when every one of these holds:
 | Property | Value | Because |
 |---|---|---|
 | `suppliedBy` | `USER` | A `CONNECTION` input is satisfied by a wire ([§4.2](#connections)). |
-| `isRequired` | true, its default | Nothing has to supply an optional input. |
+| `required` | true, its default | Nothing has to supply an optional input. |
 | `generator` | absent | The platform mints the value. |
 | `platformDefault` | absent | The platform derives it from the node's own addressing. |
 | `schema.default` | absent | The component document already supplies it. |
 
 A parameter covers such an input only if it **guarantees a value**: it declares
-`isRequired: true`, or it carries a `generator`, or it carries a
+`required: true`, or it carries a `generator`, or it carries a
 `platformDefault`, or its `schema` declares a `default`. A parameter that names
 the key and leaves the value optional has moved the omission rather than closed
 it.
@@ -639,7 +653,7 @@ and the blueprint would be rejected for an omission that is not one. A
 `SELF_ADDRESS` default on an authored parameter resolves against each node the
 parameter covers.
 
-**`isRequired` reads in opposite directions on the two documents**, and this is
+**`required` reads in opposite directions on the two documents**, and this is
 the rule where that bites. It defaults to `true` on a component input and to
 `false` on a blueprint parameter, so an override that copies a required input's
 key and says nothing else has quietly made it optional. The defaults are
@@ -657,15 +671,15 @@ connections and [§5.2](#merge) rejected for merging, arriving through a third
 door.
 
 **A generated parameter is secret material.** A parameter carrying a `generator`
-MUST declare `schema.isSensitive: true`, and MUST declare it rather than leave
+MUST declare `schema.sensitive: true`, and MUST declare it rather than leave
 it to a default. That is a shape rather than a relationship, so both halves are
-`structural`: an absent `isSensitive` is `ERR_MISSING_FIELD` and one written
+`structural`: an absent `sensitive` is `ERR_MISSING_FIELD` and one written
 `false` is `ERR_INVALID_VALUE`.
 [Component §6.1](../../component/v1/spec.md#inputs) requires exactly this of a
 generated input, and a derived parameter takes the input's `schema` unchanged
 ([§5.1](#derivation)), so the marking is guaranteed on the derivation path
 already. Without the same rule here, moving a generated secret onto the override
-path is enough to lose it — and `isSensitive` defaults to `false`, so losing it
+path is enough to lose it — and `sensitive` defaults to `false`, so losing it
 takes no more than not mentioning it.
 
 **A parameter's `schema` is the block
@@ -680,7 +694,7 @@ out, and a sibling `spec.md` is no more exempt from it than an external
 surface.
 
 **What v1 does not compare.** `format`, `enum`, `pattern`, `default`,
-`isSensitive` and `ui` take no part in whether a parameter covers an input. A
+`sensitive` and `ui` take no part in whether a parameter covers an input. A
 parameter whose `pattern` admits more than the input's does is accepted, and so
 is one that asks for a value the input would reject. `semanticType` is not
 compared because a parameter has none to compare: it tags the backing service a
@@ -727,19 +741,19 @@ family adds:
 
 | Code | Phase | Meaning |
 |---|---|---|
-| `ERR_COMPONENT_NOT_FOUND` | `semantic` | A repo-local `component` reference resolves to no document. |
-| `ERR_REFERENCE_ESCAPE` | `semantic` | A repo-local `component` reference resolves outside the item root. |
-| `ERR_UNKNOWN_COMPONENT` | `capability` | A published `component` reference names no component, or no such `componentVersion`. |
+| `ERR_COMPONENT_NOT_FOUND` | `semantic` | A repo-local `componentRef` reference resolves to no document. |
+| `ERR_REFERENCE_ESCAPE` | `semantic` | A repo-local `componentRef` reference resolves outside the item root. |
+| `ERR_UNKNOWN_COMPONENT` | `capability` | A published `componentRef` reference names no component, or no such `revision`. |
 | `ERR_UNKNOWN_ROLE` | `semantic` | A connection's `fromRole` names no node in this blueprint. |
 | `ERR_UNKNOWN_OUTPUT` | `semantic` | A connection's `fromOutput` names no output of the referenced component. |
 | `ERR_UNKNOWN_INPUT` | `semantic` | A connection's map key names no input of the consuming node's component. |
 | `ERR_UNWIRED_REQUIRED_INPUT` | `semantic` | A node's required `CONNECTION` input is satisfied by no connection. |
-| `ERR_COMPONENT_NOT_PUBLISHED` | `capability` | A published `component` reference resolves to a component that is not in a published state. |
+| `ERR_COMPONENT_NOT_PUBLISHED` | `capability` | A published `componentRef` reference resolves to a component that is not in a published state. |
 | `ERR_UNKNOWN_COMPUTE_PROFILE` | `capability` | A node's `size` names a Compute Profile the catalog does not offer. |
 | `ERR_INCOMPATIBLE_TYPE` | `semantic` | A connection joins an output and an input whose `schema.type`s differ. |
 | `ERR_INCOMPATIBLE_SEMANTIC_TYPE` | `semantic` | A connection joins an output and an input whose `schema.semanticType`s disagree. |
 | `ERR_SLUG_MISMATCH` | `semantic` | `metadata.slug` disagrees with the item directory name. |
-| `ERR_VERSION_MISMATCH` | `semantic` | `metadata.version` disagrees with the sibling listing document. |
+| `ERR_VERSION_MISMATCH` | `semantic` | `metadata.revision` disagrees with the sibling listing document. |
 | `ERR_UNREFERENCED_COMPONENT` | `semantic` | A component document in the item is referenced by no node. |
 | `ERR_CONFLICTING_INPUT_SCHEMA` | `semantic` | Two nodes declare the same input key with different schemas. |
 | `ERR_UNBOUND_PARAMETER` | `semantic` | An authored parameter's key names no `USER` input of any node. |
@@ -767,7 +781,7 @@ authored parameter binds to the component inputs it satisfies — is answered by
 [§5.3](#authored-parameters).
 
 What remains is not a gap in the prose but a vocabulary nothing publishes yet:
-[§4.4](#advanced-constraints)'s compute-constraint pins, recorded there as a gap
+[§4.4](#placement-constraints)'s compute-constraint pins, recorded there as a gap
 rather than described as a decision. See also
 [component §10](../../component/v1/spec.md#known-debt).
 
@@ -777,7 +791,7 @@ rather than described as a decision. See also
 is untrusted input, parsed under the same profile and the same bounds. This
 section adds what is specific to a document that resolves *other* documents.
 
-**Path containment is the central one.** A repo-local `component` reference is a
+**Path containment is the central one.** A repo-local `componentRef` reference is a
 path this implementation will open, chosen by the document's author.
 [§4.1](#component-reference) requires it to stay inside the item root, and
 `ERR_REFERENCE_ESCAPE` is that rule. An implementation MUST decide containment on

@@ -1,0 +1,7 @@
+{
+  "id": "structural-053-input-name-outside-the-grammar",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#contract",
+  "summary": "An input name outside the lowerCamelCase grammar is rejected."
+}

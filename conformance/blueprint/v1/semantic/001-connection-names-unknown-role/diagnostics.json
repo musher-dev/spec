@@ -1,6 +1,6 @@
 [
   {
     "code": "ERR_UNKNOWN_ROLE",
-    "path": "/spec/components/web/connections/DATABASE_URL/fromRole"
+    "path": "/spec/components/web/connections/databaseUrl/fromRole"
   }
 ]

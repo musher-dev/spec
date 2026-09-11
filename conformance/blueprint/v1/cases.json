@@ -173,6 +173,16 @@
       "path": "structural/030-parameter-with-a-platform-default"
     },
     {
+      "id": "structural-031-connection-key-outside-the-grammar",
+      "phase": "structural",
+      "path": "structural/031-connection-key-outside-the-grammar"
+    },
+    {
+      "id": "structural-032-parameter-name-outside-the-grammar",
+      "phase": "structural",
+      "path": "structural/032-parameter-name-outside-the-grammar"
+    },
+    {
       "id": "semantic-001-connection-names-unknown-role",
       "phase": "semantic",
       "path": "semantic/001-connection-names-unknown-role"

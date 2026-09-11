@@ -8,7 +8,7 @@ specVersion: v1
 kind: LISTING
 metadata:
   slug: acme-wiki
-  version: 1
+  revision: 1
 spec:
   listingKind: BLUEPRINT
   displayName: Acme Wiki

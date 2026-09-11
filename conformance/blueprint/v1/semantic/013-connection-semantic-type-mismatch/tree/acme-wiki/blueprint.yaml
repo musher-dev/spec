@@ -5,18 +5,18 @@ specVersion: v1
 kind: BLUEPRINT
 metadata:
   slug: acme-wiki
-  version: 1
+  revision: 1
 spec:
   components:
     db:
-      component: ./components/postgres.yaml
+      componentRef: ./components/postgres.yaml
       size: general.standard.small
       connections: {}
     web:
-      component: ./components/web.yaml
+      componentRef: ./components/web.yaml
       size: general.standard.small
       connections:
-        DATABASE_URL:
+        databaseUrl:
           fromRole: db
           fromOutput: connectionString
   parameters: {}

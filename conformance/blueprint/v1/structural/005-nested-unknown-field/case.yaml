@@ -5,11 +5,11 @@ specVersion: v1
 kind: BLUEPRINT
 metadata:
   slug: web-and-database
-  version: 1
+  revision: 1
 spec:
   components:
     db:
-      component: ./components/postgres.yaml
+      componentRef: ./components/postgres.yaml
       size: general.standard.small
       connections: {}
   parameters:
@@ -17,6 +17,6 @@ spec:
       schema:
         type: STRING
         default: My Application
-      isRequired: false
+      required: false
       ui:
         lable: Site title

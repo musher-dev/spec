@@ -3,5 +3,5 @@
   "phase": "structural",
   "expected": "fail",
   "clause": "specifications/blueprint/v1/spec.md#component-reference",
-  "summary": "A published reference without componentVersion is rejected rather than floating on the registry."
+  "summary": "A published reference without revision is rejected rather than floating on the registry."
 }

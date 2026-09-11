@@ -1,6 +1,6 @@
 [
   {
     "code": "ERR_UNKNOWN_INPUT",
-    "path": "/spec/components/web/connections/DATABASE_URI"
+    "path": "/spec/components/web/connections/databaseUri"
   }
 ]

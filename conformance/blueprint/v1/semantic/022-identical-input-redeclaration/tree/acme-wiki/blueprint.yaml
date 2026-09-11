@@ -3,7 +3,7 @@
 # three things §5.2 says are not compared are in fact not compared.
 #
 # `api` and `db` both declare `adminPassword`. They differ in `ui` (a different
-# label), in `isRequired`, in the order the schema's keys are written, and in
+# label), in `required`, in the order the schema's keys are written, and in
 # whether the schema's defaults are written out or left implicit. None of that
 # is a conflict: the two schemas are equal once defaults are applied, which is
 # the test §5.2 states.
@@ -11,15 +11,15 @@ specVersion: v1
 kind: BLUEPRINT
 metadata:
   slug: acme-wiki
-  version: 1
+  revision: 1
 spec:
   components:
     api:
-      component: ./components/api.yaml
+      componentRef: ./components/api.yaml
       size: general.standard.small
       connections: {}
     db:
-      component: ./components/postgres.yaml
+      componentRef: ./components/postgres.yaml
       size: general.standard.small
       connections: {}
   parameters: {}

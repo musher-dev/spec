@@ -130,7 +130,7 @@ release its consumers hold.
 
 ## <a id="metadata"></a>4. Metadata
 
-`metadata` carries `version` and nothing else. A component document has no
+`metadata` carries `revision` and nothing else. A component document has no
 `slug`. A [blueprint](../../blueprint/v1/spec.md#identity) and its listing each
 name the item they are two halves of; a component is not the item, and the name
 it answers to is the stem of the file that holds it — which is what a repo-local
@@ -138,31 +138,31 @@ reference spells out in full
 ([blueprint §4.1](../../blueprint/v1/spec.md#component-reference)). Any other
 property is `ERR_UNKNOWN_FIELD`, as [§2](#envelope) requires at every level.
 
-`version` is an integer, 1 or greater. It is REQUIRED and never defaulted, so
+`revision` is an integer, 1 or greater. It is REQUIRED and never defaulted, so
 what a node deploys is a function of this file alone.
 
-**The version names a position in one component's lineage.** It is not a SemVer
+**The revision names a position in one component's lineage.** It is not a SemVer
 triple and carries no compatibility meaning: nothing is derivable from the
-distance between 2 and 7, and nothing is promised about how one version behaves
+distance between 2 and 7, and nothing is promised about how one revision behaves
 against another. It orders, and that is the whole of its job.
 
 **Two reference forms pin it, and only one writes it down.**
 
-| Reference form | What pins the version |
+| Reference form | What pins the revision |
 |---|---|
-| Repo-local | The referenced document's own `metadata.version`. `componentVersion` MUST NOT be present. |
-| Published | `componentVersion` on the node. |
+| Repo-local | The referenced document's own `metadata.revision`. The node's `revision` MUST NOT be present. |
+| Published | `revision` on the node. |
 
-**A version is used once.** Each publication of a component MUST carry a version
+**A revision is used once.** Each publication of a component MUST carry a revision
 strictly greater than the highest already published for that component. Gaps are
-permitted — 1 to 7 is a release and not an error — but a version that does not
+permitted — 1 to 7 is a release and not an error — but a revision that does not
 increase is rejected in the `capability` phase with `ERR_VERSION_NOT_MONOTONIC`.
 
-Reuse is the case the rule exists for. `componentVersion: 3` on a published node
+Reuse is the case the rule exists for. `revision: 3` on a published node
 is the whole of what that node deploys, and a registry that let 3 mean two
 different documents would make the pin name nothing. The repo-local form has the
-same problem one step removed: a blueprint that deployed version 3 last month
-and version 3 today, with different bytes behind it, has no way to say so.
+same problem one step removed: a blueprint that deployed revision 3 last month
+and revision 3 today, with different bytes behind it, has no way to say so.
 
 **Why the phase is `capability`.** Deciding the rule needs to know what was
 published before, which needs the catalog, which needs the network — and
@@ -175,10 +175,10 @@ Whether a registry treats an identical re-submission as a no-op rather than as a
 publication is outside this contract. This document orders publications; it does
 not define when two YAML files are the same document.
 
-**The version is not the item's version.**
+**The revision is not the item's revision.**
 [Blueprint §3](../../blueprint/v1/spec.md#identity) pins a blueprint to its
 sibling listing, and neither is pinned to any component beneath it. The two
-numbers count different things: an item's version counts releases of the item, a
+numbers count different things: an item's revision counts releases of the item, a
 component's counts releases of the component, and in the published form one
 component is deployed by many items at once.
 
@@ -188,15 +188,15 @@ that has moved makes that description stale. It is a SHOULD and carries no
 diagnostic: the disagreement is visible only across two revisions, and a
 validator is handed one.
 
-**What v1 does not constrain.** Nothing orders one component's versions against
+**What v1 does not constrain.** Nothing orders one component's revisions against
 another's — two components in the same item sitting at 4 and 11 mean nothing
-worth reading into. Nothing checks a version offline at all: `minimum: 1` is the
+worth reading into. Nothing checks a revision offline at all: `minimum: 1` is the
 whole of the `structural` rule, and every other statement in this section is
 either `capability` or a SHOULD.
 
 ## <a id="workload"></a>5. Workload
 
-`spec.workload` says how the component runs. Its `kind` is the runtime shape,
+`spec.workload` says how the component runs. Its `type` is the runtime shape,
 and the shape decides which of the remaining fields carry meaning.
 
 | Field | `SERVICE` | `WORKER` | `JOB` | `CRON` |
@@ -228,9 +228,9 @@ than meaningless, so it stays permitted.
 
 **A `SERVICE` MUST declare at least one endpoint.** A service is the kind that
 serves, and one exposing nothing is a `WORKER` under another name. Permitting
-it would leave `kind` describing nothing: two documents would differ in the
+it would leave `type` describing nothing: two documents would differ in the
 word they use for a workload that runs identically, and a reader could not tell
-from the `kind` whether anything could reach it.
+from the `type` whether anything could reach it.
 
 Both spellings of "none" are rejected, and they carry different codes because
 they read differently to an author. An absent `endpoints` block is
@@ -260,6 +260,13 @@ pins a branch or a commit; omitting it takes the repository's default branch. A
 `BRANCH` ref resolves at build time, so two builds of one unchanged document
 can produce different images. A `COMMIT` ref is reproducible. Neither is
 rejected, but a component that must build reproducibly SHOULD pin a commit.
+
+**A build-argument name takes the environment-variable grammar.** A key of
+`build.arguments` MUST match `^[A-Z_][A-Z0-9_]*$` and be 1 to 128 characters,
+and one that does not is rejected in the `structural` phase with
+`ERR_INVALID_VALUE`. It becomes an environment variable in the build context,
+so it is bound by the same POSIX shape [§5.3](#env-vars) requires of a runtime
+key, for the same reason: a name outside it is not portably settable.
 
 **Image references MUST be pinned.** An unpinned reference mutates under
 whoever curates the registry, shifting a deployment with no change to any
@@ -418,7 +425,7 @@ is not portably settable by the thing that has to set it. The rule is
 
 | `type` | Carries | What the document holds |
 |---|---|---|
-| `LITERAL` | `value`, and OPTIONAL `isSensitive` | The value itself. An empty string is permitted. |
+| `LITERAL` | `value`, and OPTIONAL `sensitive` | The value itself. An empty string is permitted. |
 | `CONFIG_REF` | `configKey` | A reference. The document never holds the value. |
 
 <a id="COMP-ENVVAR-001"></a>**A key is declared once.** Two entries sharing a key are rejected in the
@@ -450,7 +457,7 @@ consequence would surface as a wrong value inside a running workload rather than
 as a diagnostic. [Blueprint §5.2](../../blueprint/v1/spec.md#merge) refused that
 same trade for input merging, and refused it on the same ground.
 
-**Sensitivity.** `isSensitive` on a `LITERAL` marks the value as secret
+**Sensitivity.** `sensitive` on a `LITERAL` marks the value as secret
 material. An implementation MUST treat a marked value as
 [§6.1](#inputs) requires of a generated input: masked in read surfaces, and
 never echoed back into logs, diagnostics, or interfaces. It defaults to `false`,
@@ -461,7 +468,7 @@ elsewhere and the document holds only the name, so there is nothing in this file
 to mask.
 
 A component SHOULD carry secret material as a `CONFIG_REF`, or as an input with
-a `generator` ([§6.1](#inputs)), rather than as a marked literal. `isSensitive`
+a `generator` ([§6.1](#inputs)), rather than as a marked literal. `sensitive`
 governs how a value is *handled*; it does not stop the value being bytes in a
 file that is read, reviewed, and committed. It is a SHOULD because a marked
 literal is still better than an unmarked one, and this document cannot see where
@@ -513,9 +520,16 @@ speaks no HTTP — a rule the document has no way to satisfy.
 
 ### <a id="volumes"></a>5.5 Volumes
 
-`volumes` is a mapping from volume name to a declaration. `sizeGib` and
+`volumes` is a mapping from volume name to a declaration. `sizeGiB` and
 `mountPath` are REQUIRED. `accessMode` (default `READ_WRITE_ONCE`) and
-`isReadOnly` (default `false`) are OPTIONAL.
+`readOnly` (default `false`) are OPTIONAL.
+
+**A volume name is a DNS label.** A name MUST match
+`^[a-z][a-z0-9-]{0,61}[a-z0-9]$` — the grammar
+[blueprint §4](../../blueprint/v1/spec.md#components) uses for a node name — and
+one that does not is rejected in the `structural` phase with
+`ERR_INVALID_VALUE`. A volume is materialised under its name, so the name has
+to survive being one.
 
 `mountPath` MUST be absolute. A relative path is rejected in the `structural`
 phase with `ERR_INVALID_VALUE`.
@@ -525,7 +539,7 @@ phase with `ERR_INVALID_VALUE`.
 `READ_WRITE_MANY` is a shared network volume and mounts on every replica.
 
 **What v1 does not constrain.** Two volumes on one workload MAY declare
-overlapping mount paths, and `sizeGib` has no lower or upper bound. Neither
+overlapping mount paths, and `sizeGiB` has no lower or upper bound. Neither
 silence is a considered permission — both are gaps, in this specification and
 in the implementations reading it, and they are recorded here rather than
 described aspirationally so that a reader can tell which silences are
@@ -542,6 +556,16 @@ join.
 
 `contract` is OPTIONAL. A component that neither consumes nor publishes
 configuration omits it.
+
+**An input or output name is `lowerCamelCase`.** A name MUST match
+`^[a-z][a-zA-Z0-9]{0,63}$`, and one that does not is rejected in the
+`structural` phase with `ERR_INVALID_VALUE`. The grammar is load-bearing
+rather than cosmetic: the name is bound by key across three documents — the
+input, the [connection](../../blueprint/v1/spec.md#connections) key that fills
+it, and the [parameter](../../blueprint/v1/spec.md#authored-parameters) that
+covers it — so two spellings of one name are two names. It is not the
+environment-variable key either; that is what [`target`](#inputs) carries, on
+the POSIX grammar [§5.3](#env-vars) fixes.
 
 ### <a id="inputs"></a>6.1 Inputs
 
@@ -568,9 +592,9 @@ What `ui` contains, and what a client draws from it, is
 
 <a id="COMP-GEN-001"></a>**`COMP-GEN-001` — a generated input is secret
 material.** An input carrying `generator` — one whose value the platform mints at
-deploy time — MUST declare `suppliedBy: USER` and `schema.isSensitive: true`, and
+deploy time — MUST declare `suppliedBy: USER` and `schema.sensitive: true`, and
 MUST NOT carry a `platformDefault`. Both markings MUST be written explicitly
-rather than left to a default: `isSensitive` defaults to `false`, and a generated
+rather than left to a default: `sensitive` defaults to `false`, and a generated
 value not marked sensitive is echoed back into logs and interfaces. All three are
 `structural`.
 
@@ -586,7 +610,7 @@ is derived, and `endpoint` names which endpoint it is derived from.
 
 `type` has one member, `SELF_ADDRESS`, which derives the value from the
 component's own public addressing. It is REQUIRED and carries no default, for the
-reason [`COMP-GEN-001`](#COMP-GEN-001) gives for `isSensitive`: a discriminator a
+reason [`COMP-GEN-001`](#COMP-GEN-001) gives for `sensitive`: a discriminator a
 document may leave out is one two implementations may read differently. A second
 kind is admitted beside this one without invalidating a document written against
 it, which is the whole reason the tag is written now rather than when a second
@@ -827,7 +851,7 @@ also why the control itself is not declared — see the derivation below.
 <a id="COMP-UI-004"></a>**`COMP-UI-004`** — `prominence` MUST be `PRIMARY` or
 `SECONDARY`. `structural`, `ERR_INVALID_VALUE`. `PRIMARY` is offered directly;
 `SECONDARY` is offered behind a disclosure the deploying user opens. It is
-distinct from `isRequired`: an optional field may be either, and a form of
+distinct from `required`: an optional field may be either, and a form of
 eleven fields where three are optional is not the same form as one where three
 are advanced.
 
@@ -875,7 +899,7 @@ first that applies decides.
 
 | Where the value's `schema` says | The control |
 |---|---|
-| `isSensitive: true` | MUST conceal the value as it is entered, and MUST NOT display a stored one. |
+| `sensitive: true` | MUST conceal the value as it is entered, and MUST NOT display a stored one. |
 | a non-empty `enum` | MUST offer those members, under their `enumLabels` wording where one is given, and MUST NOT offer a value outside them. |
 | `type: BOOLEAN` | MUST offer exactly `true` and `false`. |
 | `type: JSON` | SHOULD accept text spanning more than one line. |
@@ -885,7 +909,7 @@ first that applies decides.
 
 The order matters in one place and is stated rather than left to chance: a
 secret drawn from an enumeration is concealed rather than listed, because
-`isSensitive` is read first.
+`sensitive` is read first.
 
 **This clause binds an implementation's output rather than a document**, which
 [listing §4.1](../../listing/v1/spec.md#description-markdown) is the only other

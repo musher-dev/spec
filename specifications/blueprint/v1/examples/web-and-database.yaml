@@ -14,23 +14,23 @@ specVersion: v1
 kind: BLUEPRINT
 metadata:
   slug: web-and-database
-  version: 1
+  revision: 1
 spec:
   components:
     db:
-      component: ./components/postgres.yaml
+      componentRef: ./components/postgres.yaml
       size: general.standard.medium
       # Optional pins narrowing which host may run this node. They never change
       # the compute `size` names — this asks for the profile's vCPU on a host
       # that dedicates it, not for more of it.
-      advanced:
+      placement:
         cpuDedication: dedicated
       connections: {}
     web:
-      component: ./component-web-server.yaml
+      componentRef: ./component-web-server.yaml
       size: general.standard.small
       connections:
-        DATABASE_URL:
+        databaseUrl:
           fromRole: db
           fromOutput: connectionString
   # A non-empty `parameters` is an authored override: it replaces the form that
@@ -42,13 +42,13 @@ spec:
   #
   # Overriding is a commitment: the derived set is not consulted, so every input
   # the deploying user would have had to type has to be named here. `siteTitle`
-  # is the only one — the database password is generated, and `DATABASE_URL`
+  # is the only one — the database password is generated, and `databaseUrl`
   # arrives over the wire above rather than through the form.
   parameters:
     siteTitle:
       schema:
         type: STRING
         default: My Application
-      isRequired: false
+      required: false
       ui:
         label: Site title

@@ -1,0 +1,28 @@
+# The other end of §6's grammar. An output name is what a connection's
+# `fromOutput` names, so it is bound across documents exactly as an input name
+# is and takes the same spelling. A hyphen is the interesting rejection: it is
+# legal in a node name and in a volume name, both of which are DNS labels, and
+# illegal here because a contract identifier is lowerCamelCase.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  revision: 1
+spec:
+  workload:
+    type: SERVICE
+    source:
+      type: IMAGE
+      ref: postgres:17.10-alpine
+    endpoints:
+      primary:
+        containerPort: 5432
+        protocol: TCP
+        visibility: PRIVATE
+  contract:
+    inputs: {}
+    outputs:
+      connection-string:
+        schema:
+          type: STRING
+        valueFrom: DERIVED
+        value: null

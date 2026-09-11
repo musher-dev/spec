@@ -663,7 +663,7 @@ function readDocument(path: string): Json | undefined {
 
 /**
  * Blueprint §3 and listing §3 — `metadata.slug` MUST equal the item directory
- * name, and `metadata.version` MUST equal the sibling document's.
+ * name, and `metadata.revision` MUST equal the sibling document's.
  */
 function checkIdentity(family: Family, document: Json, itemRoot: string, out: Diagnostic[]): void {
   const metadata = child(document, 'metadata')
@@ -685,12 +685,12 @@ function checkIdentity(family: Family, document: Json, itemRoot: string, out: Di
   if (!existsSync(siblingPath)) return
 
   const sibling = readDocument(siblingPath)
-  const version = child(metadata, 'version')
-  const siblingVersion = child(child(sibling, 'metadata'), 'version')
+  const version = child(metadata, 'revision')
+  const siblingVersion = child(child(sibling, 'metadata'), 'revision')
   if (sibling !== undefined && version !== siblingVersion) {
     out.push({
       code: 'ERR_VERSION_MISMATCH',
-      path: '/metadata/version',
+      path: '/metadata/revision',
       message: `version ${String(version)} disagrees with ${siblingName}'s ${String(siblingVersion)}`,
     })
   }
@@ -714,8 +714,8 @@ function checkGraphAgainstItem(
   const resolved = new Map<string, Json>()
 
   for (const node of keysOf(components)) {
-    const reference = asString(child(child(components, node), 'component'))
-    const pointer = `/spec/components/${token(node)}/component`
+    const reference = asString(child(child(components, node), 'componentRef'))
+    const pointer = `/spec/components/${token(node)}/componentRef`
     // A published reference is a UUID and belongs to the capability phase; only
     // the repo-local form resolves offline (§4.1).
     if (reference === undefined || !LOCAL_REFERENCE.test(reference)) continue
@@ -850,7 +850,7 @@ function checkConnectionInputs(
 /**
  * Blueprint §4.2 — a required `CONNECTION` input MUST be wired.
  *
- * `isRequired` defaults to true, so an absent key is a required input. A
+ * `required` defaults to true, so an absent key is a required input. A
  * `CONNECTION` input never reaches the install form, so a graph that leaves one
  * unwired has no later chance to supply it.
  */
@@ -868,7 +868,7 @@ function checkRequiredConnections(
     for (const key of keysOf(inputs)) {
       const input = child(inputs, key)
       if (child(input, 'suppliedBy') !== 'CONNECTION') continue
-      if (child(input, 'isRequired') === false) continue
+      if (child(input, 'required') === false) continue
       if (wired.has(key)) continue
       out.push({
         code: 'ERR_UNWIRED_REQUIRED_INPUT',
@@ -948,7 +948,7 @@ function checkConnectionCompatibility(
  * absorbed: two components that agree on what `adminPassword` is are not in
  * conflict.
  *
- * `ui` and `isRequired` are deliberately not compared. They describe how a value
+ * `ui` and `required` are deliberately not compared. They describe how a value
  * is asked for, not what it is.
  *
  * The comparison is over the *canonical* form of each schema block, because
@@ -984,7 +984,7 @@ function checkInputMerge(
       if (earlier.schema === schema) continue
       out.push({
         code: 'ERR_CONFLICTING_INPUT_SCHEMA',
-        path: `/spec/components/${token(node)}/component`,
+        path: `/spec/components/${token(node)}/componentRef`,
         message: `input "${key}" is declared with a different schema by node "${earlier.node}"`,
       })
     }
@@ -999,7 +999,7 @@ function checkInputMerge(
 const VALUE_SCHEMA_DEFAULTS: Record<string, Json> = {
   default: null,
   format: null,
-  isSensitive: false,
+  sensitive: false,
   pattern: null,
   semanticType: null,
 }
@@ -1039,9 +1039,9 @@ function isSet(value: Json | undefined): boolean {
  */
 function mustBeSupplied(input: Json | undefined): boolean {
   if (child(input, 'suppliedBy') === 'CONNECTION') return false
-  // `isRequired` defaults to true on a component input, so an absent key is a
+  // `required` defaults to true on a component input, so an absent key is a
   // required one — hence `=== false` rather than `!== true`.
-  if (child(input, 'isRequired') === false) return false
+  if (child(input, 'required') === false) return false
   if (isSet(child(input, 'generator'))) return false
   if (isSet(child(input, 'platformDefault'))) return false
   return !isSet(child(child(input, 'schema'), 'default'))
@@ -1051,13 +1051,13 @@ function mustBeSupplied(input: Json | undefined): boolean {
  * Blueprint §5.3 — the parameter side. Naming the key is not enough; the
  * parameter has to actually ask for a value.
  *
- * `isRequired` defaults to **false** here, the opposite of a component input,
+ * `required` defaults to **false** here, the opposite of a component input,
  * which is why this tests `=== true` where `mustBeSupplied` tests `=== false`.
  * An override that copies a required input's key and says nothing else has made
  * it optional, and that is the case this catches.
  */
 function guaranteesValue(parameter: Json | undefined): boolean {
-  if (child(parameter, 'isRequired') === true) return true
+  if (child(parameter, 'required') === true) return true
   if (isSet(child(parameter, 'generator'))) return true
   return isSet(child(child(parameter, 'schema'), 'default'))
 }

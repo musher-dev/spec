@@ -6,22 +6,22 @@ specVersion: v1
 kind: BLUEPRINT
 metadata:
   slug: acme-wiki
-  version: 1
+  revision: 1
 spec:
   components:
     api:
-      component: ./components/api.yaml
+      componentRef: ./components/api.yaml
       size: general.standard.small
       connections: {}
     db:
-      component: ./components/postgres.yaml
+      componentRef: ./components/postgres.yaml
       size: general.standard.small
       connections: {}
   parameters:
     adminPassword:
       schema:
         type: NUMBER
-        isSensitive: true
-      isRequired: true
+        sensitive: true
+      required: true
       ui:
         label: Administrator password
