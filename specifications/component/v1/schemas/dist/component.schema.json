@@ -764,17 +764,11 @@
           "description": "Regular expression the value must match. Omitted when unconstrained, and MUST NOT be present where the type is JSON.",
           "type": "string"
         },
-        "semanticType": {
-          "description": "Backing-service compatibility tag the Blueprint publish gate matches when wiring this value into a consumer input. Omitted when the value is not specific to a backing service.",
-          "enum": [
-            "POSTGRES",
-            "MYSQL",
-            "REDIS",
-            "MONGODB",
-            "S3_BUCKET",
-            "HTTP_SERVICE",
-            "SMTP"
-          ],
+        "resourceType": {
+          "description": "Namespaced identifier of the backing resource this value addresses, matched by the blueprint connection gate when wiring the value into a consumer input. Omitted when the value addresses no particular resource. spec.md §6.3 names where the identifiers are published.",
+          "$comment": "spec.md §6.3. ADR 0009 §1: the grammar is fixed here and the membership is not, so this is a pattern rather than an enum, and §6.3 names the surface that publishes the identifiers without restating any of them. Reverse-DNS namespace then one or more lowercase segments, lookahead-free and backreference-free so it compiles under RE2 as well as ECMA-262, which spec.md §11 requires of every pattern this repository publishes.",
+          "maxLength": 255,
+          "pattern": "^[a-z][a-z0-9]*(\\.[a-z0-9][a-z0-9-]*)+$",
           "type": "string"
         },
         "sensitive": {

@@ -353,6 +353,16 @@
       "path": "structural/057-optional-field-written-null"
     },
     {
+      "id": "structural-058-resource-type-on-a-value",
+      "phase": "structural",
+      "path": "structural/058-resource-type-on-a-value"
+    },
+    {
+      "id": "structural-059-resource-type-outside-the-grammar",
+      "phase": "structural",
+      "path": "structural/059-resource-type-outside-the-grammar"
+    },
+    {
       "id": "semantic-001-floating-tag-image-reference",
       "phase": "semantic",
       "path": "semantic/001-floating-tag-image-reference"

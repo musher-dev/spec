@@ -316,19 +316,27 @@ the same reason: a consumer that will parse what it receives and one that will
 not are asking for different things, and the wire is the last place that
 difference is visible.
 
-**`semanticType` MUST agree where the consumer names one.** A consumer
-declaring none accepts any producer: it has said the value is not specific to a
-backing service, and nothing it receives can contradict that. A consumer
-declaring a tag requires a producer declaring the **same** tag — including
-rejecting a producer that declares none, because an unconstrained producer does
-not satisfy a constrained consumer. A mismatch is
-`ERR_INCOMPATIBLE_SEMANTIC_TYPE`.
+**`resourceType` MUST agree where the consumer names one.** A consumer
+declaring none accepts any producer: it has said the value addresses no
+particular resource, and nothing it receives can contradict that. A consumer
+declaring an identifier requires a producer declaring the **same** identifier —
+including rejecting a producer that declares none, because an unconstrained
+producer does not satisfy a constrained consumer. A mismatch is
+`ERR_INCOMPATIBLE_RESOURCE_TYPE`.
 
-That is what `semanticType` is for, given `type` exists. `type` is the
-primitive shape; `semanticType` is the backing service the value addresses. A
-Postgres connection string and a MySQL one are both `STRING`, both plausibly
+That is what `resourceType` is for, given `type` exists. `type` is the
+primitive shape; `resourceType` is the resource the value addresses. A Postgres
+connection string and a MySQL one are both `STRING`, both plausibly
 `CONNECTION_STRING`-formatted, and wiring one into a consumer expecting the
 other is the mistake the tag exists to catch.
+
+**The comparison is an equality and stays offline.** It asks whether the two
+ends declare the same identifier, which is two strings and no network. Whether
+that identifier is *registered* is a different question, and
+[component §6.3](../../component/v1/spec.md#value-schema) answers it in the
+`capability` phase — so a consumer and producer that agree on
+`com.acme.billing.tenant-key` wire cleanly in an offline client that has never
+heard of Acme.
 
 **What v1 does not compare.** `format`, `enum`, `pattern`, `default` and
 `sensitive` take no part in the decision. A producer whose `pattern` admits
@@ -670,6 +678,29 @@ expects a `NUMBER` is the failure [§4.2](#connections) rejected for
 connections and [§5.2](#merge) rejected for merging, arriving through a third
 door.
 
+**`resourceType` MUST agree where the parameter names one.** A parameter
+declaring none covers an input that declares one: the identifier says what a
+value addresses, and an install form is not where a value acquires one. A
+parameter declaring one requires every input it covers to declare the **same**
+one, and a mismatch is `ERR_INCOMPATIBLE_PARAMETER_RESOURCE_TYPE`, anchored at
+`/spec/parameters/<key>/schema/resourceType`.
+
+The asymmetry is the point, and it is the opposite of
+[§4.2](#connections)'s. A wire has a producer that could be unconstrained where
+its consumer is not, so there the unconstrained end is rejected. A parameter is
+not a producer — it is how a value is *asked for* — so a parameter that names no
+identifier has declined to say anything rather than said the value addresses
+nothing. What it may not do is name a **different** one: a parameter that
+answers for a resource its input does not address is a form collecting the
+wrong value.
+
+An earlier draft of this section excluded `resourceType` from a parameter
+outright, on the ground that a parameter has none to compare. That was true of
+the schema and wrong about the contract: [§5.1](#derivation) carries the
+identifier through unchanged on the derived path, so excluding it here made an
+authored override the one path on which the tag disappeared — and [§5.2](#merge)
+is what pushes an author onto that path.
+
 **A generated parameter is secret material.** A parameter carrying a `generator`
 MUST declare `schema.sensitive: true`, and MUST declare it rather than leave
 it to a default. That is a shape rather than a relationship, so both halves are
@@ -683,8 +714,8 @@ path is enough to lose it — and `sensitive` defaults to `false`, so losing it
 takes no more than not mentioning it.
 
 **A parameter's `schema` is the block
-[component §6.3](../../component/v1/spec.md#value-schema) defines**, minus
-`semanticType`. The `type` vocabulary, the `JSON` restrictions on `pattern`
+[component §6.3](../../component/v1/spec.md#value-schema) defines.** The `type`
+vocabulary, the `JSON` restrictions on `pattern`
 and `enum`, and the `STRING` restriction on `format` are that section's and
 are not restated here; this family's schema enforces them on the same terms and
 in the same phase. Naming where a vocabulary is published rather than mirroring
@@ -696,10 +727,8 @@ surface.
 **What v1 does not compare.** `format`, `enum`, `pattern`, `default`,
 `sensitive` and `ui` take no part in whether a parameter covers an input. A
 parameter whose `pattern` admits more than the input's does is accepted, and so
-is one that asks for a value the input would reject. `semanticType` is not
-compared because a parameter has none to compare: it tags the backing service a
-value addresses ([§4.2](#connections)), and an install form is not where a value
-acquires one. Those silences are gaps rather than considered permissions,
+is one that asks for a value the input would reject. Those silences are gaps
+rather than considered permissions,
 recorded here so a reader can tell the two apart; closing any of them rejects
 compositions that validate today.
 
@@ -751,7 +780,7 @@ family adds:
 | `ERR_COMPONENT_NOT_PUBLISHED` | `capability` | A published `componentRef` reference resolves to a component that is not in a published state. |
 | `ERR_UNKNOWN_COMPUTE_PROFILE` | `capability` | A node's `size` names a Compute Profile the catalog does not offer. |
 | `ERR_INCOMPATIBLE_TYPE` | `semantic` | A connection joins an output and an input whose `schema.type`s differ. |
-| `ERR_INCOMPATIBLE_SEMANTIC_TYPE` | `semantic` | A connection joins an output and an input whose `schema.semanticType`s disagree. |
+| `ERR_INCOMPATIBLE_RESOURCE_TYPE` | `semantic` | A connection joins an output and an input whose `schema.resourceType`s disagree. |
 | `ERR_SLUG_MISMATCH` | `semantic` | `metadata.slug` disagrees with the item directory name. |
 | `ERR_VERSION_MISMATCH` | `semantic` | `metadata.revision` disagrees with the sibling listing document. |
 | `ERR_UNREFERENCED_COMPONENT` | `semantic` | A component document in the item is referenced by no node. |
@@ -759,6 +788,7 @@ family adds:
 | `ERR_UNBOUND_PARAMETER` | `semantic` | An authored parameter's key names no `USER` input of any node. |
 | `ERR_UNCOVERED_REQUIRED_INPUT` | `semantic` | An input the deploying user must supply is guaranteed a value by no authored parameter. |
 | `ERR_INCOMPATIBLE_PARAMETER_TYPE` | `semantic` | An authored parameter and an input it covers declare different `schema.type`s. |
+| `ERR_INCOMPATIBLE_PARAMETER_RESOURCE_TYPE` | `semantic` | An authored parameter names a `schema.resourceType` an input it covers does not. |
 
 ## <a id="conformance"></a>8. Conformance
 

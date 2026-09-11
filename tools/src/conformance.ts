@@ -654,6 +654,10 @@ const UNCOVERED: ReadonlyMap<string, string> = new Map([
     'ERR_UNKNOWN_COMPUTE_PROFILE',
     'capability — the grammar is fixtured (structural/015 through 018), but which profiles are offered changes when the platform gains hardware to back a tier, so deciding membership needs the catalog',
   ],
+  [
+    'ERR_UNKNOWN_RESOURCE_TYPE',
+    'capability — the grammar is fixtured, but membership is a registry ADR 0009 §2 puts outside this repository, so deciding it needs the network; ADR 0009 §3 forbids an offline client from reporting it at all, which makes a grammatical identifier the registry does not name reserved rather than invalid',
+  ],
 ])
 
 /**

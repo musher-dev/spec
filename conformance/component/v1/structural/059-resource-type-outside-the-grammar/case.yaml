@@ -1,3 +1,7 @@
+# `POSTGRES` was a member of the closed enum this field used to carry, so this
+# case proves the withdrawal as well as the grammar: an unqualified term has no
+# namespace, and the one form per identifier rule is what stops the old members
+# becoming the privileged ones every later addition asks to join.
 specVersion: v1
 kind: COMPONENT
 metadata:
@@ -19,7 +23,5 @@ spec:
       connectionString:
         schema:
           type: STRING
-          format: CONNECTION_STRING
-          resourceType: dev.musher.postgresql.connection-string
-          sensitive: true
+          resourceType: POSTGRES
         valueFrom: DERIVED

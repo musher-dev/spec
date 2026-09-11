@@ -1,0 +1,8 @@
+{
+  "id": "semantic-013-connection-resource-type-mismatch",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#connections",
+  "summary": "A connection joining an output and an input whose resourceTypes disagree is rejected.",
+  "document": "acme-wiki/blueprint.yaml"
+}

@@ -883,7 +883,7 @@ function checkRequiredConnections(
  * Blueprint §4.2 — the two ends of a connection MUST fit.
  *
  * `type` is compared for equality with no widening in either direction; a
- * `semanticType` the consumer names must be matched exactly by the producer,
+ * `resourceType` the consumer names must be matched exactly by the producer,
  * while a consumer naming none accepts anything. Both ends always carry a
  * `schema` with a required `type`, so there is no unconstrained producer case.
  */
@@ -926,16 +926,16 @@ function checkConnectionCompatibility(
         continue
       }
 
-      // A consumer naming no semanticType has said the value is not specific to
-      // a backing service, so nothing it receives can contradict that.
-      const toSemantic = asString(child(to, 'semanticType'))
-      if (toSemantic === undefined) continue
-      const fromSemantic = asString(child(from, 'semanticType'))
-      if (fromSemantic !== toSemantic) {
+      // A consumer naming no resourceType has said the value addresses no
+      // particular resource, so nothing it receives can contradict that.
+      const toResource = asString(child(to, 'resourceType'))
+      if (toResource === undefined) continue
+      const fromResource = asString(child(from, 'resourceType'))
+      if (fromResource !== toResource) {
         out.push({
-          code: 'ERR_INCOMPATIBLE_SEMANTIC_TYPE',
+          code: 'ERR_INCOMPATIBLE_RESOURCE_TYPE',
           path,
-          message: `input "${key}" requires ${toSemantic}, and output "${output}" declares ${fromSemantic ?? 'none'}`,
+          message: `input "${key}" requires ${toResource}, and output "${output}" declares ${fromResource ?? 'none'}`,
         })
       }
     }
@@ -1001,7 +1001,7 @@ const VALUE_SCHEMA_DEFAULTS: Record<string, Json> = {
   format: null,
   sensitive: false,
   pattern: null,
-  semanticType: null,
+  resourceType: null,
 }
 
 /**
@@ -1118,15 +1118,34 @@ function checkParameterBinding(
       continue
     }
 
-    // Only `type` is compared. §5.3 records the rest as silences, and `type` is
-    // REQUIRED on both sides, so this needs no defaulting pass.
-    const type = child(child(child(parameters, key), 'schema'), 'type')
+    // `type` and `resourceType` are compared. §5.3 records the rest as silences,
+    // and `type` is REQUIRED on both sides, so it needs no defaulting pass.
+    const schema = child(child(parameters, key), 'schema')
+    const type = child(schema, 'type')
     const mismatch = covered.find((input) => child(child(input, 'schema'), 'type') !== type)
-    if (mismatch === undefined) continue
+    if (mismatch !== undefined) {
+      out.push({
+        code: 'ERR_INCOMPATIBLE_PARAMETER_TYPE',
+        path: `${pointer}/schema/type`,
+        message: `parameter "${key}" declares ${String(type)} where an input it covers declares ${String(child(child(mismatch, 'schema'), 'type'))}`,
+      })
+      continue
+    }
+
+    // A parameter declaring no resourceType covers an input that declares one:
+    // the tag says what a value addresses, and an install form is not where a
+    // value acquires one. Declaring a different one is the error — the parameter
+    // would be answering for a resource the input does not address.
+    const resourceType = asString(child(schema, 'resourceType'))
+    if (resourceType === undefined) continue
+    const tagMismatch = covered.find(
+      (input) => asString(child(child(input, 'schema'), 'resourceType')) !== resourceType,
+    )
+    if (tagMismatch === undefined) continue
     out.push({
-      code: 'ERR_INCOMPATIBLE_PARAMETER_TYPE',
-      path: `${pointer}/schema/type`,
-      message: `parameter "${key}" declares ${String(type)} where an input it covers declares ${String(child(child(mismatch, 'schema'), 'type'))}`,
+      code: 'ERR_INCOMPATIBLE_PARAMETER_RESOURCE_TYPE',
+      path: `${pointer}/schema/resourceType`,
+      message: `parameter "${key}" declares ${resourceType} where an input it covers declares ${asString(child(child(tagMismatch, 'schema'), 'resourceType')) ?? 'none'}`,
     })
   }
 

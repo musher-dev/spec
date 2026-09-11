@@ -726,7 +726,7 @@ leaves nothing unresolved.
 
 **Where an output must fit the input it feeds.** An output's `schema` and the
 `schema` of the input it is wired to must agree on `type`, and on
-`semanticType` wherever the consuming input names one.
+`resourceType` wherever the consuming input names one.
 [Blueprint §4.2](../../blueprint/v1/spec.md#connections) states the rule and
 carries the two diagnostics, because the connection is what joins the two ends
 and a component document sees only one of them.
@@ -825,11 +825,41 @@ saying what convention a value follows, not asking for it to be confirmed. That
 is a deviation from ADR 0003 §3's usual routing and is recorded rather than left
 to be noticed.
 
-**`semanticType` is not paired with `type`.** It tags the backing service a
-value addresses rather than the shape the value takes, so nothing here restricts
-which types may carry which tag — a `JSON` value describing a Postgres cluster
-is as legitimately `POSTGRES` as a connection string is. That the pairing goes
-unchecked in either direction is a gap rather than a considered permission.
+<a id="COMP-VAL-005"></a>**`COMP-VAL-005` — `resourceType` names the resource a
+value addresses.** It is OPTIONAL, and where it is present MUST match
+`^[a-z][a-z0-9]*(\.[a-z0-9][a-z0-9-]*)+$` — a reverse-DNS namespace, then one or
+more lowercase segments. A value outside the grammar is rejected in the
+`structural` phase with `ERR_INVALID_VALUE`.
+
+`type` is the primitive shape a value takes; `resourceType` is what it
+addresses, and the two answer different questions. A Postgres connection string
+and a MySQL one are both `STRING` and both plausibly `CONNECTION_STRING`-shaped,
+and wiring one into a consumer expecting the other is the mistake this tag
+exists to catch — [blueprint §4.2](../../blueprint/v1/spec.md#connections)
+carries the rule that does the catching.
+
+**The grammar is this contract's and the membership is not.** Which identifiers
+exist is decided by what the platform offers and by what a third party
+publishes, neither of which this repository observes, so it fixes the shape and
+names the surface: the identifiers on offer are served, unauthenticated, at
+`https://api.musher.dev/v1/reference/resource-types`. This document does not
+restate them, not even informatively and not even dated, for the reason
+[ADR 0003](../../../docs/adr/0003-controlled-vocabulary-placement.md) §2 gives.
+
+**A grammatical identifier the registry does not name is reserved, not
+invalid.** Deciding membership needs the registry, which needs the network,
+which [§7](#validation-layers) forbids the earlier phases from reaching — so it
+is `capability`, it carries `ERR_UNKNOWN_RESOURCE_TYPE`, and an offline
+implementation MUST NOT report it. A namespace is what lets a component address
+something this specification never heard of, and an offline validator rejecting
+`com.acme.billing.tenant-key` would defeat the whole point of having one.
+
+**`resourceType` is not paired with `type`.** Nothing here restricts which types
+may carry which identifier — a `JSON` value describing a Postgres cluster
+addresses that cluster as legitimately as a connection string does. That the
+pairing goes unchecked in either direction is a gap rather than a considered
+permission; the registry records a primitive type per identifier, and nothing in
+this contract reads it.
 
 **What v1 does not check.** No phase tests a **value** against the shape its
 `schema` declares. A `DECLARED` output may write `type: NUMBER` beside
@@ -1150,6 +1180,7 @@ different text and that is expected.
 | `ERR_ENDPOINT_NOT_HTTP` | `semantic` | A probe, or a platform default deriving from a URL, resolves to an endpoint whose protocol is not in the HTTP family. |
 | `ERR_ENDPOINT_NOT_L4` | `semantic` | A platform default deriving an edge address resolves to an endpoint whose protocol is in the HTTP family. |
 | `ERR_UNKNOWN_ENUM_MEMBER` | `semantic` | An `enumLabels` key names no member of the sibling `enum`. |
+| `ERR_UNKNOWN_RESOURCE_TYPE` | `capability` | A `resourceType` is grammatical but the registry names no such identifier. |
 | `ERR_VERSION_NOT_MONOTONIC` | `capability` | A published component version is not greater than the lineage's current version. |
 
 The `parser` and `structural` rows are the shared envelope registry: the

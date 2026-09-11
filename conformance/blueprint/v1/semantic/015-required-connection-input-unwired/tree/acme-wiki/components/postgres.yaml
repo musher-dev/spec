@@ -20,6 +20,6 @@ spec:
         schema:
           type: STRING
           format: CONNECTION_STRING
-          semanticType: POSTGRES
+          resourceType: dev.musher.postgresql.connection-string
           sensitive: true
         valueFrom: DERIVED

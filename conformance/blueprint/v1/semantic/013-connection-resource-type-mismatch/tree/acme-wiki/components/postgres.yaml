@@ -7,19 +7,19 @@ spec:
     type: SERVICE
     source:
       type: IMAGE
-      ref: nginx:1.29.4-alpine
+      ref: postgres:17.10-alpine
     endpoints:
-      web:
-        containerPort: 8080
-        protocol: HTTP
+      primary:
+        containerPort: 5432
+        protocol: TCP
         visibility: PRIVATE
   contract:
-    inputs:
-      databaseUrl:
+    inputs: {}
+    outputs:
+      connectionString:
         schema:
           type: STRING
           format: CONNECTION_STRING
-          semanticType: MYSQL
+          resourceType: dev.musher.postgresql.connection-string
           sensitive: true
-        suppliedBy: CONNECTION
-    outputs: {}
+        valueFrom: DERIVED

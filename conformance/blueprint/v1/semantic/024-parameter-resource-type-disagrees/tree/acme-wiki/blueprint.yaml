@@ -1,0 +1,25 @@
+# An authored parameter naming a resource its input does not address. The
+# component asks for a Postgres connection string; the form offers to collect a
+# MySQL one and bind it to that input. §5.1 carries the identifier through on
+# the derived path, so the override path is the only place this mistake was
+# available — which is why §5.3 no longer excludes the tag from a parameter.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  revision: 1
+spec:
+  components:
+    web:
+      componentRef: ./components/web.yaml
+      size: general.standard.small
+      connections: {}
+  parameters:
+    databaseUrl:
+      schema:
+        type: STRING
+        sensitive: true
+        resourceType: dev.musher.mysql.connection-string
+      required: true
+      ui:
+        label: Database URL

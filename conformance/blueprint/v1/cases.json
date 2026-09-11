@@ -243,9 +243,9 @@
       "path": "semantic/012-connection-type-mismatch"
     },
     {
-      "id": "semantic-013-connection-semantic-type-mismatch",
+      "id": "semantic-013-connection-resource-type-mismatch",
       "phase": "semantic",
-      "path": "semantic/013-connection-semantic-type-mismatch"
+      "path": "semantic/013-connection-resource-type-mismatch"
     },
     {
       "id": "semantic-014-connection-names-unknown-input",
@@ -296,6 +296,16 @@
       "id": "semantic-023-parameter-enum-label-names-no-member",
       "phase": "semantic",
       "path": "semantic/023-parameter-enum-label-names-no-member"
+    },
+    {
+      "id": "semantic-024-parameter-resource-type-disagrees",
+      "phase": "semantic",
+      "path": "semantic/024-parameter-resource-type-disagrees"
+    },
+    {
+      "id": "semantic-025-parameter-declares-no-resource-type",
+      "phase": "semantic",
+      "path": "semantic/025-parameter-declares-no-resource-type"
     }
   ]
 }

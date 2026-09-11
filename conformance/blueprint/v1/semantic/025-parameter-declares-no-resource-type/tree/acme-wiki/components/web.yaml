@@ -18,9 +18,9 @@ spec:
       databaseUrl:
         schema:
           type: STRING
-          format: CONNECTION_STRING
-          resourceType: dev.musher.postgresql.connection-string
           sensitive: true
-        suppliedBy: CONNECTION
-        required: false
+          resourceType: dev.musher.postgresql.connection-string
+        suppliedBy: USER
+        ui:
+          label: Database URL
     outputs: {}

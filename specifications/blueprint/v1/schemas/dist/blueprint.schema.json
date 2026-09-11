@@ -113,6 +113,8 @@
         },
         "fromRole": {
           "description": "Node name of the producer component.",
+          "maxLength": 63,
+          "pattern": "^[a-z][a-z0-9-]{0,61}[a-z0-9]$",
           "type": "string"
         }
       },
@@ -422,6 +424,13 @@
         },
         "pattern": {
           "description": "Regular expression the supplied value must match. Omitted when unconstrained, and MUST NOT be present where the type is JSON.",
+          "type": "string"
+        },
+        "resourceType": {
+          "description": "Namespaced identifier of the backing resource this value addresses, matched by the blueprint connection gate when wiring the value into a consumer input. Omitted when the value addresses no particular resource. spec.md §6.3 names where the identifiers are published.",
+          "$comment": "spec.md §5.3. The same block component §6.3 defines. It is carried here because §5.1 carries it through on the derived path, and a parameter that could not express it would silently drop the tag on the authored path — the path §5.2 pushes an author onto.",
+          "maxLength": 255,
+          "pattern": "^[a-z][a-z0-9]*(\\.[a-z0-9][a-z0-9-]*)+$",
           "type": "string"
         },
         "sensitive": {

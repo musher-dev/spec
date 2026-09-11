@@ -1,0 +1,24 @@
+# The other direction, and it is deliberately not an error. A parameter naming
+# no resourceType has declined to say what the value addresses rather than said
+# it addresses nothing — an install form is not where a value acquires a tag —
+# so it covers an input that names one. Only naming a *different* identifier is
+# the error, which is the asymmetry §5.3 states against §4.2's.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  revision: 1
+spec:
+  components:
+    web:
+      componentRef: ./components/web.yaml
+      size: general.standard.small
+      connections: {}
+  parameters:
+    databaseUrl:
+      schema:
+        type: STRING
+        sensitive: true
+      required: true
+      ui:
+        label: Database URL
