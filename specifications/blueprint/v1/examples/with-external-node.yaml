@@ -1,0 +1,38 @@
+# yaml-language-server: $schema=https://schemas.musher.dev/blueprint/v1/blueprint.schema.json
+#
+# A composition of a thing this platform runs and a thing it does not. `models`
+# deploys an external component (component §5.6), so it has no compute to name
+# and writes `size: null` — a declaration rather than an omission, which is why
+# the field stays REQUIRED.
+#
+# Both wires take their value from the same `fromRole`. That is the whole reason
+# the external shape is a node: an address and a credential are only meaningful
+# together, and drawing them from one node makes that structural rather than
+# something an author has to get right twice.
+#
+# `parameters` is empty, so §5.1 derives the install form from the graph's USER
+# inputs — which here are exactly the external node's, since the consumer's two
+# arrive over the wires. The deploying user is asked for an address and a
+# credential once, together, and for nothing else.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: with-external-node
+  revision: 1
+spec:
+  components:
+    models:
+      componentRef: ./components/models.yaml
+      size: null
+      connections: {}
+    web:
+      componentRef: ./components/web.yaml
+      size: general.standard.small
+      connections:
+        llmBaseUrl:
+          fromRole: models
+          fromOutput: baseUrl
+        llmApiKey:
+          fromRole: models
+          fromOutput: apiKey
+  parameters: {}

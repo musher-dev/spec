@@ -183,6 +183,16 @@
       "path": "structural/032-parameter-name-outside-the-grammar"
     },
     {
+      "id": "structural-033-node-without-compute",
+      "phase": "structural",
+      "path": "structural/033-node-without-compute"
+    },
+    {
+      "id": "structural-034-placement-on-a-node-without-compute",
+      "phase": "structural",
+      "path": "structural/034-placement-on-a-node-without-compute"
+    },
+    {
       "id": "semantic-001-connection-names-unknown-role",
       "phase": "semantic",
       "path": "semantic/001-connection-names-unknown-role"
@@ -306,6 +316,26 @@
       "id": "semantic-025-parameter-declares-no-resource-type",
       "phase": "semantic",
       "path": "semantic/025-parameter-declares-no-resource-type"
+    },
+    {
+      "id": "semantic-026-external-node-feeds-a-consumer",
+      "phase": "semantic",
+      "path": "semantic/026-external-node-feeds-a-consumer"
+    },
+    {
+      "id": "semantic-027-compute-on-a-node-that-runs-nothing",
+      "phase": "semantic",
+      "path": "semantic/027-compute-on-a-node-that-runs-nothing"
+    },
+    {
+      "id": "semantic-028-no-compute-on-a-node-that-runs",
+      "phase": "semantic",
+      "path": "semantic/028-no-compute-on-a-node-that-runs"
+    },
+    {
+      "id": "semantic-029-connection-fills-a-user-input",
+      "phase": "semantic",
+      "path": "semantic/029-connection-fills-a-user-input"
     }
   ]
 }

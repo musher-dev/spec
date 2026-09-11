@@ -1,0 +1,9 @@
+{
+  "id": "semantic-027-compute-on-a-node-that-runs-nothing",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#node-compute",
+  "requirements": ["BP-NODE-002"],
+  "summary": "A node naming compute for an external component is rejected.",
+  "document": "acme-wiki/blueprint.yaml"
+}

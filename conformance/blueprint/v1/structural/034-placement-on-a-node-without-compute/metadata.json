@@ -1,0 +1,8 @@
+{
+  "id": "structural-034-placement-on-a-node-without-compute",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#placement-constraints",
+  "requirements": ["BP-NODE-003"],
+  "summary": "A placement pin on a node that runs no compute is rejected."
+}

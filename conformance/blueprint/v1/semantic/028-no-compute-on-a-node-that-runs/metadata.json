@@ -1,0 +1,9 @@
+{
+  "id": "semantic-028-no-compute-on-a-node-that-runs",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#node-compute",
+  "requirements": ["BP-NODE-002"],
+  "summary": "A node declining to size a component that runs is rejected.",
+  "document": "acme-wiki/blueprint.yaml"
+}

@@ -1,0 +1,31 @@
+# The composition the external shape exists for. `models` is a node this
+# platform does not run — no image, no compute, `size: null` — and `web` is one
+# it does. The two wires carry an address and a credential from one node, which
+# is the point: they are only meaningful as a set, and taking both from one
+# `fromRole` is what makes that structural rather than hoped for.
+#
+# `parameters: {}`, so §5.1 derives the install form from the graph's USER
+# inputs. Those are exactly `models`' two, ordered 1 and 2, with the key
+# concealed by component §6.4's derivation on `sensitive`.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  revision: 1
+spec:
+  components:
+    models:
+      componentRef: ./components/models.yaml
+      size: null
+      connections: {}
+    web:
+      componentRef: ./components/web.yaml
+      size: general.standard.small
+      connections:
+        llmBaseUrl:
+          fromRole: models
+          fromOutput: baseUrl
+        llmApiKey:
+          fromRole: models
+          fromOutput: apiKey
+  parameters: {}

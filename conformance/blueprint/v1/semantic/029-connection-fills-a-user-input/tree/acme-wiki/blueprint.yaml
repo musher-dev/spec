@@ -1,0 +1,27 @@
+# The gap BP-CONN-001 closes. `web` asks the deploying user for the address and
+# the wire supplies it too, so two things claim one value and nothing says which
+# arrives — the failure §5.2 rejects for merging and §5.3 for coverage, arriving
+# at a third door.
+#
+# It is also what component §6.2's INPUT output depends on: if a USER input
+# could be wired, an output reading one could depend on an inbound edge, and the
+# cycles §4.2 permits would stop being resolvable.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  revision: 1
+spec:
+  components:
+    models:
+      componentRef: ./components/models.yaml
+      size: null
+      connections: {}
+    web:
+      componentRef: ./components/web.yaml
+      size: general.standard.small
+      connections:
+        llmBaseUrl:
+          fromRole: models
+          fromOutput: baseUrl
+  parameters: {}

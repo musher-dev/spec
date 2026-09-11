@@ -279,10 +279,26 @@ connection on that node names it, the blueprint is rejected with
 `ERR_UNWIRED_REQUIRED_INPUT`, anchored at the node's `connections`. An optional
 `CONNECTION` input MAY be left unwired.
 
-**What v1 does not constrain.** Nothing stops a connection filling an input
-whose `suppliedBy` is `USER`. A wire and the install form would then both claim
-the value, with nothing saying which arrives. That silence is a gap rather than
-a considered permission; closing it rejects compositions that validate today.
+<a id="BP-CONN-001"></a>**`BP-CONN-001` — a connection may fill only a
+`CONNECTION` input.** A connection's map key MUST name an input whose
+`suppliedBy` is `CONNECTION`, and one naming any other is rejected in the
+`semantic` phase with `ERR_INPUT_NOT_CONNECTABLE`, anchored at the connection.
+`suppliedBy` defaults to `USER`, so an input saying nothing about who satisfies
+it is bound by this too.
+
+A wire and the install form would otherwise both claim one value, with nothing
+saying which arrives. That is the failure [§5.2](#merge) rejects for merging and
+[§5.3](#authored-parameters) rejects for coverage, and admitting it here would
+make this the one door in the contract that tolerates it.
+
+**An earlier draft recorded this as a gap rather than a rule** — "nothing stops
+a connection filling an input whose `suppliedBy` is `USER` … that silence is a
+gap rather than a considered permission". It is a rule now, and the timing was
+forced: [component §6.2](../../component/v1/spec.md#outputs) admits an output
+that reads one of its own inputs, and that is sound only because a `USER` input
+cannot itself arrive over an edge. Left open, an output could have depended on
+an inbound connection by way of a wired `USER` input, and the cycles this
+section permits would have stopped being resolvable.
 
 **The two ends MUST fit.** Resolving both ends establishes only that they
 exist. A `STRING` output wired into a `NUMBER` input satisfies every rule
@@ -380,6 +396,39 @@ document carries no compute of its own
 place it can be said, and two blueprints MAY run the same component revision at
 different sizes without forking it.
 
+<a id="BP-NODE-001"></a>**`BP-NODE-001` — a node that runs nothing writes
+`size: null`.** A node deploying an
+[external component](../../component/v1/spec.md#external) has no compute to
+name, and `null` is how it says so. The field stays REQUIRED, so absence still
+means the author forgot: an absent `size` is `ERR_MISSING_FIELD` in the
+`structural` phase, and `null` is a declaration rather than a fallback and
+carries no default.
+
+This is the third placement
+[ADR 0007](../../../docs/adr/0007-naming-conventions.md) §5 leaves a field
+nullable, and it is named because that section named only two. §5's rule is that
+`null` is admitted where it means something omission does not. Here omission is
+not available — the field is REQUIRED — so `null` is the only spelling left for
+a deliberate none. It is the same argument §5 accepts for a `schedule` on a
+workload that is forbidden one, reached from the opposite direction.
+
+<a id="BP-NODE-002"></a>**`BP-NODE-002` — the node and the component MUST
+agree.** `size` is `null` if and only if the component the node deploys
+declares `spec.external`. A profile named for a component this platform does not
+run, and an absent profile for one it does, are both rejected in the `semantic`
+phase with `ERR_CONFLICTING_NODE_COMPUTE`, anchored at the node's `size` — the
+field an author has to change. One code serves both directions because
+`ERR_CONFLICTING_…` in this contract means two declarations claiming one slot,
+which is what the node and the component are doing about this node's compute.
+
+**Why it is `semantic` rather than `structural`.** A blueprint cannot see
+whether its node's component is external. `componentRef` is a path or a UUID,
+and reading the referenced document is `semantic` for the repo-local form and
+`capability` for the published one, so no structural rule could condition `size`
+on it. This rule therefore goes silent where the reference does not resolve
+offline, on the terms [§5.3](#authored-parameters) sets for every rule that
+reads a referenced component.
+
 ```yaml
 db:
   componentRef: ./components/postgres.yaml
@@ -450,7 +499,14 @@ that do not deliver it.
 
 `placement` is OPTIONAL and narrows the hosts a node may be placed on. An
 absent block and a block whose every pin is unset mean the same thing: no
-constraints. A pin whose value is an array means "any" when the array is empty,
+constraints.
+
+<a id="BP-NODE-003"></a>**`BP-NODE-003`** — A node whose `size` is `null` MUST
+NOT declare `placement`. `structural`, `ERR_INVALID_VALUE`. A pin narrows the
+hosts a node may be placed on, and a node placed on none has nothing to narrow,
+so the block is rejected rather than ignored — which is the rule
+[component §5](../../component/v1/spec.md#workload) states for a forbidden
+field. A pin whose value is an array means "any" when the array is empty,
 and MUST NOT repeat a term.
 
 | Pin | Narrows |
@@ -530,6 +586,13 @@ order a node's inputs happened to be read in — which was an artefact of
 When `parameters` is empty, the effective parameter set is derived from the
 `USER`-supplied inputs of the components the graph references, merged by
 [§5.2](#merge).
+
+**Derivation reads a component's inputs, not its workload.** A node deploying an
+[external component](../../component/v1/spec.md#external) contributes
+install-form parameters exactly as any other node does, which is what makes the
+set of values such a node is configured with one form rather than several — the
+deploying user is asked for an address, a credential and whatever selects what
+answers, once, together.
 
 A `CONNECTION` input is never derived — it is satisfied by a wire, not by a
 person. An input carrying a `generator` **is** derived, even though the user
@@ -773,6 +836,8 @@ family adds:
 | `ERR_COMPONENT_NOT_FOUND` | `semantic` | A repo-local `componentRef` reference resolves to no document. |
 | `ERR_REFERENCE_ESCAPE` | `semantic` | A repo-local `componentRef` reference resolves outside the item root. |
 | `ERR_UNKNOWN_COMPONENT` | `capability` | A published `componentRef` reference names no component, or no such `revision`. |
+| `ERR_CONFLICTING_NODE_COMPUTE` | `semantic` | A node's `size` disagrees with whether the component it deploys is run. |
+| `ERR_INPUT_NOT_CONNECTABLE` | `semantic` | A connection's key names an input whose `suppliedBy` is not `CONNECTION`. |
 | `ERR_UNKNOWN_ROLE` | `semantic` | A connection's `fromRole` names no node in this blueprint. |
 | `ERR_UNKNOWN_OUTPUT` | `semantic` | A connection's `fromOutput` names no output of the referenced component. |
 | `ERR_UNKNOWN_INPUT` | `semantic` | A connection's map key names no input of the consuming node's component. |
@@ -809,6 +874,28 @@ vocabulary is published rather than assuming a reader can already resolve it.
 No section of this document is marked TODO any longer. The last of them — how an
 authored parameter binds to the component inputs it satisfies — is answered by
 [§5.3](#authored-parameters).
+
+**No configured instance is shared across graphs.** [§4.2](#connections) is
+explicit that a connection cannot reach outside the graph it is written in, so
+two blueprints that both need the same
+[external component](../../component/v1/spec.md#external) each instantiate their
+own node and each ask for their own values. Sharing one configured instance
+needs a reference form that reaches outside the graph plus a phase to resolve
+it, which is a new contract surface rather than a field.
+[Component §10](../../component/v1/spec.md#known-debt) records the same gap from
+the other end.
+
+**A node set that depends on an install-form answer is foreclosed, and the
+reason is architectural.** "Deploy an engine for me, or let me point at one I
+have" reads like a parameter and is not one: it would make `spec.components` a
+function of the answers to the form, which makes [§5.1](#derivation)'s
+derivation a function of its own output and turns
+[§5.3](#authored-parameters)'s coverage rules into claims quantified over a
+value space rather than over the document in front of them. The `semantic` phase
+would stop being a static analysis of the bytes it was handed. Whoever proposes
+it should know that before starting rather than afterwards, which is why it is
+recorded here in the shape [§4.2](#connections) already uses for the acyclicity
+foreclosure.
 
 What remains is not a gap in the prose but a vocabulary nothing publishes yet:
 [§4.4](#placement-constraints)'s compute-constraint pins, recorded there as a gap

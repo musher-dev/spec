@@ -148,27 +148,49 @@
     },
     "BlueprintNode": {
       "additionalProperties": false,
-      "description": "One node of the blueprint's graph, keyed by node name.\n\nA node places one component document — named by ``componentRef`` — onto a\ncompute ``size``, with optional host constraints (``placement``) and inbound\nwires (``connections``).\n\nThe form of ``componentRef`` selects how it resolves: a reference beginning\n``./`` or ``../`` names a document in the same repository, and one shaped\nlike a UUID names a published component and additionally requires\n``revision``. See spec.md §4.1.",
-      "else": {
-        "required": [
-          "revision"
-        ]
-      },
-      "if": {
-        "properties": {
-          "componentRef": {
-            "pattern": "^\\.{1,2}/"
+      "allOf": [
+        {
+          "$comment": "spec.md §4.1. The form of `componentRef` decides whether a revision is required: a reference beginning ./ or ../ names a document whose own metadata.revision is the version deployed, so a second one here could contradict it. Moved into this allOf so the node two independent conditionals read as siblings — the reference form says nothing about compute, which is what the branch below is about, and externality is not a property of the reference form: a published reference names an external component as readily as a repo-local one does.",
+          "if": {
+            "properties": {
+              "componentRef": {
+                "pattern": "^\\.{1,2}/"
+              }
+            },
+            "required": [
+              "componentRef"
+            ]
+          },
+          "then": {
+            "properties": {
+              "revision": false
+            }
+          },
+          "else": {
+            "required": [
+              "revision"
+            ]
           }
         },
-        "required": [
-          "componentRef"
-        ]
-      },
-      "then": {
-        "properties": {
-          "revision": false
+        {
+          "$comment": "spec.md §4.3 and §4.4. `size: null` is a node that runs no compute, which is the one thing a three-segment profile slug cannot say. A placement pin narrows the hosts a node may be placed on, and a node placed on none has nothing for one to narrow — so a pin is rejected rather than ignored, which is the rule component §5 states for a forbidden field.",
+          "if": {
+            "properties": {
+              "size": {
+                "type": "null"
+              }
+            },
+            "required": [
+              "size"
+            ]
+          },
+          "then": {
+            "properties": {
+              "placement": false
+            }
+          }
         }
-      },
+      ],
       "properties": {
         "componentRef": {
           "anyOf": [
@@ -206,11 +228,18 @@
           "type": "integer"
         },
         "size": {
-          "$comment": "Lookahead-free, so it compiles under RE2 as well as ECMA-262. Only the grammar is here. Which profiles are actually offered changes when the platform gains hardware to back a tier, not when this schema is released, so membership is a capability check rather than an enum. See spec.md §4.3.",
-          "description": "Compute Profile slug bound to this node, in family.tier.size form — for example general.standard.small. Required per node, because a component document carries no compute of its own. The grammar is fixed here; the profiles actually on offer are published at https://api.musher.dev/v1/reference/compute-profiles.",
-          "maxLength": 64,
-          "pattern": "^(general|compute|memory|storage|gpu|accelerator)\\.(economy|standard|performance|premium)\\.(nano|small|medium|large|xlarge)$",
-          "type": "string"
+          "$comment": "Lookahead-free, so it compiles under RE2 as well as ECMA-262. Only the grammar is here; membership is a capability check (spec.md §4.3). `null` is the spelling for a node that runs no compute, and it is the third placement ADR 0007 §5 leaves a field nullable: it says something omission does not, so the field stays REQUIRED and an author records deliberately-none rather than leaving it out.",
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "pattern": "^(general|compute|memory|storage|gpu|accelerator)\\.(economy|standard|performance|premium)\\.(nano|small|medium|large|xlarge)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Compute Profile slug bound to this node, in family.tier.size form — for example general.standard.small — or null where the node deploys a component this platform does not run and there is no compute to name. Required either way, because a component document carries no compute of its own. The profiles actually on offer are published at https://api.musher.dev/v1/reference/compute-profiles."
         }
       },
       "required": [

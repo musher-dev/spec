@@ -789,8 +789,10 @@ function checkGraphAgainstItem(
   checkUnreferencedComponents(itemRoot, documentPath, referenced, out)
   checkConnectionOutputs(components, resolved, out)
   checkConnectionInputs(components, resolved, out)
+  checkConnectableInputs(components, resolved, out)
   checkRequiredConnections(components, resolved, out)
   checkConnectionCompatibility(components, resolved, out)
+  checkNodeCompute(components, resolved, out)
 
   // §5's two paths are exclusive. An authored override is used in place of
   // derivation rather than merged with it (§5), so where one is written the
@@ -822,6 +824,82 @@ function checkUnreferencedComponents(
       // addresses this document, and the file it complains about is not in it.
       path: '/spec/components',
       message: `${relative(itemRoot, path)} is referenced by no node`,
+    })
+  }
+}
+
+/**
+ * Blueprint §4.2 — a connection may fill only a `CONNECTION` input.
+ *
+ * The gap this closes was recorded rather than decided: a wire and the install
+ * form would both claim the value, with nothing saying which arrives. It is the
+ * failure §5.2 rejects for merging and §5.3 for coverage, and admitting it at
+ * the third door would be the only place this contract tolerated it.
+ *
+ * It is also what component §6.2's `INPUT` output depends on. If a `USER` input
+ * could be wired, an output reading one could depend on an inbound edge, and
+ * §4.2's legal cycles would stop being resolvable.
+ */
+function checkConnectableInputs(
+  components: Json | undefined,
+  resolved: Map<string, Json>,
+  out: Diagnostic[],
+): void {
+  for (const node of keysOf(components)) {
+    const component = resolved.get(node)
+    if (component === undefined) continue
+    const inputs = child(child(child(component, 'spec'), 'contract'), 'inputs')
+    const connections = child(child(components, node), 'connections')
+
+    for (const key of keysOf(connections)) {
+      const input = child(inputs, key)
+      // Naming no input at all is ERR_UNKNOWN_INPUT, reported elsewhere; one
+      // mistake is not reported twice.
+      if (input === undefined) continue
+      // `suppliedBy` defaults to USER, and a default is invisible here, so an
+      // input saying nothing about who satisfies it is bound by this too.
+      if (child(input, 'suppliedBy') === 'CONNECTION') continue
+      out.push({
+        code: 'ERR_INPUT_NOT_CONNECTABLE',
+        path: `/spec/components/${token(node)}/connections/${token(key)}`,
+        message: `input "${key}" is not supplied by a connection`,
+      })
+    }
+  }
+}
+
+/**
+ * Blueprint §4.3 — a node names compute if and only if it runs something.
+ *
+ * One code for both directions: `ERR_CONFLICTING_*` in this repository means two
+ * declarations claiming one slot, which is what the node and the component it
+ * deploys are doing about this node's compute. Both anchor at the node's `size`,
+ * the field an author has to change.
+ *
+ * Goes silent for a published reference, on the terms §5.3 sets for every rule
+ * that reads a referenced component: `resolved` holds only what resolved
+ * offline.
+ */
+function checkNodeCompute(
+  components: Json | undefined,
+  resolved: Map<string, Json>,
+  out: Diagnostic[],
+): void {
+  for (const node of keysOf(components)) {
+    const component = resolved.get(node)
+    if (component === undefined) continue
+    const external = child(child(component, 'spec'), 'external') !== undefined
+    const size = child(child(components, node), 'size')
+    // An absent `size` is ERR_MISSING_FIELD in the structural phase; this rule
+    // is about the two declarations disagreeing, not about a missing one.
+    if (size === undefined) continue
+    if (external === (size === null)) continue
+    out.push({
+      code: 'ERR_CONFLICTING_NODE_COMPUTE',
+      path: `/spec/components/${token(node)}/size`,
+      message: external
+        ? `node "${node}" names compute for a component this platform does not run`
+        : `node "${node}" names no compute for a component that runs`,
     })
   }
 }

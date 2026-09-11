@@ -1,0 +1,21 @@
+# `size: null` is the one thing a three-segment profile slug cannot say. The
+# field stays REQUIRED, so this is an author recording "deliberately no
+# compute" rather than leaving a required field out — the third placement
+# ADR 0007 §5 leaves a field nullable, reached from the opposite direction to
+# `schedule`: that one is a forbidden field written empty, this one is a
+# required field with nothing to say.
+#
+# Whether the component really is external is BP-NODE-002 and needs an item
+# root; this case has none, so only the grammar is under test.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  revision: 1
+spec:
+  components:
+    models:
+      componentRef: ./components/models.yaml
+      size: null
+      connections: {}
+  parameters: {}

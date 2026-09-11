@@ -1,0 +1,40 @@
+specVersion: v1
+kind: COMPONENT
+metadata:
+  revision: 1
+spec:
+  external:
+    resourceType: dev.musher.llm.chat-completions
+  contract:
+    inputs:
+      baseUrl:
+        schema:
+          type: STRING
+          format: ENDPOINT_URL
+          resourceType: dev.musher.llm.base-url
+        ui:
+          label: API base URL
+          order: 1
+      apiKey:
+        schema:
+          type: STRING
+          sensitive: true
+          resourceType: dev.musher.llm.api-key
+        ui:
+          label: API key
+          order: 2
+    outputs:
+      baseUrl:
+        schema:
+          type: STRING
+          format: ENDPOINT_URL
+          resourceType: dev.musher.llm.base-url
+        valueFrom: INPUT
+        input: baseUrl
+      apiKey:
+        schema:
+          type: STRING
+          sensitive: true
+          resourceType: dev.musher.llm.api-key
+        valueFrom: INPUT
+        input: apiKey
