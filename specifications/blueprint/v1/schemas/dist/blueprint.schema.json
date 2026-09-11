@@ -39,18 +39,10 @@
       "additionalProperties": false,
       "properties": {
         "acceleratorInterconnect": {
-          "description": "Required accelerator interconnect, such as nvlink or pcie. Null pins nothing. The permitted terms are not a vocabulary this contract defines — see spec.md §4.4.",
-          "anyOf": [
-            {
-              "maxLength": 64,
-              "pattern": "^[a-z0-9][a-z0-9_-]*$",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
+          "description": "Required accelerator interconnect, such as nvlink or pcie. Omit to pin nothing. The permitted terms are not a vocabulary this contract defines — see spec.md §4.4.",
+          "maxLength": 64,
+          "pattern": "^[a-z0-9][a-z0-9_-]*$",
+          "type": "string"
         },
         "acceleratorRuntimes": {
           "description": "Required accelerator runtimes, such as cuda. An empty array pins nothing, and a term may not repeat. The permitted terms are not a vocabulary this contract defines — see spec.md §4.4.",
@@ -63,18 +55,10 @@
           "uniqueItems": true
         },
         "acceleratorSKUClass": {
-          "description": "Exact accelerator SKU class to pin. Null pins nothing. The permitted terms are not a vocabulary this contract defines — see spec.md §4.4.",
-          "anyOf": [
-            {
-              "maxLength": 64,
-              "pattern": "^[a-z0-9][a-z0-9_-]*$",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
+          "description": "Exact accelerator SKU class to pin. Omit to pin nothing. The permitted terms are not a vocabulary this contract defines — see spec.md §4.4.",
+          "maxLength": 64,
+          "pattern": "^[a-z0-9][a-z0-9_-]*$",
+          "type": "string"
         },
         "cpuArchitectures": {
           "description": "Permitted CPU architectures, such as x86_64 or arm64. An empty array pins nothing, and a term may not repeat. The permitted terms are not a vocabulary this contract defines — see spec.md §4.4.",
@@ -87,74 +71,34 @@
           "uniqueItems": true
         },
         "cpuDedication": {
-          "description": "Whether the node's vCPU must be dedicated rather than shared. Null pins nothing. This is the one pin whose vocabulary this contract closes — see spec.md §4.4.",
-          "anyOf": [
-            {
-              "enum": [
-                "shared",
-                "dedicated"
-              ],
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
+          "description": "Whether the node's vCPU must be dedicated rather than shared. Omit to pin nothing. This is the one pin whose vocabulary this contract closes — see spec.md §4.4.",
+          "enum": [
+            "shared",
+            "dedicated"
           ],
-          "default": null
+          "type": "string"
         },
         "minAcceleratorMemoryGiB": {
-          "description": "Minimum accelerator VRAM in GiB. Null pins no floor.",
-          "anyOf": [
-            {
-              "minimum": 1,
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
+          "description": "Minimum accelerator VRAM in GiB. Omit to pin no floor.",
+          "minimum": 1,
+          "type": "integer"
         },
         "minStorageIOPS": {
-          "description": "Minimum provisioned IOPS. Null pins no floor.",
-          "anyOf": [
-            {
-              "minimum": 1,
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
+          "description": "Minimum provisioned IOPS. Omit to pin no floor.",
+          "minimum": 1,
+          "type": "integer"
         },
         "networkClass": {
-          "description": "Required network class. Null pins nothing. The permitted terms are not a vocabulary this contract defines — see spec.md §4.4.",
-          "anyOf": [
-            {
-              "maxLength": 64,
-              "pattern": "^[a-z0-9][a-z0-9_-]*$",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
+          "description": "Required network class. Omit to pin nothing. The permitted terms are not a vocabulary this contract defines — see spec.md §4.4.",
+          "maxLength": 64,
+          "pattern": "^[a-z0-9][a-z0-9_-]*$",
+          "type": "string"
         },
         "storageClass": {
-          "description": "Required storage class, such as local-nvme. Null pins nothing. The permitted terms are not a vocabulary this contract defines — see spec.md §4.4.",
-          "anyOf": [
-            {
-              "maxLength": 64,
-              "pattern": "^[a-z0-9][a-z0-9_-]*$",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
+          "description": "Required storage class, such as local-nvme. Omit to pin nothing. The permitted terms are not a vocabulary this contract defines — see spec.md §4.4.",
+          "maxLength": 64,
+          "pattern": "^[a-z0-9][a-z0-9_-]*$",
+          "type": "string"
         }
       },
       "type": "object"
@@ -246,16 +190,8 @@
           "type": "object"
         },
         "placement": {
-          "description": "Optional placement compute pins that narrow the eligible-host set at schedule time. Absent, null, and a block with no pin set all mean the same thing. See spec.md §4.4.",
-          "anyOf": [
-            {
-              "$ref": "#/$defs/BlueprintComputeConstraints"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
+          "description": "Optional placement compute pins that narrow the eligible-host set at schedule time. Absent and a block with no pin set mean the same thing. See spec.md §4.4.",
+          "$ref": "#/$defs/BlueprintComputeConstraints"
         },
         "revision": {
           "description": "Lineage version pinned by a published reference. Required on a published reference and rejected on a repo-local one, where the referenced document's own metadata.revision supplies it.",
@@ -289,9 +225,7 @@
       "if": {
         "properties": {
           "generator": {
-            "not": {
-              "type": "null"
-            }
+            "type": "object"
           }
         },
         "required": [
@@ -300,40 +234,16 @@
       },
       "properties": {
         "description": {
-          "description": "Help text shown beneath the field, or null when none is set.",
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
+          "description": "Help text shown beneath the field. Omitted when none is set.",
+          "type": "string"
         },
         "generator": {
-          "description": "Auto-generation spec when the platform mints the value at deploy time, or null when the deploying user supplies it.",
-          "anyOf": [
-            {
-              "$ref": "#/$defs/BlueprintParameterGenerator"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
+          "description": "Auto-generation spec when the platform mints the value at deploy time. Omitted when the deploying user supplies it.",
+          "$ref": "#/$defs/BlueprintParameterGenerator"
         },
         "platformDefault": {
-          "description": "Default the platform supplies when the deploying user does not; null when it does not supply one. A SELF_ADDRESS default resolves against each node this parameter covers.",
-          "anyOf": [
-            {
-              "$ref": "#/$defs/BlueprintPlatformDefault"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
+          "description": "Default the platform supplies when the deploying user does not. Omitted when it does not supply one. A SELF_ADDRESS default resolves against each node this parameter covers.",
+          "$ref": "#/$defs/BlueprintPlatformDefault"
         },
         "required": {
           "description": "True when the deploying user must provide a value before deploying.",
@@ -355,9 +265,7 @@
       ],
       "then": {
         "properties": {
-          "platformDefault": {
-            "type": "null"
-          },
+          "platformDefault": false,
           "schema": {
             "properties": {
               "sensitive": {
@@ -382,16 +290,8 @@
           "type": "integer"
         },
         "charset": {
-          "description": "Explicit character set for the generated value, or null when the encoding default is used.",
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
+          "description": "Explicit character set for the generated value. Omitted when the encoding default is used.",
+          "type": "string"
         },
         "encoding": {
           "description": "Encoding applied to the random bytes: HEX, BASE64, BASE64URL, or ALPHANUMERIC.",
@@ -471,9 +371,7 @@
               "enum": {
                 "maxItems": 0
               },
-              "pattern": {
-                "type": "null"
-              }
+              "pattern": false
             }
           }
         },
@@ -493,25 +391,15 @@
           },
           "then": {
             "properties": {
-              "format": {
-                "type": "null"
-              }
+              "format": false
             }
           }
         }
       ],
       "properties": {
         "default": {
-          "description": "Pre-filled value, or null when the deploying user must supply one.",
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
+          "description": "Pre-filled value. Omitted when the deploying user must supply one.",
+          "type": "string"
         },
         "enum": {
           "description": "Allowed values when the value is a closed enumeration; empty when unconstrained. MUST be empty where the type is JSON.",
@@ -521,36 +409,20 @@
           "type": "array"
         },
         "format": {
-          "description": "Semantic refinement of a STRING value: EMAIL, URI, ENDPOINT_URL, CONNECTION_STRING, HOSTNAME, or TIMEZONE; null when unrefined. MUST be null where the type is not STRING. Component spec.md §6.3 names where each convention is published.",
-          "anyOf": [
-            {
-              "enum": [
-                "EMAIL",
-                "URI",
-                "ENDPOINT_URL",
-                "CONNECTION_STRING",
-                "HOSTNAME",
-                "TIMEZONE"
-              ],
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
+          "description": "Semantic refinement of a STRING value: EMAIL, URI, ENDPOINT_URL, CONNECTION_STRING, HOSTNAME, or TIMEZONE. Omitted when unrefined, and MUST NOT be present where the type is not STRING. Component spec.md §6.3 names where each convention is published.",
+          "enum": [
+            "EMAIL",
+            "URI",
+            "ENDPOINT_URL",
+            "CONNECTION_STRING",
+            "HOSTNAME",
+            "TIMEZONE"
           ],
-          "default": null
+          "type": "string"
         },
         "pattern": {
-          "description": "Regular expression the supplied value must match, or null when unconstrained. MUST be null where the type is JSON.",
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
+          "description": "Regular expression the supplied value must match. Omitted when unconstrained, and MUST NOT be present where the type is JSON.",
+          "type": "string"
         },
         "sensitive": {
           "description": "True when the value is secret material: masked in UIs, never echoed back.",
@@ -579,17 +451,9 @@
       "additionalProperties": false,
       "properties": {
         "endpoint": {
-          "description": "Name of the PUBLIC endpoint the value is derived from. Null selects the primary endpoint component spec.md §5.2 elects.",
-          "anyOf": [
-            {
-              "pattern": "^[a-z][a-z0-9]{0,19}$",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
+          "description": "Name of the PUBLIC endpoint the value is derived from. Omitted, it selects the primary endpoint component spec.md §5.2 elects.",
+          "pattern": "^[a-z][a-z0-9]{0,19}$",
+          "type": "string"
         },
         "source": {
           "description": "What is derived. PUBLIC_HOSTNAME for the endpoint's hostname alone and PUBLIC_URL for its full URL, both from the URL an HTTP-family endpoint publishes; PUBLIC_ADDRESS for the full host:port and PUBLIC_PORT for the port alone, both from the edge address a TCP or UDP endpoint publishes.",

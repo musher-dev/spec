@@ -20,7 +20,6 @@ spec:
           type: STRING
           sensitive: true
         suppliedBy: CONNECTION
-        ui: null
       adminPassword:
         schema:
           type: STRING

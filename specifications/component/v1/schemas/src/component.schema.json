@@ -50,28 +50,12 @@
           }
         },
         "builderImage": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Buildpacks builder image, or null when not building with buildpacks."
+          "description": "Buildpacks builder image. Omitted when not building with buildpacks.",
+          "type": "string"
         },
         "dockerfilePath": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Path to the Dockerfile relative to the repo root, or null when not using a Dockerfile."
+          "description": "Path to the Dockerfile relative to the repo root. Omitted when not using a Dockerfile.",
+          "type": "string"
         },
         "strategy": {
           "description": "How the git source becomes an image: DOCKERFILE or BUILDPACKS.",
@@ -244,16 +228,8 @@
           "description": "How the repository is built into an image. Required — a git source has no image until something builds one, and leaving the strategy implicit makes the resulting image depend on the builder rather than on this document."
         },
         "ref": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ComponentGitRef"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Branch or commit to build from, or null when unpinned."
+          "description": "Branch or commit to build from. Omitted when unpinned.",
+          "$ref": "#/$defs/ComponentGitRef"
         },
         "repositoryUrl": {
           "description": "Git repository URL the platform builds into an image.",
@@ -277,40 +253,16 @@
       "description": "Staged health probes: startup, readiness, liveness.",
       "properties": {
         "liveness": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ComponentProbe"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Aliveness gate; failure restarts the container. Optional."
+          "description": "Aliveness gate; failure restarts the container. Optional.",
+          "$ref": "#/$defs/ComponentProbe"
         },
         "readiness": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ComponentProbe"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Traffic gate; failure pulls the replica from routing without a restart. Required for a SERVICE exposing a public endpoint."
+          "description": "Traffic gate; failure pulls the replica from routing without a restart. Required for a SERVICE exposing a public endpoint.",
+          "$ref": "#/$defs/ComponentProbe"
         },
         "startup": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ComponentProbe"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Initialization gate; failure means not-yet-started. Optional."
+          "description": "Initialization gate; failure means not-yet-started. Optional.",
+          "$ref": "#/$defs/ComponentProbe"
         }
       },
       "type": "object"
@@ -364,15 +316,9 @@
           },
           "then": {
             "properties": {
-              "generator": {
-                "type": "null"
-              },
-              "platformDefault": {
-                "type": "null"
-              },
-              "ui": {
-                "type": "null"
-              }
+              "generator": false,
+              "platformDefault": false,
+              "ui": false
             }
           }
         },
@@ -381,9 +327,7 @@
           "if": {
             "properties": {
               "generator": {
-                "not": {
-                  "type": "null"
-                }
+                "type": "object"
               }
             },
             "required": [
@@ -402,9 +346,7 @@
                   "sensitive"
                 ]
               },
-              "platformDefault": {
-                "type": "null"
-              },
+              "platformDefault": false,
               "suppliedBy": {
                 "const": "USER"
               }
@@ -414,40 +356,16 @@
       ],
       "properties": {
         "description": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Human-readable description of the input, or null when none is set."
+          "description": "Human-readable description of the input. Omitted when none is set.",
+          "type": "string"
         },
         "generator": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ComponentValueGenerator"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Auto-generation spec when the platform mints the value at deploy time, or null when the value is supplied or wired."
+          "description": "Auto-generation spec when the platform mints the value at deploy time. Omitted when the value is supplied or wired.",
+          "$ref": "#/$defs/ComponentValueGenerator"
         },
         "platformDefault": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ComponentPlatformDefault"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Default derived from the component's own addressing and bound into the target env var; null when the value is user-supplied, wired, or generated."
+          "description": "Default derived from the component's own addressing and bound into the target env var. Omitted when the value is user-supplied, wired, or generated.",
+          "$ref": "#/$defs/ComponentPlatformDefault"
         },
         "required": {
           "default": true,
@@ -468,28 +386,12 @@
           "type": "string"
         },
         "target": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ComponentInputTarget"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Where the resolved value is bound, or null when the consumer injects it manually."
+          "description": "Where the resolved value is bound. Omitted when the consumer injects it manually.",
+          "$ref": "#/$defs/ComponentInputTarget"
         },
         "ui": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ComponentInputUi"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Presentation metadata for the install form. Required when suppliedBy is USER; must be null when suppliedBy is CONNECTION."
+          "description": "Presentation metadata for the install form. Required when suppliedBy is USER and MUST NOT be present when suppliedBy is CONNECTION.",
+          "$ref": "#/$defs/ComponentInputUi"
         }
       },
       "required": [
@@ -622,39 +524,21 @@
       },
       "then": {
         "properties": {
-          "value": {
-            "type": "null"
-          }
+          "value": false
         }
       },
       "properties": {
         "description": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Human-readable description of the output, or null when none is set."
+          "description": "Human-readable description of the output. Omitted when none is set.",
+          "type": "string"
         },
         "schema": {
           "$ref": "#/$defs/ComponentValueSchema",
           "description": "Data contract of the published value: type, format, sensitivity."
         },
         "value": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Static value for DECLARED outputs, or null for DERIVED outputs resolved at runtime."
+          "description": "Static value for DECLARED outputs. MUST NOT be present on a DERIVED output, whose value is resolved at runtime.",
+          "type": "string"
         },
         "valueFrom": {
           "description": "DERIVED outputs carry value=null and are platform-populated; DECLARED outputs carry a static value.",
@@ -678,17 +562,9 @@
       "description": "Default the platform supplies when the deploying user does not. Which endpoint a SELF_ADDRESS default derives from is named rather than assumed, because spec.md §5.2 permits more than one PUBLIC endpoint.",
       "properties": {
         "endpoint": {
-          "anyOf": [
-            {
-              "pattern": "^[a-z][a-z0-9]{0,19}$",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Name of the PUBLIC endpoint the value is derived from. Null selects the primary endpoint spec.md §5.2 elects."
+          "description": "Name of the PUBLIC endpoint the value is derived from. Omitted, it selects the primary endpoint spec.md §5.2 elects.",
+          "pattern": "^[a-z][a-z0-9]{0,19}$",
+          "type": "string"
         },
         "source": {
           "$comment": "spec.md §6.1. Each source pairs with one of §5.2's two address forms, and the pairing is exclusive: the first two require an HTTP-family endpoint, the last two a TCP or UDP one. Which is why the mismatch carries two codes rather than one.",
@@ -719,17 +595,9 @@
       "additionalProperties": false,
       "properties": {
         "endpoint": {
-          "anyOf": [
-            {
-              "pattern": "^[a-z][a-z0-9]{0,19}$",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Name of the endpoint whose port the probe targets. Null selects the primary endpoint spec.md §5.2 elects."
+          "description": "Name of the endpoint whose port the probe targets. Omitted, it selects the primary endpoint spec.md §5.2 elects.",
+          "pattern": "^[a-z][a-z0-9]{0,19}$",
+          "type": "string"
         },
         "failureThreshold": {
           "default": 3,
@@ -805,16 +673,8 @@
           "type": "integer"
         },
         "charset": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Explicit character set for the generated value, or null when the encoding default is used."
+          "description": "Explicit character set for the generated value. Omitted when the encoding default is used.",
+          "type": "string"
         },
         "encoding": {
           "default": "HEX",
@@ -850,9 +710,7 @@
               "enum": {
                 "maxItems": 0
               },
-              "pattern": {
-                "type": "null"
-              }
+              "pattern": false
             }
           }
         },
@@ -872,9 +730,7 @@
           },
           "then": {
             "properties": {
-              "format": {
-                "type": "null"
-              }
+              "format": false
             }
           }
         }
@@ -882,16 +738,8 @@
       "description": "Data contract of an input or output value (JSON-Schema subset).",
       "properties": {
         "default": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Pre-filled value when none is supplied, or null when the value must be provided."
+          "description": "Pre-filled value when none is supplied. Omitted when the value must be provided.",
+          "type": "string"
         },
         "enum": {
           "description": "Allowed values when the value is a closed enumeration; empty when unconstrained. MUST be empty where the type is JSON.",
@@ -901,57 +749,33 @@
           "type": "array"
         },
         "format": {
-          "anyOf": [
-            {
-              "enum": [
-                "EMAIL",
-                "URI",
-                "ENDPOINT_URL",
-                "CONNECTION_STRING",
-                "HOSTNAME",
-                "TIMEZONE"
-              ],
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
+          "description": "Semantic refinement of a STRING value: EMAIL, URI, ENDPOINT_URL, CONNECTION_STRING, HOSTNAME, or TIMEZONE. Omitted when unrefined, and MUST NOT be present where the type is not STRING. spec.md §6.3 names where each convention is published.",
+          "enum": [
+            "EMAIL",
+            "URI",
+            "ENDPOINT_URL",
+            "CONNECTION_STRING",
+            "HOSTNAME",
+            "TIMEZONE"
           ],
-          "default": null,
-          "description": "Semantic refinement of a STRING value: EMAIL, URI, ENDPOINT_URL, CONNECTION_STRING, HOSTNAME, or TIMEZONE; null when unrefined. MUST be null where the type is not STRING. spec.md §6.3 names where each convention is published."
+          "type": "string"
         },
         "pattern": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Regular expression the value must match, or null when unconstrained. MUST be null where the type is JSON."
+          "description": "Regular expression the value must match. Omitted when unconstrained, and MUST NOT be present where the type is JSON.",
+          "type": "string"
         },
         "semanticType": {
-          "anyOf": [
-            {
-              "enum": [
-                "POSTGRES",
-                "MYSQL",
-                "REDIS",
-                "MONGODB",
-                "S3_BUCKET",
-                "HTTP_SERVICE",
-                "SMTP"
-              ],
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
+          "description": "Backing-service compatibility tag the Blueprint publish gate matches when wiring this value into a consumer input. Omitted when the value is not specific to a backing service.",
+          "enum": [
+            "POSTGRES",
+            "MYSQL",
+            "REDIS",
+            "MONGODB",
+            "S3_BUCKET",
+            "HTTP_SERVICE",
+            "SMTP"
           ],
-          "default": null,
-          "description": "Backing-service compatibility tag the Blueprint publish gate matches when wiring this value into a consumer input; null when the value is not specific to a backing service."
+          "type": "string"
         },
         "sensitive": {
           "default": false,
@@ -1174,16 +998,8 @@
       ],
       "properties": {
         "command": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Command the workload runs. Required for JOB and CRON, which have nothing to run without it. On a SERVICE or WORKER it overrides the image's default command."
+          "description": "Command the workload runs. Required for JOB and CRON, which have nothing to run without it. On a SERVICE or WORKER it overrides the image's default command.",
+          "type": "string"
         },
         "endpoints": {
           "additionalProperties": {
@@ -1204,16 +1020,8 @@
           "type": "array"
         },
         "health": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ComponentHealthProbes"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Staged health probes (startup, readiness, liveness), or null when none are defined."
+          "description": "Staged health probes (startup, readiness, liveness). Omitted when none are defined.",
+          "$ref": "#/$defs/ComponentHealthProbes"
         },
         "schedule": {
           "anyOf": [

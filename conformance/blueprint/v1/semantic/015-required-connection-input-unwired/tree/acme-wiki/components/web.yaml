@@ -22,5 +22,4 @@ spec:
           semanticType: POSTGRES
           sensitive: true
         suppliedBy: CONNECTION
-        ui: null
     outputs: {}

@@ -22,5 +22,4 @@ spec:
           semanticType: MYSQL
           sensitive: true
         suppliedBy: CONNECTION
-        ui: null
     outputs: {}

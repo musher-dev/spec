@@ -23,5 +23,4 @@ spec:
           sensitive: true
         suppliedBy: CONNECTION
         required: false
-        ui: null
     outputs: {}

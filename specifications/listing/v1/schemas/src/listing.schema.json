@@ -59,17 +59,9 @@
       "description": "One storefront screenshot declared as a relative media path.",
       "properties": {
         "caption": {
-          "anyOf": [
-            {
-              "maxLength": 280,
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Accessible caption shown beneath the screenshot, or null when none."
+          "description": "Accessible caption shown beneath the screenshot. Omitted when none.",
+          "maxLength": 280,
+          "type": "string"
         },
         "file": {
           "$comment": "Lookahead-free so it compiles under RE2 as well as ECMA-262. A segment must begin with a letter or digit, which is how `.` and `..` are excluded without a negative lookahead; the extension alternation is spelled in character classes because a JSON Schema pattern carries no case-insensitive flag. See spec.md §5.",
@@ -108,17 +100,9 @@
           "type": "string"
         },
         "description": {
-          "anyOf": [
-            {
-              "maxLength": 20000,
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Long-form Markdown storefront description, or null when none."
+          "description": "Long-form Markdown storefront description. Omitted when none.",
+          "maxLength": 20000,
+          "type": "string"
         },
         "displayName": {
           "description": "Storefront title shown to prospective installers.",
@@ -127,47 +111,23 @@
           "type": "string"
         },
         "homepageUrl": {
-          "anyOf": [
-            {
-              "$comment": "Anchored and lookahead-free, so it compiles under RE2 as well as ECMA-262 and cannot be driven to backtrack. The scheme set is spec.md §4.1's, applied to a field that carries a URL directly rather than inside Markdown. The scheme alternation is spelled in character classes because a JSON Schema pattern carries no case-insensitive flag, and RFC 3986 §3.1 makes the scheme case-insensitive — the same reason the media path alternation is spelled that way. Without it this pattern would reject an upper-case scheme the description half of the same rule accepts.",
-              "maxLength": 2048,
-              "pattern": "^(?:[Hh][Tt][Tt][Pp][Ss]?://|[Mm][Aa][Ii][Ll][Tt][Oo]:)[^\\s]+$",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Project homepage URL, or null when none. Must use the https, http, or mailto scheme, in any case."
+          "description": "Project homepage URL. Omitted when none. Must use the https, http, or mailto scheme, in any case.",
+          "$comment": "Anchored and lookahead-free, so it compiles under RE2 as well as ECMA-262 and cannot be driven to backtrack. The scheme set is spec.md §4.1's, applied to a field that carries a URL directly rather than inside Markdown. The scheme alternation is spelled in character classes because a JSON Schema pattern carries no case-insensitive flag, and RFC 3986 §3.1 makes the scheme case-insensitive — the same reason the media path alternation is spelled that way. Without it this pattern would reject an upper-case scheme the description half of the same rule accepts.",
+          "maxLength": 2048,
+          "pattern": "^(?:[Hh][Tt][Tt][Pp][Ss]?://|[Mm][Aa][Ii][Ll][Tt][Oo]:)[^\\s]+$",
+          "type": "string"
         },
         "icon": {
-          "anyOf": [
-            {
-              "$comment": "The same grammar ListingScreenshot.file carries; see the note there.",
-              "maxLength": 512,
-              "pattern": "^media/(?:[A-Za-z0-9][A-Za-z0-9._-]*/)*[A-Za-z0-9][A-Za-z0-9._-]*\\.(?:[Pp][Nn][Gg]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp])$",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Path of the listing's icon under the item's media/ directory (e.g. media/icon.png), relative to the item root, or null for no icon."
+          "description": "Path of the listing's icon under the item's media/ directory (e.g. media/icon.png), relative to the item root. Omitted for no icon.",
+          "$comment": "The same grammar ListingScreenshot.file carries; see the note there.",
+          "maxLength": 512,
+          "pattern": "^media/(?:[A-Za-z0-9][A-Za-z0-9._-]*/)*[A-Za-z0-9][A-Za-z0-9._-]*\\.(?:[Pp][Nn][Gg]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp])$",
+          "type": "string"
         },
         "license": {
-          "anyOf": [
-            {
-              "maxLength": 256,
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "License identifier for the listed software, or null when unspecified."
+          "description": "License identifier for the listed software. Omitted when unspecified.",
+          "maxLength": 256,
+          "type": "string"
         },
         "lifecycleStage": {
           "description": "Maturity stage shown on the storefront: STABLE, BETA, EXPERIMENTAL, or SUNSET.",
@@ -195,19 +155,11 @@
           "type": "array"
         },
         "sourceRepoUrl": {
-          "anyOf": [
-            {
-              "$comment": "The same grammar homepageUrl carries; see the note there.",
-              "maxLength": 2048,
-              "pattern": "^(?:[Hh][Tt][Tt][Pp][Ss]?://|[Mm][Aa][Ii][Ll][Tt][Oo]:)[^\\s]+$",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Source repository URL, or null when none. Must use the https, http, or mailto scheme, in any case."
+          "description": "Source repository URL. Omitted when none. Must use the https, http, or mailto scheme, in any case.",
+          "$comment": "The same grammar homepageUrl carries; see the note there.",
+          "maxLength": 2048,
+          "pattern": "^(?:[Hh][Tt][Tt][Pp][Ss]?://|[Mm][Aa][Ii][Ll][Tt][Oo]:)[^\\s]+$",
+          "type": "string"
         },
         "summary": {
           "description": "One-line storefront tagline summarising the listing.",
@@ -216,19 +168,11 @@
           "type": "string"
         },
         "supportUrl": {
-          "anyOf": [
-            {
-              "$comment": "The same grammar homepageUrl carries; see the note there. mailto: is in the set for this field in particular — a support address is a plausible value.",
-              "maxLength": 2048,
-              "pattern": "^(?:[Hh][Tt][Tt][Pp][Ss]?://|[Mm][Aa][Ii][Ll][Tt][Oo]:)[^\\s]+$",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Support or documentation URL, or null when none. Must use the https, http, or mailto scheme, in any case."
+          "description": "Support or documentation URL. Omitted when none. Must use the https, http, or mailto scheme, in any case.",
+          "$comment": "The same grammar homepageUrl carries; see the note there. mailto: is in the set for this field in particular — a support address is a plausible value.",
+          "maxLength": 2048,
+          "pattern": "^(?:[Hh][Tt][Tt][Pp][Ss]?://|[Mm][Aa][Ii][Ll][Tt][Oo]:)[^\\s]+$",
+          "type": "string"
         },
         "tags": {
           "description": "Free-form discovery tags applied to the listing.",

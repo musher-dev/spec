@@ -317,11 +317,11 @@ not are asking for different things, and the wire is the last place that
 difference is visible.
 
 **`semanticType` MUST agree where the consumer names one.** A consumer
-declaring `null` accepts any producer: it has said the value is not specific to
-a backing service, and nothing it receives can contradict that. A consumer
+declaring none accepts any producer: it has said the value is not specific to a
+backing service, and nothing it receives can contradict that. A consumer
 declaring a tag requires a producer declaring the **same** tag — including
-rejecting a producer that declares `null`, because an unconstrained producer
-does not satisfy a constrained consumer. A mismatch is
+rejecting a producer that declares none, because an unconstrained producer does
+not satisfy a constrained consumer. A mismatch is
 `ERR_INCOMPATIBLE_SEMANTIC_TYPE`.
 
 That is what `semanticType` is for, given `type` exists. `type` is the
@@ -440,8 +440,8 @@ that do not deliver it.
 
 ### <a id="placement-constraints"></a><a id="advanced-constraints"></a>4.4 Placement constraints
 
-`placement` is OPTIONAL and narrows the hosts a node may be placed on. Absent,
-`null`, and a block whose every pin is unset all mean the same thing: no
+`placement` is OPTIONAL and narrows the hosts a node may be placed on. An
+absent block and a block whose every pin is unset mean the same thing: no
 constraints. A pin whose value is an array means "any" when the array is empty,
 and MUST NOT repeat a term.
 

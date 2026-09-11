@@ -348,6 +348,11 @@
       "path": "structural/056-build-argument-name-outside-the-grammar"
     },
     {
+      "id": "structural-057-optional-field-written-null",
+      "phase": "structural",
+      "path": "structural/057-optional-field-written-null"
+    },
+    {
       "id": "semantic-001-floating-tag-image-reference",
       "phase": "semantic",
       "path": "semantic/001-floating-tag-image-reference"

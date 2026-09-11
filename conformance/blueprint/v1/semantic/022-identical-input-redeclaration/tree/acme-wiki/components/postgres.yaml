@@ -26,7 +26,6 @@ spec:
       adminPassword:
         schema:
           sensitive: true
-          semanticType: null
           type: STRING
         suppliedBy: USER
         required: false

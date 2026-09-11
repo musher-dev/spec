@@ -28,4 +28,3 @@ spec:
           type: STRING
           sensitive: true
         valueFrom: DERIVED
-        value: null

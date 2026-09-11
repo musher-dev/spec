@@ -1,0 +1,30 @@
+# A three-state field — absent, null, present — modelling a two-state idea is
+# three states in every generated SDK, and nothing reads the third. `target` is
+# the ordinary case: it was nullable, absence and null said the same thing, and
+# the schema now admits only absence. The one survivor is `schedule`, which
+# §5 permits in its own empty form because there `null` is an author saying
+# "deliberately none" about a field that is forbidden.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  revision: 1
+spec:
+  workload:
+    type: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+    endpoints:
+      web:
+        containerPort: 8080
+        protocol: HTTP
+        visibility: PRIVATE
+  contract:
+    inputs:
+      siteTitle:
+        schema:
+          type: STRING
+        target: null
+        ui:
+          label: Site title
+    outputs: {}

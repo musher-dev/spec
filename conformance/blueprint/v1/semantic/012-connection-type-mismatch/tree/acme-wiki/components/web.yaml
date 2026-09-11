@@ -19,5 +19,4 @@ spec:
         schema:
           type: STRING
         suppliedBy: CONNECTION
-        ui: null
     outputs: {}

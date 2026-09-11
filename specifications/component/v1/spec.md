@@ -72,6 +72,21 @@ release the validator does not hold, is the same error for a reason
 `ERR_UNSUPPORTED_SPEC_VERSION` and MUST NOT attempt a best-effort
 interpretation.
 
+<a id="COMP-ENV-007"></a>**`COMP-ENV-007` — an optional field is omitted,
+not written `null`.** A field accepts `null` only where `null` means something
+omission does not, and a field written `null` outside those places is rejected
+in the `structural` phase with `ERR_INVALID_TYPE`. This rule is here rather
+than beside each field because it is a property of the whole contract: a
+three-state field — absent, `null`, present — modelling a two-state idea is
+three states in every SDK generated from this document, forever, and nothing
+reads the third.
+
+One placement survives in v1, and it is named rather than left to judgement:
+[§5](#workload)'s `schedule: null`, where a *forbidden* field is written in its
+own empty form and `null` is an author saying "deliberately none". A future
+field where clearing an inherited value differs from not setting one would be
+the second; this contract has no patch semantics, so there is none.
+
 > **Note.** This envelope is deliberately not a Kubernetes-style
 > `apiVersion: <group>/<version>`. `specVersion` is Musher's document-format
 > discriminator and one convention beats two. See
@@ -370,8 +385,8 @@ MUST name the endpoint it means.** Where two exist there is no such thing as
 selector lives.
 
 **The primary endpoint.** A reference MAY omit the endpoint it targets — a
-probe's `endpoint` and a platform default's both admit null — and the primary
-endpoint is what null selects. It is:
+probe's `endpoint` and a platform default's are both OPTIONAL — and the primary
+endpoint is what an omitted one selects. It is:
 
 1. the workload's sole endpoint, where it declares exactly one; failing that
 2. its sole `PUBLIC` endpoint, where it declares exactly one; failing that
@@ -489,8 +504,8 @@ polls an HTTP path.
 `initialDelaySeconds: 10`, `periodSeconds: 10`, `timeoutSeconds: 5`,
 `successThreshold: 1`, `failureThreshold: 3`.
 
-<a id="COMP-EP-002"></a>`endpoint` names the endpoint whose port the probe targets; null selects the
-primary endpoint [§5.2](#endpoints) elects, and is rejected with
+<a id="COMP-EP-002"></a>`endpoint` names the endpoint whose port the probe targets; omitting it selects
+the primary endpoint [§5.2](#endpoints) elects, and is rejected with
 `ERR_AMBIGUOUS_ENDPOINT` where that section elects none. A probe naming an
 endpoint the workload does not declare is rejected with `ERR_UNKNOWN_ENDPOINT`.
 Both are `semantic`, and the schema can express neither — the endpoint names are
@@ -575,15 +590,15 @@ satisfies it and defaults to `USER`.
 | `suppliedBy` | Satisfied by | `ui` |
 |---|---|---|
 | `USER` | The deploying user, through the install form. | REQUIRED |
-| `CONNECTION` | A blueprint connection, from an upstream output. | MUST be null |
+| `CONNECTION` | A blueprint connection, from an upstream output. | MUST NOT be present |
 
 <a id="COMP-UI-001"></a>**`COMP-UI-001`** — A `USER` input MUST declare `ui`.
 `structural`, `ERR_MISSING_FIELD`. A form cannot render a field it has no label
 for, and `suppliedBy` defaults to `USER`, so an input saying nothing about who
 satisfies it is bound by this.
 
-<a id="COMP-UI-002"></a>**`COMP-UI-002`** — A `CONNECTION` input's `ui` MUST be
-null. `structural`, `ERR_INVALID_TYPE`. Such an input never reaches the install
+<a id="COMP-UI-002"></a>**`COMP-UI-002`** — A `CONNECTION` input's `ui` MUST NOT
+be present. `structural`, `ERR_INVALID_VALUE`. Such an input never reaches the install
 form, so presentation metadata on one is a statement about a form it will never
 appear on.
 
@@ -604,7 +619,7 @@ already reserves for it — the user simply does not have to type it. A
 answers to the same question, and nothing would say which arrives.
 
 **A platform default supplies the value the deploying user does not.**
-`platformDefault` is OPTIONAL and null by default. Where it is present, `type`
+`platformDefault` is OPTIONAL. Where it is present, `type`
 is REQUIRED and names the kind of default, `source` is REQUIRED and selects what
 is derived, and `endpoint` names which endpoint it is derived from.
 
@@ -640,10 +655,10 @@ beside the whole they are part of because a consumer that takes host and port
 as separate settings should not have to split a string this contract had
 already composed.
 
-`endpoint` is null by default and selects the primary endpoint
+`endpoint` is OPTIONAL, and omitting it selects the primary endpoint
 [§5.2](#endpoints) elects. Since a component MAY expose several `PUBLIC`
-endpoints, one that does MUST name the endpoint here: null elects nothing there
-and is rejected with `ERR_AMBIGUOUS_ENDPOINT`.
+endpoints, one that does MUST name the endpoint here: an omitted `endpoint`
+elects nothing there and is rejected with `ERR_AMBIGUOUS_ENDPOINT`.
 
 <a id="COMP-EP-004"></a>Three further rules follow the name, all `semantic`. An endpoint the workload
 does not declare is `ERR_UNKNOWN_ENDPOINT` — the same code and the same reason
@@ -670,7 +685,8 @@ is worse than one that rejects the document, because the first failure is
 silent and arrives at runtime.
 
 Both rules apply to the endpoint a reference *resolves to*, elected or named,
-for the reason [§5.2](#endpoints) gives: the primary is what null selects, so a
+for the reason [§5.2](#endpoints) gives: the primary is what an omitted
+selector means, so a
 rule about the endpoint a reference means reaches it equally.
 
 **A platform default is not a `CONNECTION`.** The value comes from the
@@ -692,7 +708,7 @@ shape can close, and a gap the shape can close is not one to describe.
 | `valueFrom` | `value` | Where the value comes from |
 |---|---|---|
 | `DECLARED` | REQUIRED, non-empty | This document. |
-| `DERIVED` | MUST be null | The platform, from the running workload. |
+| `DERIVED` | MUST NOT be present | The platform, from the running workload. |
 
 **An output depends on its own node and nothing else.** A `DECLARED` output's
 value is written in this document. A `DERIVED` output's value comes from the
@@ -734,9 +750,9 @@ members. Anything else is rejected in the `structural` phase with
 | `type` | The string form is | `format` | `pattern` | `enum` |
 |---|---|---|---|---|
 | `STRING` | any text | permitted | permitted | permitted |
-| `NUMBER` | a JSON number — `5432`, `-1`, `2.5` | MUST be null | permitted | permitted |
-| `BOOLEAN` | `true` or `false`, in lower case | MUST be null | permitted | permitted |
-| `JSON` | a JSON value of any kind — object, array, string, number, boolean or null | MUST be null | MUST be null | MUST be empty |
+| `NUMBER` | a JSON number — `5432`, `-1`, `2.5` | forbidden | permitted | permitted |
+| `BOOLEAN` | `true` or `false`, in lower case | forbidden | permitted | permitted |
+| `JSON` | a JSON value of any kind — object, array, string, number, boolean or null | forbidden | forbidden | MUST be empty |
 
 **There is no integer member, and the omission is deliberate.** `NUMBER` is
 JSON's own numeric kind and covers whole numbers and reals alike. An author who
@@ -748,8 +764,8 @@ no-widening rule, and what a bound would mean on each — three answers bought f
 a distinction the transport does not preserve.
 
 <a id="COMP-VAL-002"></a>**`COMP-VAL-002`** — Where `type` is `JSON`, `pattern`
-MUST be null and `enum` MUST be empty. Both are `structural`: a non-null
-`pattern` is `ERR_INVALID_TYPE` and a non-empty `enum` is `ERR_INVALID_VALUE`.
+MUST NOT be present and `enum` MUST be empty. Both are `structural`: a
+`pattern` is `ERR_INVALID_VALUE` and a non-empty `enum` is `ERR_INVALID_VALUE`.
 
 One JSON value has many spellings. `{"a":1}` and `{ "a" : 1 }` are the same
 value, and so are `{"a":1,"b":2}` and `{"b":2,"a":1}`. A regular expression and
@@ -759,16 +775,16 @@ them and leaving "equal" undefined is the worse option: two implementations
 would then disagree about a valid document for a reason neither could see.
 
 <a id="COMP-VAL-003"></a>**`COMP-VAL-003`** — Where `type` is not `STRING`,
-`format` MUST be null. `structural`, `ERR_INVALID_TYPE`.
+`format` MUST NOT be present. `structural`, `ERR_INVALID_VALUE`.
 
 Every `format` member names a lexical convention for text. `format: EMAIL` on a
 `BOOLEAN` describes nothing, and that it validates today is an accident of the
 two fields never having been described together. This clause is about the Musher
 field `format`, not the JSON Schema keyword; [§7.2](#format-policy) is that.
 
-<a id="COMP-VAL-004"></a>**`COMP-VAL-004`** — `format` MUST be null or one of
-six members. Anything else is rejected in the `structural` phase with
-`ERR_INVALID_VALUE`.
+<a id="COMP-VAL-004"></a>**`COMP-VAL-004`** — `format` is OPTIONAL, and where it
+is present MUST be one of six members. Anything else is rejected in the
+`structural` phase with `ERR_INVALID_VALUE`.
 
 | `format` | The text is | Where the convention is published |
 |---|---|---|

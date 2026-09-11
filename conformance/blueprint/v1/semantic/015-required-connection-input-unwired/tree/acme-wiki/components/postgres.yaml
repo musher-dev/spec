@@ -23,4 +23,3 @@ spec:
           semanticType: POSTGRES
           sensitive: true
         valueFrom: DERIVED
-        value: null

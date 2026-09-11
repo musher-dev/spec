@@ -25,4 +25,3 @@ spec:
         schema:
           type: STRING
         valueFrom: DERIVED
-        value: null
