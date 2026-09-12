@@ -103,6 +103,11 @@
       "path": "structural/016-category-outside-the-vocabulary"
     },
     {
+      "id": "structural-017-tag-outside-the-grammar",
+      "phase": "structural",
+      "path": "structural/017-tag-outside-the-grammar"
+    },
+    {
       "id": "semantic-001-duplicate-screenshot-basename",
       "phase": "semantic",
       "path": "semantic/001-duplicate-screenshot-basename"

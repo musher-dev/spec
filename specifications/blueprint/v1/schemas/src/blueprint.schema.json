@@ -39,33 +39,12 @@
       "description": "Advanced, optional compute pins that narrow the hosts a node may be placed on. A pin never changes the compute the node's size names. See spec.md §4.4.",
       "properties": {
         "acceleratorInterconnect": {
-          "anyOf": [
-            {
-              "maxLength": 64,
-              "pattern": "^[a-z0-9][a-z0-9_-]*$",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Required accelerator interconnect, such as nvlink or pcie. Null pins nothing. The permitted terms are not a vocabulary this contract defines — see spec.md §4.4."
+          "description": "Required accelerator interconnect, such as nvlink or pcie. Omit to pin nothing. The permitted terms are not a vocabulary this contract defines — see spec.md §4.4.",
+          "maxLength": 64,
+          "pattern": "^[a-z0-9][a-z0-9_-]*$",
+          "type": "string"
         },
-        "acceleratorMinVramGb": {
-          "anyOf": [
-            {
-              "minimum": 1,
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Minimum accelerator VRAM in GiB. Null pins no floor."
-        },
-        "acceleratorRuntime": {
+        "acceleratorRuntimes": {
           "description": "Required accelerator runtimes, such as cuda. An empty array pins nothing, and a term may not repeat. The permitted terms are not a vocabulary this contract defines — see spec.md §4.4.",
           "items": {
             "maxLength": 64,
@@ -75,21 +54,13 @@
           "type": "array",
           "uniqueItems": true
         },
-        "acceleratorSkuClass": {
-          "anyOf": [
-            {
-              "maxLength": 64,
-              "pattern": "^[a-z0-9][a-z0-9_-]*$",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Exact accelerator SKU class to pin. Null pins nothing. The permitted terms are not a vocabulary this contract defines — see spec.md §4.4."
+        "acceleratorSKUClass": {
+          "description": "Exact accelerator SKU class to pin. Omit to pin nothing. The permitted terms are not a vocabulary this contract defines — see spec.md §4.4.",
+          "maxLength": 64,
+          "pattern": "^[a-z0-9][a-z0-9_-]*$",
+          "type": "string"
         },
-        "cpuArchitecture": {
+        "cpuArchitectures": {
           "description": "Permitted CPU architectures, such as x86_64 or arm64. An empty array pins nothing, and a term may not repeat. The permitted terms are not a vocabulary this contract defines — see spec.md §4.4.",
           "items": {
             "maxLength": 64,
@@ -100,61 +71,34 @@
           "uniqueItems": true
         },
         "cpuDedication": {
-          "anyOf": [
-            {
-              "enum": [
-                "shared",
-                "dedicated"
-              ],
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
+          "description": "Whether the node's vCPU must be dedicated rather than shared. Omit to pin nothing. This is the one pin whose vocabulary this contract closes — see spec.md §4.4.",
+          "enum": [
+            "shared",
+            "dedicated"
           ],
-          "default": null,
-          "description": "Whether the node's vCPU must be dedicated rather than shared. Null pins nothing. This is the one pin whose vocabulary this contract closes — see spec.md §4.4."
+          "type": "string"
+        },
+        "minAcceleratorMemoryGiB": {
+          "description": "Minimum accelerator VRAM in GiB. Omit to pin no floor.",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "minStorageIOPS": {
+          "description": "Minimum provisioned IOPS. Omit to pin no floor.",
+          "minimum": 1,
+          "type": "integer"
         },
         "networkClass": {
-          "anyOf": [
-            {
-              "maxLength": 64,
-              "pattern": "^[a-z0-9][a-z0-9_-]*$",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Required network class. Null pins nothing. The permitted terms are not a vocabulary this contract defines — see spec.md §4.4."
+          "description": "Required network class. Omit to pin nothing. The permitted terms are not a vocabulary this contract defines — see spec.md §4.4.",
+          "maxLength": 64,
+          "pattern": "^[a-z0-9][a-z0-9_-]*$",
+          "type": "string"
         },
         "storageClass": {
-          "anyOf": [
-            {
-              "maxLength": 64,
-              "pattern": "^[a-z0-9][a-z0-9_-]*$",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Required storage class, such as local-nvme. Null pins nothing. The permitted terms are not a vocabulary this contract defines — see spec.md §4.4."
-        },
-        "storageMinIops": {
-          "anyOf": [
-            {
-              "minimum": 1,
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Minimum provisioned IOPS. Null pins no floor."
+          "description": "Required storage class, such as local-nvme. Omit to pin nothing. The permitted terms are not a vocabulary this contract defines — see spec.md §4.4.",
+          "maxLength": 64,
+          "pattern": "^[a-z0-9][a-z0-9_-]*$",
+          "type": "string"
         }
       },
       "type": "object"
@@ -169,6 +113,8 @@
         },
         "fromRole": {
           "description": "Node name of the producer component.",
+          "maxLength": 63,
+          "pattern": "^[a-z][a-z0-9-]{0,61}[a-z0-9]$",
           "type": "string"
         }
       },
@@ -183,60 +129,70 @@
       "additionalProperties": false,
       "description": "Identity block of a blueprint document. The same shape carries on the sibling listing document, and the two must agree.",
       "properties": {
+        "revision": {
+          "description": "Item revision — must agree between blueprint.yaml and listing.yaml.",
+          "minimum": 1,
+          "type": "integer"
+        },
         "slug": {
           "description": "Item slug — must equal the item's directory name.",
           "pattern": "^[a-z][a-z0-9-]{0,61}[a-z0-9]$",
           "type": "string"
-        },
-        "version": {
-          "description": "Item version — must agree between blueprint.yaml and listing.yaml.",
-          "minimum": 1,
-          "type": "integer"
         }
       },
       "required": [
-        "slug",
-        "version"
+        "revision",
+        "slug"
       ],
       "type": "object"
     },
     "BlueprintNode": {
       "additionalProperties": false,
-      "description": "One node of the blueprint's graph, keyed by node name.\n\nA node places one component document — named by ``component`` — onto a\ncompute ``size``, with optional host constraints (``advanced``) and inbound\nwires (``connections``).\n\nThe form of ``component`` selects how it resolves: a reference beginning\n``./`` or ``../`` names a document in the same repository, and one shaped\nlike a UUID names a published component and additionally requires\n``componentVersion``. See spec.md §4.1.",
-      "else": {
-        "required": [
-          "componentVersion"
-        ]
-      },
-      "if": {
-        "properties": {
-          "component": {
-            "pattern": "^\\.{1,2}/"
+      "allOf": [
+        {
+          "$comment": "spec.md §4.1. The form of `componentRef` decides whether a revision is required: a reference beginning ./ or ../ names a document whose own metadata.revision is the version deployed, so a second one here could contradict it. Moved into this allOf so the node two independent conditionals read as siblings — the reference form says nothing about compute, which is what the branch below is about, and externality is not a property of the reference form: a published reference names an external component as readily as a repo-local one does.",
+          "if": {
+            "properties": {
+              "componentRef": {
+                "pattern": "^\\.{1,2}/"
+              }
+            },
+            "required": [
+              "componentRef"
+            ]
+          },
+          "then": {
+            "properties": {
+              "revision": false
+            }
+          },
+          "else": {
+            "required": [
+              "revision"
+            ]
           }
         },
-        "required": [
-          "component"
-        ]
-      },
-      "then": {
-        "properties": {
-          "componentVersion": false
-        }
-      },
-      "properties": {
-        "advanced": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/BlueprintComputeConstraints"
+        {
+          "$comment": "spec.md §4.3 and §4.4. `size: null` is a node that runs no compute, which is the one thing a three-segment profile slug cannot say. A placement pin narrows the hosts a node may be placed on, and a node placed on none has nothing for one to narrow — so a pin is rejected rather than ignored, which is the rule component §5 states for a forbidden field.",
+          "if": {
+            "properties": {
+              "size": {
+                "type": "null"
+              }
             },
-            {
-              "type": "null"
+            "required": [
+              "size"
+            ]
+          },
+          "then": {
+            "properties": {
+              "placement": false
             }
-          ],
-          "default": null,
-          "description": "Optional advanced compute pins that narrow the eligible-host set at schedule time. Absent, null, and a block with no pin set all mean the same thing. See spec.md §4.4."
-        },
-        "component": {
+          }
+        }
+      ],
+      "properties": {
+        "componentRef": {
           "anyOf": [
             {
               "pattern": "^(?:\\./|(?:\\.\\./)+)(?:[A-Za-z0-9][A-Za-z0-9._-]*/)*[A-Za-z0-9][A-Za-z0-9._-]*\\.ya?ml$"
@@ -246,47 +202,61 @@
             }
           ],
           "$comment": "Both patterns are lookahead-free so they compile under RE2 as well as ECMA-262. A path segment must begin with a letter or digit, which is how `.` and `..` are excluded as interior segments without a negative lookahead; that leaves one spelling per target and keeps the containment check in the semantic phase from having to normalise first.",
-          "description": "Reference to the component document this node deploys, in one of two forms. A repo-local reference begins ./ or ../ and ends .yaml or .yml, and resolves relative to the directory holding this blueprint document; its version is the referenced document's metadata.version. A published reference is the component's UUID and requires componentVersion. The relative-path prefix is what tells the two apart — a bare slug is not distinguishable from a UUID.",
+          "description": "Reference to the component document this node deploys, in one of two forms. A repo-local reference begins ./ or ../ and ends .yaml or .yml, and resolves relative to the directory holding this blueprint document; its version is the referenced document's metadata.revision. A published reference is the component's UUID and requires revision. The relative-path prefix is what tells the two apart — a bare slug is not distinguishable from a UUID.",
           "maxLength": 256,
           "type": "string"
-        },
-        "componentVersion": {
-          "description": "Lineage version pinned by a published reference. Required on a published reference and rejected on a repo-local one, where the referenced document's own metadata.version supplies it.",
-          "minimum": 1,
-          "type": "integer"
         },
         "connections": {
           "additionalProperties": {
             "$ref": "#/$defs/BlueprintConnection"
           },
           "description": "Inbound wires for this node, keyed by the consumer input key each fills (value names the producer role and output; one wire per input).",
-          "type": "object"
+          "type": "object",
+          "propertyNames": {
+            "$comment": "spec.md §4.2 / ADR 0007 §4. A connection key IS an input name — §4.2 makes the map key the input being filled — so it takes the input grammar rather than one of its own.",
+            "maxLength": 64,
+            "pattern": "^[a-z][a-zA-Z0-9]{0,63}$"
+          }
+        },
+        "placement": {
+          "description": "Optional placement compute pins that narrow the eligible-host set at schedule time. Absent and a block with no pin set mean the same thing. See spec.md §4.4.",
+          "$ref": "#/$defs/BlueprintComputeConstraints"
+        },
+        "revision": {
+          "description": "Lineage version pinned by a published reference. Required on a published reference and rejected on a repo-local one, where the referenced document's own metadata.revision supplies it.",
+          "minimum": 1,
+          "type": "integer"
         },
         "size": {
-          "$comment": "Lookahead-free, so it compiles under RE2 as well as ECMA-262. Only the grammar is here. Which profiles are actually offered changes when the platform gains hardware to back a tier, not when this schema is released, so membership is a capability check rather than an enum. See spec.md §4.3.",
-          "description": "Compute Profile slug bound to this node, in family.tier.size form — for example general.standard.small. Required per node, because a component document carries no compute of its own. The grammar is fixed here; the profiles actually on offer are published at https://api.musher.dev/v1/reference/compute-profiles.",
-          "maxLength": 64,
-          "pattern": "^(general|compute|memory|storage|gpu|accelerator)\\.(economy|standard|performance|premium)\\.(nano|small|medium|large|xlarge)$",
-          "type": "string"
+          "$comment": "Lookahead-free, so it compiles under RE2 as well as ECMA-262. Only the grammar is here; membership is a capability check (spec.md §4.3). `null` is the spelling for a node that runs no compute, and it is the third placement ADR 0007 §5 leaves a field nullable: it says something omission does not, so the field stays REQUIRED and an author records deliberately-none rather than leaving it out.",
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "pattern": "^(general|compute|memory|storage|gpu|accelerator)\\.(economy|standard|performance|premium)\\.(nano|small|medium|large|xlarge)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Compute Profile slug bound to this node, in family.tier.size form — for example general.standard.small — or null where the node deploys a component this platform does not run and there is no compute to name. Required either way, because a component document carries no compute of its own. The profiles actually on offer are published at https://api.musher.dev/v1/reference/compute-profiles."
         }
       },
       "required": [
-        "component",
+        "componentRef",
         "size"
       ],
       "type": "object",
       "x-additionalPropertiesName": "nodeName"
     },
     "BlueprintParameter": {
-      "$comment": "spec.md §5.3: a generated value is secret material, and isSensitive is required explicitly because its default is false — the wrong answer here. The derived path inherits the marking from the input, which component §6.1 already obliges; this keeps the authored path from being the way to lose it. A platformDefault is forbidden beside a generator for the same reason it is on an input: minting a value and deriving one are two answers to one question. Mirrors ComponentInput's generator branch.",
+      "$comment": "spec.md §5.3: a generated value is secret material, and sensitive is required explicitly because its default is false — the wrong answer here. The derived path inherits the marking from the input, which component §6.1 already obliges; this keeps the authored path from being the way to lose it. A platformDefault is forbidden beside a generator for the same reason it is on an input: minting a value and deriving one are two answers to one question. Mirrors ComponentInput's generator branch.",
       "additionalProperties": false,
       "description": "An install-form parameter composed at the graph layer (map value; keyed by key).",
       "if": {
         "properties": {
           "generator": {
-            "not": {
-              "type": "null"
-            }
+            "type": "object"
           }
         },
         "required": [
@@ -295,59 +265,33 @@
       },
       "then": {
         "properties": {
-          "platformDefault": {
-            "type": "null"
-          },
+          "platformDefault": false,
           "schema": {
             "properties": {
-              "isSensitive": {
+              "sensitive": {
                 "const": true
               }
             },
             "required": [
-              "isSensitive"
+              "sensitive"
             ]
           }
         }
       },
       "properties": {
         "description": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Help text shown beneath the field, or null when none is set."
+          "description": "Help text shown beneath the field. Omitted when none is set.",
+          "type": "string"
         },
         "generator": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/BlueprintParameterGenerator"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Auto-generation spec when the platform mints the value at deploy time, or null when the deploying user supplies it."
+          "description": "Auto-generation spec when the platform mints the value at deploy time. Omitted when the deploying user supplies it.",
+          "$ref": "#/$defs/BlueprintParameterGenerator"
         },
         "platformDefault": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/BlueprintPlatformDefault"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Default the platform supplies when the deploying user does not; null when it does not supply one. A SELF_ADDRESS default resolves against each node this parameter covers."
+          "description": "Default the platform supplies when the deploying user does not. Omitted when it does not supply one. A SELF_ADDRESS default resolves against each node this parameter covers.",
+          "$ref": "#/$defs/BlueprintPlatformDefault"
         },
-        "isRequired": {
+        "required": {
           "default": false,
           "description": "True when the deploying user must provide a value before deploying.",
           "type": "boolean"
@@ -377,16 +321,8 @@
           "type": "integer"
         },
         "charset": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Explicit character set for the generated value, or null when the encoding default is used."
+          "description": "Explicit character set for the generated value. Omitted when the encoding default is used.",
+          "type": "string"
         },
         "encoding": {
           "default": "HEX",
@@ -465,9 +401,7 @@
               "enum": {
                 "maxItems": 0
               },
-              "pattern": {
-                "type": "null"
-              }
+              "pattern": false
             }
           }
         },
@@ -487,9 +421,7 @@
           },
           "then": {
             "properties": {
-              "format": {
-                "type": "null"
-              }
+              "format": false
             }
           }
         }
@@ -497,16 +429,8 @@
       "description": "Data contract of an install-form parameter value (JSON-Schema subset).",
       "properties": {
         "default": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Pre-filled value, or null when the deploying user must supply one."
+          "description": "Pre-filled value. Omitted when the deploying user must supply one.",
+          "type": "string"
         },
         "enum": {
           "description": "Allowed values when the value is a closed enumeration; empty when unconstrained. MUST be empty where the type is JSON.",
@@ -516,41 +440,32 @@
           "type": "array"
         },
         "format": {
-          "anyOf": [
-            {
-              "enum": [
-                "EMAIL",
-                "URI",
-                "ENDPOINT_URL",
-                "CONNECTION_STRING",
-                "HOSTNAME",
-                "TIMEZONE"
-              ],
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
+          "description": "Semantic refinement of a STRING value: EMAIL, URI, ENDPOINT_URL, CONNECTION_STRING, HOSTNAME, or TIMEZONE. Omitted when unrefined, and MUST NOT be present where the type is not STRING. Component spec.md §6.3 names where each convention is published.",
+          "enum": [
+            "EMAIL",
+            "URI",
+            "ENDPOINT_URL",
+            "CONNECTION_STRING",
+            "HOSTNAME",
+            "TIMEZONE"
           ],
-          "default": null,
-          "description": "Semantic refinement of a STRING value: EMAIL, URI, ENDPOINT_URL, CONNECTION_STRING, HOSTNAME, or TIMEZONE; null when unrefined. MUST be null where the type is not STRING. Component spec.md §6.3 names where each convention is published."
+          "type": "string"
         },
-        "isSensitive": {
+        "pattern": {
+          "description": "Regular expression the supplied value must match. Omitted when unconstrained, and MUST NOT be present where the type is JSON.",
+          "type": "string"
+        },
+        "resourceType": {
+          "$comment": "spec.md §5.3. The same block component §6.3 defines. It is carried here because §5.1 carries it through on the derived path, and a parameter that could not express it would silently drop the tag on the authored path — the path §5.2 pushes an author onto.",
+          "description": "Namespaced identifier of the backing resource this value addresses, matched by the blueprint connection gate when wiring the value into a consumer input. Omitted when the value addresses no particular resource. spec.md §6.3 names where the identifiers are published.",
+          "maxLength": 255,
+          "pattern": "^[a-z][a-z0-9]*(\\.[a-z0-9][a-z0-9-]*)+$",
+          "type": "string"
+        },
+        "sensitive": {
           "default": false,
           "description": "True when the value is secret material: masked in UIs, never echoed back.",
           "type": "boolean"
-        },
-        "pattern": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Regular expression the supplied value must match, or null when unconstrained. MUST be null where the type is JSON."
         },
         "type": {
           "description": "Shape of the value's string form: STRING is any text, NUMBER a JSON number, BOOLEAN true or false, JSON a JSON document of any kind.",
@@ -574,17 +489,9 @@
       "description": "Default the platform supplies when the deploying user does not. Which endpoint a SELF_ADDRESS default derives from is named rather than assumed, because component spec.md §5.2 permits more than one PUBLIC endpoint.",
       "properties": {
         "endpoint": {
-          "anyOf": [
-            {
-              "pattern": "^[a-z][a-z0-9]{0,19}$",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Name of the PUBLIC endpoint the value is derived from. Null selects the primary endpoint component spec.md §5.2 elects."
+          "description": "Name of the PUBLIC endpoint the value is derived from. Omitted, it selects the primary endpoint component spec.md §5.2 elects.",
+          "pattern": "^[a-z][a-z0-9]{0,19}$",
+          "type": "string"
         },
         "source": {
           "description": "What is derived. PUBLIC_HOSTNAME for the endpoint's hostname alone and PUBLIC_URL for its full URL, both from the URL an HTTP-family endpoint publishes; PUBLIC_ADDRESS for the full host:port and PUBLIC_PORT for the port alone, both from the edge address a TCP or UDP endpoint publishes.",
@@ -630,7 +537,12 @@
             "$ref": "#/$defs/BlueprintParameter"
           },
           "description": "Authored install-form parameter overrides, keyed by parameter key. Empty means the parameters are derived from the graph's merged USER-supplied inputs.",
-          "type": "object"
+          "type": "object",
+          "propertyNames": {
+            "$comment": "spec.md §4 / ADR 0007 §4. An input, output and parameter name is lowerCamelCase: it is bound by key across three documents — the input, the connection key that fills it, and the parameter that covers it — and it is read by a person in an install form. Kebab-case survives neither the binding nor a generated SDK type without a translation nobody has to write today.",
+            "maxLength": 64,
+            "pattern": "^[a-z][a-zA-Z0-9]{0,63}$"
+          }
         }
       },
       "required": [

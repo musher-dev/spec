@@ -5,13 +5,13 @@ specVersion: v1
 kind: BLUEPRINT
 metadata:
   slug: postgres
-  version: 1
+  revision: 1
 spec:
   components:
     db:
-      component: ./components/postgres.yaml
+      componentRef: ./components/postgres.yaml
       size: storage.standard.large
-      advanced:
+      placement:
         storageClass: Local NVMe
       connections: {}
   parameters: {}

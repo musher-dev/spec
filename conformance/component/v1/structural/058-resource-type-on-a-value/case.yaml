@@ -1,0 +1,36 @@
+# Both ends of one tag in one document, so the grammar is pinned for an input
+# and an output alike. The identifiers are namespaced because membership is a
+# registry §6.3 puts outside this repository — which is the whole point of the
+# namespace: `com.acme.billing.tenant-key` addresses something this
+# specification has never heard of, and an offline validator must accept it.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  revision: 1
+spec:
+  workload:
+    type: SERVICE
+    source:
+      type: IMAGE
+      ref: postgres:17.10-alpine
+    endpoints:
+      primary:
+        containerPort: 5432
+        protocol: TCP
+        visibility: PRIVATE
+  contract:
+    inputs:
+      tenantKey:
+        schema:
+          type: STRING
+          sensitive: true
+          resourceType: com.acme.billing.tenant-key
+        ui:
+          label: Acme tenant key
+    outputs:
+      connectionString:
+        schema:
+          type: STRING
+          sensitive: true
+          resourceType: dev.musher.postgresql.connection-string
+        valueFrom: DERIVED

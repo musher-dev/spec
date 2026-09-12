@@ -1,0 +1,25 @@
+specVersion: v1
+kind: COMPONENT
+metadata:
+  revision: 1
+spec:
+  workload:
+    type: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+    endpoints:
+      web:
+        containerPort: 8080
+        protocol: HTTP
+        visibility: PRIVATE
+  contract:
+    inputs:
+      databaseUrl:
+        schema:
+          type: STRING
+          format: CONNECTION_STRING
+          resourceType: dev.musher.mysql.connection-string
+          sensitive: true
+        suppliedBy: CONNECTION
+    outputs: {}

@@ -1,0 +1,7 @@
+{
+  "id": "structural-031-connection-key-outside-the-grammar",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#connections",
+  "summary": "A connection key outside the input grammar is rejected."
+}

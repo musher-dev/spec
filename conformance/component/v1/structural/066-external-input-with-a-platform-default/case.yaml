@@ -1,0 +1,30 @@
+# A platform default derives from the component's own public addressing, and an
+# external node has none — the same objection §6.1 raises against a platform
+# default beside suppliedBy: CONNECTION, reached from a different direction.
+# The exclusion is about what SELF_ADDRESS means rather than about platform
+# defaults as a class, which §10 records.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  revision: 1
+spec:
+  external:
+    resourceType: dev.musher.llm.chat-completions
+  contract:
+    inputs:
+      baseUrl:
+        schema:
+          type: STRING
+          format: ENDPOINT_URL
+        platformDefault:
+          type: SELF_ADDRESS
+          source: PUBLIC_URL
+        ui:
+          label: API base URL
+    outputs:
+      baseUrl:
+        schema:
+          type: STRING
+          format: ENDPOINT_URL
+        valueFrom: INPUT
+        input: baseUrl

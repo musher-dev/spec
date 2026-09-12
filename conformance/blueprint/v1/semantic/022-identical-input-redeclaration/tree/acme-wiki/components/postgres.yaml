@@ -1,18 +1,17 @@
-# The same declaration, written differently. `isSensitive` comes first here and
-# `semanticType` is written out at the value it defaults to, so a byte-for-byte
-# or key-order-sensitive comparison of the two schema blocks calls these
-# different. §5.2's test is equality once defaults are applied, and by that test
-# they are the same declaration.
+# The same declaration, written differently. `sensitive` comes first here and
+# second in `api.yaml`, so a key-order-sensitive comparison of the two schema
+# blocks calls these different. §5.2's test is equality once defaults are
+# applied, and by that test they are the same declaration.
 #
-# `ui` and `isRequired` both differ, and §5.2 excludes both: they describe how a
+# `ui` and `required` both differ, and §5.2 excludes both: they describe how a
 # value is asked for, not what it is.
 specVersion: v1
 kind: COMPONENT
 metadata:
-  version: 1
+  revision: 1
 spec:
   workload:
-    kind: SERVICE
+    type: SERVICE
     source:
       type: IMAGE
       ref: postgres:17.10-alpine
@@ -25,11 +24,10 @@ spec:
     inputs:
       adminPassword:
         schema:
-          isSensitive: true
-          semanticType: null
+          sensitive: true
           type: STRING
         suppliedBy: USER
-        isRequired: false
+        required: false
         ui:
           label: Database superuser password
     outputs: {}

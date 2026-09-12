@@ -1,0 +1,7 @@
+{
+  "id": "structural-055-volume-name-outside-the-grammar",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#volumes",
+  "summary": "A volume name outside the DNS-label grammar is rejected."
+}

@@ -1,0 +1,22 @@
+# Both ends are STRING, so the type axis agrees. `db` publishes a POSTGRES
+# connection string and `web` asks for a MYSQL one — a mismatch only the
+# resourceType tag can see, and the mistake the tag exists to catch.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  revision: 1
+spec:
+  components:
+    db:
+      componentRef: ./components/postgres.yaml
+      size: general.standard.small
+      connections: {}
+    web:
+      componentRef: ./components/web.yaml
+      size: general.standard.small
+      connections:
+        databaseUrl:
+          fromRole: db
+          fromOutput: connectionString
+  parameters: {}

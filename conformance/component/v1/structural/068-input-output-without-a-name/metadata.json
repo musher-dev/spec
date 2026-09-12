@@ -1,0 +1,8 @@
+{
+  "id": "structural-068-input-output-without-a-name",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#outputs",
+  "requirements": ["COMP-OUT-001"],
+  "summary": "An INPUT output without an input reference is rejected."
+}

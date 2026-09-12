@@ -1,0 +1,6 @@
+[
+  {
+    "code": "ERR_INCOMPATIBLE_PARAMETER_RESOURCE_TYPE",
+    "path": "/spec/parameters/databaseUrl/schema/resourceType"
+  }
+]

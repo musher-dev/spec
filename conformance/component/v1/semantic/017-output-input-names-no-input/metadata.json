@@ -1,0 +1,8 @@
+{
+  "id": "semantic-017-output-input-names-no-input",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#outputs",
+  "requirements": ["COMP-OUT-002"],
+  "summary": "An INPUT output naming no input of this component is rejected."
+}

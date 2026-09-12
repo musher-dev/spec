@@ -1,0 +1,24 @@
+# A volume is materialised under its name, so the name has to survive being a
+# DNS label. `Data_Volume` fails on both counts the label grammar cares about —
+# an uppercase letter and an underscore — and the rejection is what stops a
+# name that cannot be materialised from reaching the platform as though it
+# could.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  revision: 1
+spec:
+  workload:
+    type: SERVICE
+    source:
+      type: IMAGE
+      ref: postgres:17.10-alpine
+    endpoints:
+      primary:
+        containerPort: 5432
+        protocol: TCP
+        visibility: PRIVATE
+    volumes:
+      Data_Volume:
+        sizeGiB: 10
+        mountPath: /var/lib/postgresql/data

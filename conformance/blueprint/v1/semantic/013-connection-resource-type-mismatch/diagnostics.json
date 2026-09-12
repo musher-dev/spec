@@ -1,0 +1,6 @@
+[
+  {
+    "code": "ERR_INCOMPATIBLE_RESOURCE_TYPE",
+    "path": "/spec/components/web/connections/databaseUrl/fromOutput"
+  }
+]

@@ -39,7 +39,7 @@ listing is never an input to deployment.
 ```yaml
 specVersion: v1
 kind: LISTING
-metadata: { slug: …, version: … }
+metadata: { slug: …, revision: … }
 spec: { listingKind: …, displayName: …, … }
 ```
 
@@ -54,13 +54,13 @@ format; `listingKind` identifies what the listing points at (`BLUEPRINT` or
 
 ## <a id="identity"></a>3. Identity
 
-`metadata` carries `slug` and `version` — the same shape a blueprint carries.
+`metadata` carries `slug` and `revision` — the same shape a blueprint carries.
 Where the item holds one, the two documents MUST agree.
 
 | ID | Rule | Diagnostic |
 |---|---|---|
 | <a id="LIST-ID-001"></a>`LIST-ID-001` | `metadata.slug` MUST equal the item directory name. | `ERR_SLUG_MISMATCH` |
-| <a id="LIST-ID-002"></a>`LIST-ID-002` | Where the item holds a blueprint, `metadata.version` MUST equal its `metadata.version`. | `ERR_VERSION_MISMATCH` |
+| <a id="LIST-ID-002"></a>`LIST-ID-002` | Where the item holds a blueprint, `metadata.revision` MUST equal its `metadata.revision`. | `ERR_VERSION_MISMATCH` |
 
 Both are `semantic`, and both are measured against the item root —
 [blueprint §3.1](../../blueprint/v1/spec.md#item-directory) where the item
@@ -68,12 +68,12 @@ holds a blueprint, [§3.1](#component-item) below where it does not. A listing
 handed over with no directory has no item root, and an implementation in that
 position MUST NOT report either rule.
 
-**The two documents are one item's two halves.** A listing whose version has
+**The two documents are one item's two halves.** A listing whose revision has
 moved ahead of its blueprint describes something other than what would be
 installed — this release's storefront copy over last release's graph. The rule
 is what keeps "read about this" and "install this" the same thing.
 
-**A `COMPONENT` item's listing version is bound to nothing, and that is a rule
+**A `COMPONENT` item's listing revision is bound to nothing, and that is a rule
 rather than the absence of one.** The rule above pins an item's two halves to
 each other, so it takes two. An item whose listing is
 `listingKind: COMPONENT` need not hold a blueprint, and where it holds none the
@@ -81,7 +81,7 @@ rule has no second operand — not a different one.
 
 The component documents beneath it are not that second operand.
 [Component §4](../../component/v1/spec.md#metadata) settles this for the
-blueprint shape already: an item's version counts releases of the item, a
+blueprint shape already: an item's revision counts releases of the item, a
 component's counts releases of the component, and in the published form one
 component is deployed by many items at once. The SHOULD stated there — that a
 release of a component an item deploys is accompanied by a release of the item
@@ -96,7 +96,7 @@ graph — and it would contradict component §4, which says no item is pinned to
 component beneath it.
 
 **What v1 does not constrain.** A listing declaring `listingKind: BLUEPRINT` in
-an item holding no `blueprint.yaml` is not detected. The version rule is
+an item holding no `blueprint.yaml` is not detected. The revision rule is
 conditioned on there being a sibling, so it goes silent rather than failing,
 and `listingKind` is presentation ([§1](#scope)) — nothing reads it to decide
 which files an item must hold. Closing this needs a rule that rejects items
@@ -106,7 +106,7 @@ validating today, which makes it a breaking change.
 
 [Blueprint §3.1](../../blueprint/v1/spec.md#item-directory) anchors the item
 root on `blueprint.yaml`. An item whose listing is `listingKind: COMPONENT` has
-no such file, and the version rule is not the only one that needs a root:
+no such file, and the revision rule is not the only one that needs a root:
 `metadata.slug` above is measured against one, and [§5](#media) resolves every
 media path inside one.
 
@@ -167,6 +167,15 @@ document for the case of a permitted one.
 
 `category` and `lifecycleStage` are controlled vocabularies, described in
 [§4.2](#vocabularies).
+
+**A tag is lowercase kebab-case.** Each member of `tags` MUST match
+`^[a-z0-9][a-z0-9-]{0,38}[a-z0-9]$`, and one that does not is rejected in the
+`structural` phase with `ERR_INVALID_VALUE`. A tag is a discovery key that a
+storefront groups listings by, so `Self-Hosted`, `self hosted` and
+`self-hosted` being three tags rather than one is a defect the grammar prevents
+instead of a normalisation every consumer has to reinvent. The vocabulary
+itself stays open — what a tag *says* is the author's, and only how it is
+spelled is this contract's.
 
 Featured-row placement is **not** part of this contract. A listing document
 MUST NOT declare `spec.featured`; promotion is a storefront-operator action,
@@ -396,7 +405,7 @@ family adds:
 | Code | Phase | Meaning |
 |---|---|---|
 | `ERR_SLUG_MISMATCH` | `semantic` | `metadata.slug` disagrees with the item directory name. |
-| `ERR_VERSION_MISMATCH` | `semantic` | `metadata.version` disagrees with the sibling blueprint document. |
+| `ERR_VERSION_MISMATCH` | `semantic` | `metadata.revision` disagrees with the sibling blueprint document. |
 | `ERR_MEDIA_NOT_FOUND` | `semantic` | A referenced media file does not exist. |
 | `ERR_PATH_ESCAPE` | `semantic` | A media path resolves outside the item directory. |
 | `ERR_DUPLICATE_MEDIA_BASENAME` | `semantic` | Two screenshots share a basename. |
@@ -431,8 +440,10 @@ the rule for admitting a `category` or `lifecycleStage` term, now
 What remains is a gap rather than a silence, and each is recorded where it
 applies: media dimensions and file size are unbounded ([§5](#media)), a
 `listingKind: BLUEPRINT` listing in an item holding no blueprint goes undetected
-([§3](#identity)), and `tags` and `license` are unbounded free text that nothing
-checks. Closing any of them rejects documents v1 accepts. See
+([§3](#identity)), and `license` is unbounded free text that nothing checks.
+Closing any of them rejects documents v1 accepts. `tags` was on that list and
+is not any longer: [§4](#presentation) fixes its spelling, though not its
+membership. See
 [component §10](../../component/v1/spec.md#known-debt).
 
 One debt is of a different kind, and is not closed by rejecting anything.
@@ -488,7 +499,8 @@ implementation MUST NOT decode or transcode a media file to validate it —
 [§5](#media) turns on existence and containment, and nothing here requires an
 image parser to be pointed at untrusted bytes.
 
-**Text fields are unbounded in ways worth knowing.** `tags` and `license` are
-free text that nothing checks ([§9](#known-debt)). A storefront MUST escape both
+**Text fields are unbounded in ways worth knowing.** `license` is free text that
+nothing checks, and a `tags` member is checked for its spelling and not its
+content ([§9](#known-debt)). A storefront MUST escape both
 on render and MUST NOT treat `license` as an assertion about licensing — it is
 an author's claim, not a verified fact.

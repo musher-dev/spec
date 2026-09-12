@@ -1,14 +1,14 @@
 # `type` is REQUIRED and carries no default, for the reason COMP-GEN-001 gives
-# for isSensitive: a discriminator a document may leave out is one two
+# for sensitive: a discriminator a document may leave out is one two
 # implementations may read differently. This is the shape every document used
 # to have, and it is the change that costs the pre-publication window.
 specVersion: v1
 kind: COMPONENT
 metadata:
-  version: 1
+  revision: 1
 spec:
   workload:
-    kind: SERVICE
+    type: SERVICE
     source:
       type: IMAGE
       ref: nginx:1.29.4-alpine
@@ -22,7 +22,7 @@ spec:
       publicUrl:
         schema:
           type: STRING
-        isRequired: false
+        required: false
         ui:
           label: Public URL
         platformDefault:

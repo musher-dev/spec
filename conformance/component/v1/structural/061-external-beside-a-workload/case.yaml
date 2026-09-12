@@ -1,0 +1,30 @@
+# Naming both is not a composition. A node this platform does not run has
+# nothing for a workload block to describe, so the two keys are alternatives
+# rather than layers. The diagnostic anchors at `workload` — the field that
+# should not have been there — which is the shape BlueprintNode uses for
+# `revision` on a repo-local reference.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  revision: 1
+spec:
+  external:
+    resourceType: dev.musher.llm.chat-completions
+  workload:
+    type: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+    endpoints:
+      web:
+        containerPort: 8080
+        protocol: HTTP
+        visibility: PRIVATE
+  contract:
+    inputs: {}
+    outputs:
+      baseUrl:
+        schema:
+          type: STRING
+        valueFrom: DECLARED
+        value: https://api.example.com/v1

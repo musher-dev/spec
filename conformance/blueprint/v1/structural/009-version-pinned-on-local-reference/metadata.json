@@ -3,5 +3,5 @@
   "phase": "structural",
   "expected": "fail",
   "clause": "specifications/blueprint/v1/spec.md#component-reference",
-  "summary": "componentVersion on a local reference is rejected; the version is the referenced document's own."
+  "summary": "revision on a local reference is rejected; the version is the referenced document's own."
 }

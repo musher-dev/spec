@@ -1,0 +1,19 @@
+# A pin narrows the hosts a node may be placed on, and a node placed on none
+# has nothing to narrow. Rejected rather than ignored, which is the rule
+# component §5 states for a forbidden field: an author who writes one believes
+# their node is being placed somewhere, and accepting it silently is how that
+# belief survives to production.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  revision: 1
+spec:
+  components:
+    models:
+      componentRef: ./components/models.yaml
+      size: null
+      placement:
+        cpuDedication: dedicated
+      connections: {}
+  parameters: {}

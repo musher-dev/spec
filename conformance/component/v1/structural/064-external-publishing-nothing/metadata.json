@@ -1,0 +1,8 @@
+{
+  "id": "structural-064-external-publishing-nothing",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#external",
+  "requirements": ["COMP-EXT-003"],
+  "summary": "An external component whose outputs mapping is empty is rejected."
+}

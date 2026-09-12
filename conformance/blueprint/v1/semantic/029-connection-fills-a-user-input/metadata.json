@@ -1,0 +1,9 @@
+{
+  "id": "semantic-029-connection-fills-a-user-input",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#connections",
+  "requirements": ["BP-CONN-001"],
+  "summary": "A connection filling a USER-supplied input is rejected.",
+  "document": "acme-wiki/blueprint.yaml"
+}

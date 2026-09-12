@@ -1,0 +1,25 @@
+# An INPUT output that names no input says the value comes from somewhere in
+# this component without saying where. `input` is REQUIRED on that member for
+# the same reason `value` is REQUIRED on DECLARED: the member is the promise and
+# the field is how it is kept.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  revision: 1
+spec:
+  external:
+    resourceType: dev.musher.llm.chat-completions
+  contract:
+    inputs:
+      baseUrl:
+        schema:
+          type: STRING
+          format: ENDPOINT_URL
+        ui:
+          label: API base URL
+    outputs:
+      baseUrl:
+        schema:
+          type: STRING
+          format: ENDPOINT_URL
+        valueFrom: INPUT

@@ -1,0 +1,8 @@
+{
+  "id": "structural-063-external-without-a-resource-type",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#external",
+  "requirements": ["COMP-EXT-002"],
+  "summary": "An external block without a resourceType is rejected."
+}

@@ -5,12 +5,12 @@ specVersion: v1
 kind: BLUEPRINT
 metadata:
   slug: postgres
-  version: 1
+  revision: 1
 spec:
   components:
     db:
-      component: 550e8400-e29b-41d4-a716-446655440000
-      componentVersion: 3
+      componentRef: 550e8400-e29b-41d4-a716-446655440000
+      revision: 3
       size: general.standard.small
       connections: {}
   parameters: {}

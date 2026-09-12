@@ -1,17 +1,17 @@
 # A generated value is secret material. Component §6.1 obliges a generated input
-# to declare isSensitive: true, and a derived parameter inherits that schema — so
+# to declare sensitive: true, and a derived parameter inherits that schema — so
 # the marking is guaranteed on the derivation path. Without the same rule here,
-# moving the secret onto the override path is enough to lose it, and isSensitive
+# moving the secret onto the override path is enough to lose it, and sensitive
 # defaults to false, so losing it takes no more than not mentioning it.
 specVersion: v1
 kind: BLUEPRINT
 metadata:
   slug: acme-wiki
-  version: 1
+  revision: 1
 spec:
   components:
     db:
-      component: ./components/postgres.yaml
+      componentRef: ./components/postgres.yaml
       size: general.standard.small
       connections: {}
   parameters:
@@ -21,6 +21,6 @@ spec:
       generator:
         byteLength: 32
         encoding: HEX
-      isRequired: true
+      required: true
       ui:
         label: Administrator password

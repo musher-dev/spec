@@ -1,0 +1,7 @@
+{
+  "id": "structural-017-tag-outside-the-grammar",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/listing/v1/spec.md#presentation",
+  "summary": "A tag outside the lowercase kebab-case grammar is rejected."
+}

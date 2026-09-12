@@ -1,0 +1,26 @@
+# The other direction, and it needs its own case because one code serves both:
+# `web` deploys a workload and declines to size it. `null` is a declaration
+# rather than an absence, so this is not the missing-field the structural phase
+# would catch — it is an author saying "no compute" about something that runs.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  revision: 1
+spec:
+  components:
+    models:
+      componentRef: ./components/models.yaml
+      size: null
+      connections: {}
+    web:
+      componentRef: ./components/web.yaml
+      size: null
+      connections:
+        llmBaseUrl:
+          fromRole: models
+          fromOutput: baseUrl
+        llmApiKey:
+          fromRole: models
+          fromOutput: apiKey
+  parameters: {}

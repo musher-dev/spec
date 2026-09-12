@@ -325,6 +325,50 @@ function checkEndpointReferences(document: Json, out: Diagnostic[]): void {
 }
 
 /**
+ * Component §6.2 — an `INPUT` output reads one of its own component's inputs,
+ * and may not read one a wire fills.
+ *
+ * The invariant §6.2 states is resolvability before any edge is bound. A `USER`
+ * input resolves at form submission, which is earlier than a `DERIVED` output
+ * resolves; only a `CONNECTION` input resolves after an edge, so only that one
+ * is excluded. Two codes rather than one, on §6.1's precedent for an endpoint
+ * reference: naming nothing and naming the wrong kind read differently to an
+ * author.
+ */
+function checkOutputInputReferences(document: Json, out: Diagnostic[]): void {
+  const contract = child(child(document, 'spec'), 'contract')
+  const inputs = child(contract, 'inputs')
+  const outputs = child(contract, 'outputs')
+
+  for (const name of keysOf(outputs)) {
+    const output = child(outputs, name)
+    if (asString(child(output, 'valueFrom')) !== 'INPUT') continue
+
+    const reference = asString(child(output, 'input'))
+    if (reference === undefined) continue // COMP-OUT-001, structural
+    const pointer = `/spec/contract/outputs/${token(name)}/input`
+
+    const input = child(inputs, reference)
+    if (input === undefined) {
+      out.push({
+        code: 'ERR_UNKNOWN_INPUT_REFERENCE',
+        path: pointer,
+        message: `output "${name}" reads input "${reference}", which this component does not declare`,
+      })
+      continue
+    }
+
+    if (child(input, 'suppliedBy') === 'CONNECTION') {
+      out.push({
+        code: 'ERR_INPUT_NOT_REFERENCEABLE',
+        path: pointer,
+        message: `output "${name}" reads input "${reference}", which a connection fills`,
+      })
+    }
+  }
+}
+
+/**
  * Component §5.3 — every environment-variable key is declared exactly once,
  * across both the places that declare one.
  *
@@ -663,7 +707,7 @@ function readDocument(path: string): Json | undefined {
 
 /**
  * Blueprint §3 and listing §3 — `metadata.slug` MUST equal the item directory
- * name, and `metadata.version` MUST equal the sibling document's.
+ * name, and `metadata.revision` MUST equal the sibling document's.
  */
 function checkIdentity(family: Family, document: Json, itemRoot: string, out: Diagnostic[]): void {
   const metadata = child(document, 'metadata')
@@ -685,12 +729,12 @@ function checkIdentity(family: Family, document: Json, itemRoot: string, out: Di
   if (!existsSync(siblingPath)) return
 
   const sibling = readDocument(siblingPath)
-  const version = child(metadata, 'version')
-  const siblingVersion = child(child(sibling, 'metadata'), 'version')
+  const version = child(metadata, 'revision')
+  const siblingVersion = child(child(sibling, 'metadata'), 'revision')
   if (sibling !== undefined && version !== siblingVersion) {
     out.push({
       code: 'ERR_VERSION_MISMATCH',
-      path: '/metadata/version',
+      path: '/metadata/revision',
       message: `version ${String(version)} disagrees with ${siblingName}'s ${String(siblingVersion)}`,
     })
   }
@@ -714,8 +758,8 @@ function checkGraphAgainstItem(
   const resolved = new Map<string, Json>()
 
   for (const node of keysOf(components)) {
-    const reference = asString(child(child(components, node), 'component'))
-    const pointer = `/spec/components/${token(node)}/component`
+    const reference = asString(child(child(components, node), 'componentRef'))
+    const pointer = `/spec/components/${token(node)}/componentRef`
     // A published reference is a UUID and belongs to the capability phase; only
     // the repo-local form resolves offline (§4.1).
     if (reference === undefined || !LOCAL_REFERENCE.test(reference)) continue
@@ -745,8 +789,10 @@ function checkGraphAgainstItem(
   checkUnreferencedComponents(itemRoot, documentPath, referenced, out)
   checkConnectionOutputs(components, resolved, out)
   checkConnectionInputs(components, resolved, out)
+  checkConnectableInputs(components, resolved, out)
   checkRequiredConnections(components, resolved, out)
   checkConnectionCompatibility(components, resolved, out)
+  checkNodeCompute(components, resolved, out)
 
   // §5's two paths are exclusive. An authored override is used in place of
   // derivation rather than merged with it (§5), so where one is written the
@@ -778,6 +824,82 @@ function checkUnreferencedComponents(
       // addresses this document, and the file it complains about is not in it.
       path: '/spec/components',
       message: `${relative(itemRoot, path)} is referenced by no node`,
+    })
+  }
+}
+
+/**
+ * Blueprint §4.2 — a connection may fill only a `CONNECTION` input.
+ *
+ * The gap this closes was recorded rather than decided: a wire and the install
+ * form would both claim the value, with nothing saying which arrives. It is the
+ * failure §5.2 rejects for merging and §5.3 for coverage, and admitting it at
+ * the third door would be the only place this contract tolerated it.
+ *
+ * It is also what component §6.2's `INPUT` output depends on. If a `USER` input
+ * could be wired, an output reading one could depend on an inbound edge, and
+ * §4.2's legal cycles would stop being resolvable.
+ */
+function checkConnectableInputs(
+  components: Json | undefined,
+  resolved: Map<string, Json>,
+  out: Diagnostic[],
+): void {
+  for (const node of keysOf(components)) {
+    const component = resolved.get(node)
+    if (component === undefined) continue
+    const inputs = child(child(child(component, 'spec'), 'contract'), 'inputs')
+    const connections = child(child(components, node), 'connections')
+
+    for (const key of keysOf(connections)) {
+      const input = child(inputs, key)
+      // Naming no input at all is ERR_UNKNOWN_INPUT, reported elsewhere; one
+      // mistake is not reported twice.
+      if (input === undefined) continue
+      // `suppliedBy` defaults to USER, and a default is invisible here, so an
+      // input saying nothing about who satisfies it is bound by this too.
+      if (child(input, 'suppliedBy') === 'CONNECTION') continue
+      out.push({
+        code: 'ERR_INPUT_NOT_CONNECTABLE',
+        path: `/spec/components/${token(node)}/connections/${token(key)}`,
+        message: `input "${key}" is not supplied by a connection`,
+      })
+    }
+  }
+}
+
+/**
+ * Blueprint §4.3 — a node names compute if and only if it runs something.
+ *
+ * One code for both directions: `ERR_CONFLICTING_*` in this repository means two
+ * declarations claiming one slot, which is what the node and the component it
+ * deploys are doing about this node's compute. Both anchor at the node's `size`,
+ * the field an author has to change.
+ *
+ * Goes silent for a published reference, on the terms §5.3 sets for every rule
+ * that reads a referenced component: `resolved` holds only what resolved
+ * offline.
+ */
+function checkNodeCompute(
+  components: Json | undefined,
+  resolved: Map<string, Json>,
+  out: Diagnostic[],
+): void {
+  for (const node of keysOf(components)) {
+    const component = resolved.get(node)
+    if (component === undefined) continue
+    const external = child(child(component, 'spec'), 'external') !== undefined
+    const size = child(child(components, node), 'size')
+    // An absent `size` is ERR_MISSING_FIELD in the structural phase; this rule
+    // is about the two declarations disagreeing, not about a missing one.
+    if (size === undefined) continue
+    if (external === (size === null)) continue
+    out.push({
+      code: 'ERR_CONFLICTING_NODE_COMPUTE',
+      path: `/spec/components/${token(node)}/size`,
+      message: external
+        ? `node "${node}" names compute for a component this platform does not run`
+        : `node "${node}" names no compute for a component that runs`,
     })
   }
 }
@@ -850,7 +972,7 @@ function checkConnectionInputs(
 /**
  * Blueprint §4.2 — a required `CONNECTION` input MUST be wired.
  *
- * `isRequired` defaults to true, so an absent key is a required input. A
+ * `required` defaults to true, so an absent key is a required input. A
  * `CONNECTION` input never reaches the install form, so a graph that leaves one
  * unwired has no later chance to supply it.
  */
@@ -868,7 +990,7 @@ function checkRequiredConnections(
     for (const key of keysOf(inputs)) {
       const input = child(inputs, key)
       if (child(input, 'suppliedBy') !== 'CONNECTION') continue
-      if (child(input, 'isRequired') === false) continue
+      if (child(input, 'required') === false) continue
       if (wired.has(key)) continue
       out.push({
         code: 'ERR_UNWIRED_REQUIRED_INPUT',
@@ -883,7 +1005,7 @@ function checkRequiredConnections(
  * Blueprint §4.2 — the two ends of a connection MUST fit.
  *
  * `type` is compared for equality with no widening in either direction; a
- * `semanticType` the consumer names must be matched exactly by the producer,
+ * `resourceType` the consumer names must be matched exactly by the producer,
  * while a consumer naming none accepts anything. Both ends always carry a
  * `schema` with a required `type`, so there is no unconstrained producer case.
  */
@@ -926,16 +1048,16 @@ function checkConnectionCompatibility(
         continue
       }
 
-      // A consumer naming no semanticType has said the value is not specific to
-      // a backing service, so nothing it receives can contradict that.
-      const toSemantic = asString(child(to, 'semanticType'))
-      if (toSemantic === undefined) continue
-      const fromSemantic = asString(child(from, 'semanticType'))
-      if (fromSemantic !== toSemantic) {
+      // A consumer naming no resourceType has said the value addresses no
+      // particular resource, so nothing it receives can contradict that.
+      const toResource = asString(child(to, 'resourceType'))
+      if (toResource === undefined) continue
+      const fromResource = asString(child(from, 'resourceType'))
+      if (fromResource !== toResource) {
         out.push({
-          code: 'ERR_INCOMPATIBLE_SEMANTIC_TYPE',
+          code: 'ERR_INCOMPATIBLE_RESOURCE_TYPE',
           path,
-          message: `input "${key}" requires ${toSemantic}, and output "${output}" declares ${fromSemantic ?? 'none'}`,
+          message: `input "${key}" requires ${toResource}, and output "${output}" declares ${fromResource ?? 'none'}`,
         })
       }
     }
@@ -948,7 +1070,7 @@ function checkConnectionCompatibility(
  * absorbed: two components that agree on what `adminPassword` is are not in
  * conflict.
  *
- * `ui` and `isRequired` are deliberately not compared. They describe how a value
+ * `ui` and `required` are deliberately not compared. They describe how a value
  * is asked for, not what it is.
  *
  * The comparison is over the *canonical* form of each schema block, because
@@ -984,7 +1106,7 @@ function checkInputMerge(
       if (earlier.schema === schema) continue
       out.push({
         code: 'ERR_CONFLICTING_INPUT_SCHEMA',
-        path: `/spec/components/${token(node)}/component`,
+        path: `/spec/components/${token(node)}/componentRef`,
         message: `input "${key}" is declared with a different schema by node "${earlier.node}"`,
       })
     }
@@ -999,9 +1121,9 @@ function checkInputMerge(
 const VALUE_SCHEMA_DEFAULTS: Record<string, Json> = {
   default: null,
   format: null,
-  isSensitive: false,
+  sensitive: false,
   pattern: null,
-  semanticType: null,
+  resourceType: null,
 }
 
 /**
@@ -1039,9 +1161,9 @@ function isSet(value: Json | undefined): boolean {
  */
 function mustBeSupplied(input: Json | undefined): boolean {
   if (child(input, 'suppliedBy') === 'CONNECTION') return false
-  // `isRequired` defaults to true on a component input, so an absent key is a
+  // `required` defaults to true on a component input, so an absent key is a
   // required one — hence `=== false` rather than `!== true`.
-  if (child(input, 'isRequired') === false) return false
+  if (child(input, 'required') === false) return false
   if (isSet(child(input, 'generator'))) return false
   if (isSet(child(input, 'platformDefault'))) return false
   return !isSet(child(child(input, 'schema'), 'default'))
@@ -1051,13 +1173,13 @@ function mustBeSupplied(input: Json | undefined): boolean {
  * Blueprint §5.3 — the parameter side. Naming the key is not enough; the
  * parameter has to actually ask for a value.
  *
- * `isRequired` defaults to **false** here, the opposite of a component input,
+ * `required` defaults to **false** here, the opposite of a component input,
  * which is why this tests `=== true` where `mustBeSupplied` tests `=== false`.
  * An override that copies a required input's key and says nothing else has made
  * it optional, and that is the case this catches.
  */
 function guaranteesValue(parameter: Json | undefined): boolean {
-  if (child(parameter, 'isRequired') === true) return true
+  if (child(parameter, 'required') === true) return true
   if (isSet(child(parameter, 'generator'))) return true
   return isSet(child(child(parameter, 'schema'), 'default'))
 }
@@ -1118,15 +1240,34 @@ function checkParameterBinding(
       continue
     }
 
-    // Only `type` is compared. §5.3 records the rest as silences, and `type` is
-    // REQUIRED on both sides, so this needs no defaulting pass.
-    const type = child(child(child(parameters, key), 'schema'), 'type')
+    // `type` and `resourceType` are compared. §5.3 records the rest as silences,
+    // and `type` is REQUIRED on both sides, so it needs no defaulting pass.
+    const schema = child(child(parameters, key), 'schema')
+    const type = child(schema, 'type')
     const mismatch = covered.find((input) => child(child(input, 'schema'), 'type') !== type)
-    if (mismatch === undefined) continue
+    if (mismatch !== undefined) {
+      out.push({
+        code: 'ERR_INCOMPATIBLE_PARAMETER_TYPE',
+        path: `${pointer}/schema/type`,
+        message: `parameter "${key}" declares ${String(type)} where an input it covers declares ${String(child(child(mismatch, 'schema'), 'type'))}`,
+      })
+      continue
+    }
+
+    // A parameter declaring no resourceType covers an input that declares one:
+    // the tag says what a value addresses, and an install form is not where a
+    // value acquires one. Declaring a different one is the error — the parameter
+    // would be answering for a resource the input does not address.
+    const resourceType = asString(child(schema, 'resourceType'))
+    if (resourceType === undefined) continue
+    const tagMismatch = covered.find(
+      (input) => asString(child(child(input, 'schema'), 'resourceType')) !== resourceType,
+    )
+    if (tagMismatch === undefined) continue
     out.push({
-      code: 'ERR_INCOMPATIBLE_PARAMETER_TYPE',
-      path: `${pointer}/schema/type`,
-      message: `parameter "${key}" declares ${String(type)} where an input it covers declares ${String(child(child(mismatch, 'schema'), 'type'))}`,
+      code: 'ERR_INCOMPATIBLE_PARAMETER_RESOURCE_TYPE',
+      path: `${pointer}/schema/resourceType`,
+      message: `parameter "${key}" declares ${resourceType} where an input it covers declares ${asString(child(child(tagMismatch, 'schema'), 'resourceType')) ?? 'none'}`,
     })
   }
 
@@ -1161,6 +1302,7 @@ export function semanticDiagnostics(
   if (family.name === 'component') {
     checkImageRef(document, out)
     checkEndpointReferences(document, out)
+    checkOutputInputReferences(document, out)
     checkEnvVarKeys(document, out)
     checkEnumLabels(
       child(child(child(document, 'spec'), 'contract'), 'inputs'),

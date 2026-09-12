@@ -1,6 +1,6 @@
 [
   {
     "code": "ERR_UNKNOWN_OUTPUT",
-    "path": "/spec/components/web/connections/DATABASE_URL/fromOutput"
+    "path": "/spec/components/web/connections/databaseUrl/fromOutput"
   }
 ]

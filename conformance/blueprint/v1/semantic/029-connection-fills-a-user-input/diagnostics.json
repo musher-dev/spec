@@ -1,0 +1,6 @@
+[
+  {
+    "code": "ERR_INPUT_NOT_CONNECTABLE",
+    "path": "/spec/components/web/connections/llmBaseUrl"
+  }
+]

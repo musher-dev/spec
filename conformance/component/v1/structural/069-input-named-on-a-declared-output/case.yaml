@@ -1,0 +1,33 @@
+# The converse of COMP-OUT-001. A DECLARED output carries its value in this
+# document, so an `input` beside it is a second answer to a question already
+# answered, and nothing would decide which one the consumer receives — the
+# failure §5.3 rejects for an env key claimed twice, arriving at an output.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  revision: 1
+spec:
+  workload:
+    type: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+    endpoints:
+      web:
+        containerPort: 8080
+        protocol: HTTP
+        visibility: PRIVATE
+  contract:
+    inputs:
+      siteTitle:
+        schema:
+          type: STRING
+        ui:
+          label: Site title
+    outputs:
+      siteTitle:
+        schema:
+          type: STRING
+        valueFrom: DECLARED
+        value: My Application
+        input: siteTitle

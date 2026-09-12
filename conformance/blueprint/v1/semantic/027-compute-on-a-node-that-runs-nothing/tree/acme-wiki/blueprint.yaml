@@ -1,0 +1,26 @@
+# A profile named for a component this platform does not run. The slug is
+# grammatical and the node is not, which is why the rule is BP-NODE-002 and not
+# the pattern: nothing about `general.standard.small` is wrong except that there
+# is no workload for it to size.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  revision: 1
+spec:
+  components:
+    models:
+      componentRef: ./components/models.yaml
+      size: general.standard.small
+      connections: {}
+    web:
+      componentRef: ./components/web.yaml
+      size: general.standard.small
+      connections:
+        llmBaseUrl:
+          fromRole: models
+          fromOutput: baseUrl
+        llmApiKey:
+          fromRole: models
+          fromOutput: apiKey
+  parameters: {}

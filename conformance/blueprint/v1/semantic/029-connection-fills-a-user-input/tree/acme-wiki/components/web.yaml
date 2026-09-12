@@ -1,0 +1,32 @@
+specVersion: v1
+kind: COMPONENT
+metadata:
+  revision: 1
+spec:
+  workload:
+    type: SERVICE
+    source:
+      type: IMAGE
+      ref: ghcr.io/example/app:1.4.2
+    endpoints:
+      web:
+        containerPort: 8080
+        protocol: HTTP
+        visibility: PUBLIC
+    health:
+      readiness:
+        path: /healthz
+        endpoint: web
+  contract:
+    inputs:
+      llmBaseUrl:
+        schema:
+          type: STRING
+          format: ENDPOINT_URL
+          resourceType: dev.musher.llm.base-url
+        suppliedBy: USER
+        ui:
+          label: Model base URL
+        target:
+          envVarKey: OPENAI_API_BASE_URL
+    outputs: {}

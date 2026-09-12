@@ -1,0 +1,8 @@
+{
+  "id": "semantic-018-output-reads-a-connection-input",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#outputs",
+  "requirements": ["COMP-OUT-003"],
+  "summary": "An INPUT output reading a CONNECTION input is rejected."
+}

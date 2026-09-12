@@ -2,6 +2,6 @@
   "id": "structural-021-unknown-cpu-dedication",
   "phase": "structural",
   "expected": "fail",
-  "clause": "specifications/blueprint/v1/spec.md#advanced-constraints",
+  "clause": "specifications/blueprint/v1/spec.md#placement-constraints",
   "summary": "cpuDedication is closed to shared and dedicated."
 }

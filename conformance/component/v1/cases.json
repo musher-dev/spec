@@ -328,6 +328,91 @@
       "path": "structural/052-generated-input-with-platform-default"
     },
     {
+      "id": "structural-053-input-name-outside-the-grammar",
+      "phase": "structural",
+      "path": "structural/053-input-name-outside-the-grammar"
+    },
+    {
+      "id": "structural-054-output-name-outside-the-grammar",
+      "phase": "structural",
+      "path": "structural/054-output-name-outside-the-grammar"
+    },
+    {
+      "id": "structural-055-volume-name-outside-the-grammar",
+      "phase": "structural",
+      "path": "structural/055-volume-name-outside-the-grammar"
+    },
+    {
+      "id": "structural-056-build-argument-name-outside-the-grammar",
+      "phase": "structural",
+      "path": "structural/056-build-argument-name-outside-the-grammar"
+    },
+    {
+      "id": "structural-057-optional-field-written-null",
+      "phase": "structural",
+      "path": "structural/057-optional-field-written-null"
+    },
+    {
+      "id": "structural-058-resource-type-on-a-value",
+      "phase": "structural",
+      "path": "structural/058-resource-type-on-a-value"
+    },
+    {
+      "id": "structural-059-resource-type-outside-the-grammar",
+      "phase": "structural",
+      "path": "structural/059-resource-type-outside-the-grammar"
+    },
+    {
+      "id": "structural-060-external-component",
+      "phase": "structural",
+      "path": "structural/060-external-component"
+    },
+    {
+      "id": "structural-061-external-beside-a-workload",
+      "phase": "structural",
+      "path": "structural/061-external-beside-a-workload"
+    },
+    {
+      "id": "structural-062-component-with-neither-shape",
+      "phase": "structural",
+      "path": "structural/062-component-with-neither-shape"
+    },
+    {
+      "id": "structural-063-external-without-a-resource-type",
+      "phase": "structural",
+      "path": "structural/063-external-without-a-resource-type"
+    },
+    {
+      "id": "structural-064-external-publishing-nothing",
+      "phase": "structural",
+      "path": "structural/064-external-publishing-nothing"
+    },
+    {
+      "id": "structural-065-external-output-derived",
+      "phase": "structural",
+      "path": "structural/065-external-output-derived"
+    },
+    {
+      "id": "structural-066-external-input-with-a-platform-default",
+      "phase": "structural",
+      "path": "structural/066-external-input-with-a-platform-default"
+    },
+    {
+      "id": "structural-067-input-output-on-a-workload",
+      "phase": "structural",
+      "path": "structural/067-input-output-on-a-workload"
+    },
+    {
+      "id": "structural-068-input-output-without-a-name",
+      "phase": "structural",
+      "path": "structural/068-input-output-without-a-name"
+    },
+    {
+      "id": "structural-069-input-named-on-a-declared-output",
+      "phase": "structural",
+      "path": "structural/069-input-named-on-a-declared-output"
+    },
+    {
       "id": "semantic-001-floating-tag-image-reference",
       "phase": "semantic",
       "path": "semantic/001-floating-tag-image-reference"
@@ -401,6 +486,21 @@
       "id": "semantic-015-enum-labels-cover-some-members",
       "phase": "semantic",
       "path": "semantic/015-enum-labels-cover-some-members"
+    },
+    {
+      "id": "semantic-016-output-reads-a-user-input",
+      "phase": "semantic",
+      "path": "semantic/016-output-reads-a-user-input"
+    },
+    {
+      "id": "semantic-017-output-input-names-no-input",
+      "phase": "semantic",
+      "path": "semantic/017-output-input-names-no-input"
+    },
+    {
+      "id": "semantic-018-output-reads-a-connection-input",
+      "phase": "semantic",
+      "path": "semantic/018-output-reads-a-connection-input"
     }
   ]
 }

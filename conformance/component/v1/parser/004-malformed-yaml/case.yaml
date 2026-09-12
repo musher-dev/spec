@@ -4,4 +4,4 @@
 specVersion: v1
 kind: COMPONENT
 metadata:
-	version: 1
+	revision: 1

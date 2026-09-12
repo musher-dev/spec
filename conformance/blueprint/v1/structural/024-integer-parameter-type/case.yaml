@@ -6,17 +6,17 @@ specVersion: v1
 kind: BLUEPRINT
 metadata:
   slug: acme-wiki
-  version: 1
+  revision: 1
 spec:
   components:
     db:
-      component: ./components/postgres.yaml
+      componentRef: ./components/postgres.yaml
       size: general.standard.small
       connections: {}
   parameters:
     replicaCount:
       schema:
         type: INTEGER
-      isRequired: true
+      required: true
       ui:
         label: Replica count

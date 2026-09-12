@@ -9,28 +9,28 @@ specVersion: v1
 kind: BLUEPRINT
 metadata:
   slug: mutual-discovery
-  version: 1
+  revision: 1
 spec:
   components:
     queue:
-      component: ./components/queue.yaml
+      componentRef: ./components/queue.yaml
       size: general.standard.small
       connections:
-        DB_URL:
+        dbUrl:
           fromRole: db
           fromOutput: privateAddress
     db:
-      component: ./components/db.yaml
+      componentRef: ./components/db.yaml
       size: general.standard.small
       connections:
-        CACHE_URL:
+        cacheUrl:
           fromRole: cache
           fromOutput: privateAddress
     cache:
-      component: ./components/cache.yaml
+      componentRef: ./components/cache.yaml
       size: general.standard.small
       connections:
-        QUEUE_URL:
+        queueUrl:
           fromRole: queue
           fromOutput: privateAddress
   parameters: {}

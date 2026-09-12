@@ -1,0 +1,7 @@
+{
+  "id": "structural-032-parameter-name-outside-the-grammar",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#parameters",
+  "summary": "A parameter name outside the input grammar is rejected."
+}

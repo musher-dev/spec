@@ -1,0 +1,8 @@
+{
+  "id": "structural-059-resource-type-outside-the-grammar",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#value-schema",
+  "requirements": ["COMP-VAL-005"],
+  "summary": "An unqualified resourceType is rejected; the identifier is namespaced."
+}

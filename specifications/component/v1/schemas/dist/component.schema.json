@@ -41,32 +41,21 @@
           "additionalProperties": {
             "type": "string"
           },
+          "propertyNames": {
+            "$comment": "spec.md §5.1 / ADR 0007 §4. A build argument becomes an environment variable in the build context, so it takes the environment-variable grammar rather than one of its own.",
+            "maxLength": 128,
+            "pattern": "^[A-Z_][A-Z0-9_]*$"
+          },
           "type": "object",
           "x-additionalPropertiesName": "argumentName"
         },
         "builderImage": {
-          "description": "Buildpacks builder image, or null when not building with buildpacks.",
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
+          "description": "Buildpacks builder image. Omitted when not building with buildpacks.",
+          "type": "string"
         },
         "dockerfilePath": {
-          "description": "Path to the Dockerfile relative to the repo root, or null when not using a Dockerfile.",
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
+          "description": "Path to the Dockerfile relative to the repo root. Omitted when not using a Dockerfile.",
+          "type": "string"
         },
         "strategy": {
           "description": "How the git source becomes an image: DOCKERFILE or BUILDPACKS.",
@@ -112,12 +101,22 @@
           "additionalProperties": {
             "$ref": "#/$defs/ComponentInput"
           },
+          "propertyNames": {
+            "$comment": "spec.md §4 / ADR 0007 §4. An input, output and parameter name is lowerCamelCase: it is bound by key across three documents — the input, the connection key that fills it, and the parameter that covers it — and it is read by a person in an install form. Kebab-case survives neither the binding nor a generated SDK type without a translation nobody has to write today.",
+            "maxLength": 64,
+            "pattern": "^[a-z][a-zA-Z0-9]{0,63}$"
+          },
           "type": "object"
         },
         "outputs": {
           "description": "Typed output declarations keyed by output name.",
           "additionalProperties": {
             "$ref": "#/$defs/ComponentOutput"
+          },
+          "propertyNames": {
+            "$comment": "spec.md §4 / ADR 0007 §4. An input, output and parameter name is lowerCamelCase: it is bound by key across three documents — the input, the connection key that fills it, and the parameter that covers it — and it is read by a person in an install form. Kebab-case survives neither the binding nor a generated SDK type without a translation nobody has to write today.",
+            "maxLength": 64,
+            "pattern": "^[a-z][a-zA-Z0-9]{0,63}$"
           },
           "type": "object"
         }
@@ -199,6 +198,24 @@
       ],
       "type": "object"
     },
+    "ComponentExternal": {
+      "description": "A node this platform does not run. It has no image, no compute and no address of its own, and what it publishes comes from what the deploying user supplies it. resourceType names what it addresses.",
+      "$comment": "spec.md §5.6. resourceType is REQUIRED for the reason ADR 0018 §5 gives for platformDefault.type — an identifier a document may leave out is one two implementations may read differently, and introducing it later is introducing a required field later. It is ADR 0009 grammar and ADR 0009 registry, read at node scope rather than value scope: a node identity is a different claim from a value compatibility tag, and three tagged outputs do not compose into one.",
+      "additionalProperties": false,
+      "properties": {
+        "resourceType": {
+          "description": "Namespaced identifier for what this node addresses. The grammar is fixed by spec.md §6.3; the identifiers on offer are published at https://api.musher.dev/v1/reference/resource-types.",
+          "$comment": "ADR 0009 §1 grammar, read at node scope. The grammar is this contract and the membership is not — an identifier the registry does not name is reserved rather than invalid, which is why ERR_UNKNOWN_RESOURCE_TYPE is capability.",
+          "maxLength": 255,
+          "pattern": "^[a-z][a-z0-9]*(\\.[a-z0-9][a-z0-9-]*)+$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "resourceType"
+      ],
+      "type": "object"
+    },
     "ComponentGitRef": {
       "additionalProperties": false,
       "properties": {
@@ -229,16 +246,8 @@
           "$ref": "#/$defs/ComponentBuild"
         },
         "ref": {
-          "description": "Branch or commit to build from, or null when unpinned.",
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ComponentGitRef"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
+          "description": "Branch or commit to build from. Omitted when unpinned.",
+          "$ref": "#/$defs/ComponentGitRef"
         },
         "repositoryUrl": {
           "description": "Git repository URL the platform builds into an image.",
@@ -263,39 +272,15 @@
       "properties": {
         "liveness": {
           "description": "Aliveness gate; failure restarts the container. Optional.",
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ComponentProbe"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
+          "$ref": "#/$defs/ComponentProbe"
         },
         "readiness": {
           "description": "Traffic gate; failure pulls the replica from routing without a restart. Required for a SERVICE exposing a public endpoint.",
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ComponentProbe"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
+          "$ref": "#/$defs/ComponentProbe"
         },
         "startup": {
           "description": "Initialization gate; failure means not-yet-started. Optional.",
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ComponentProbe"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
+          "$ref": "#/$defs/ComponentProbe"
         }
       },
       "type": "object"
@@ -349,26 +334,18 @@
           },
           "then": {
             "properties": {
-              "generator": {
-                "type": "null"
-              },
-              "platformDefault": {
-                "type": "null"
-              },
-              "ui": {
-                "type": "null"
-              }
+              "generator": false,
+              "platformDefault": false,
+              "ui": false
             }
           }
         },
         {
-          "$comment": "spec.md §6.1: a generated value is secret material. isSensitive is required explicitly because its default is false — the wrong answer here — while suppliedBy is only constrained when written, because its default is already USER. A platformDefault is forbidden beside it because minting a value and deriving one are two answers to the same question.",
+          "$comment": "spec.md §6.1: a generated value is secret material. sensitive is required explicitly because its default is false — the wrong answer here — while suppliedBy is only constrained when written, because its default is already USER. A platformDefault is forbidden beside it because minting a value and deriving one are two answers to the same question.",
           "if": {
             "properties": {
               "generator": {
-                "not": {
-                  "type": "null"
-                }
+                "type": "object"
               }
             },
             "required": [
@@ -377,17 +354,15 @@
           },
           "then": {
             "properties": {
-              "platformDefault": {
-                "type": "null"
-              },
+              "platformDefault": false,
               "schema": {
                 "properties": {
-                  "isSensitive": {
+                  "sensitive": {
                     "const": true
                   }
                 },
                 "required": [
-                  "isSensitive"
+                  "sensitive"
                 ]
               },
               "suppliedBy": {
@@ -399,45 +374,21 @@
       ],
       "properties": {
         "description": {
-          "description": "Human-readable description of the input, or null when none is set.",
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
+          "description": "Human-readable description of the input. Omitted when none is set.",
+          "type": "string"
         },
         "generator": {
-          "description": "Auto-generation spec when the platform mints the value at deploy time, or null when the value is supplied or wired.",
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ComponentValueGenerator"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
+          "description": "Auto-generation spec when the platform mints the value at deploy time. Omitted when the value is supplied or wired.",
+          "$ref": "#/$defs/ComponentValueGenerator"
         },
-        "isRequired": {
+        "platformDefault": {
+          "description": "Default derived from the component's own addressing and bound into the target env var. Omitted when the value is user-supplied, wired, or generated.",
+          "$ref": "#/$defs/ComponentPlatformDefault"
+        },
+        "required": {
           "description": "True when the input must be satisfied before the component can be deployed.",
           "default": true,
           "type": "boolean"
-        },
-        "platformDefault": {
-          "description": "Default derived from the component's own addressing and bound into the target env var; null when the value is user-supplied, wired, or generated.",
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ComponentPlatformDefault"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
         },
         "schema": {
           "description": "Data contract of the value: type, format, pattern, enum, default, sensitivity.",
@@ -453,28 +404,12 @@
           "type": "string"
         },
         "target": {
-          "description": "Where the resolved value is bound, or null when the consumer injects it manually.",
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ComponentInputTarget"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
+          "description": "Where the resolved value is bound. Omitted when the consumer injects it manually.",
+          "$ref": "#/$defs/ComponentInputTarget"
         },
         "ui": {
-          "description": "Presentation metadata for the install form. Required when suppliedBy is USER; must be null when suppliedBy is CONNECTION.",
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ComponentInputUi"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
+          "description": "Presentation metadata for the install form. Required when suppliedBy is USER and MUST NOT be present when suppliedBy is CONNECTION.",
+          "$ref": "#/$defs/ComponentInputUi"
         }
       },
       "required": [
@@ -545,7 +480,7 @@
     "ComponentLiteralEnvVarValue": {
       "additionalProperties": false,
       "properties": {
-        "isSensitive": {
+        "sensitive": {
           "description": "True when the value is secret material — masked in read surfaces and never echoed back.",
           "default": false,
           "type": "boolean"
@@ -570,75 +505,111 @@
       "description": "Identity block of a component document — the name is the file stem.",
       "additionalProperties": false,
       "properties": {
-        "version": {
-          "description": "Lineage version of this component. Required (never defaulted) so the component's content is a pure function of this file, and it is the version the item's blueprint nodes pin.",
+        "revision": {
+          "description": "Lineage revision of this component. Required (never defaulted) so the component's content is a pure function of this file, and it is the revision the item's blueprint nodes pin.",
           "minimum": 1,
           "type": "integer"
         }
       },
       "required": [
-        "version"
+        "revision"
       ],
       "type": "object"
     },
     "ComponentOutput": {
-      "$comment": "spec.md §6.2. valueFrom is required and has two members, so the else branch is exactly DECLARED.",
       "additionalProperties": false,
-      "else": {
-        "properties": {
-          "value": {
-            "minLength": 1,
-            "type": "string"
+      "allOf": [
+        {
+          "$comment": "spec.md §6.2. valueFrom has three members, so the two-branch if/then/else this object carried is no longer total: INPUT would have fallen into the DECLARED branch and been asked for a literal. Each member takes a branch of its own, which is the shape ComponentWorkload uses for type × field validity.",
+          "if": {
+            "properties": {
+              "valueFrom": {
+                "const": "DECLARED"
+              }
+            },
+            "required": [
+              "valueFrom"
+            ]
+          },
+          "then": {
+            "properties": {
+              "input": false,
+              "value": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "value"
+            ]
           }
         },
-        "required": [
-          "value"
-        ]
-      },
-      "if": {
-        "properties": {
-          "valueFrom": {
-            "const": "DERIVED"
+        {
+          "if": {
+            "properties": {
+              "valueFrom": {
+                "const": "DERIVED"
+              }
+            },
+            "required": [
+              "valueFrom"
+            ]
+          },
+          "then": {
+            "properties": {
+              "input": false,
+              "value": false
+            }
           }
         },
-        "required": [
-          "valueFrom"
-        ]
-      },
+        {
+          "$comment": "spec.md §6.2. An INPUT output reads a value this component own contract already receives, so `input` names which and `value` has nothing to hold. That the named input exists, and that it is not CONNECTION-supplied, are not expressible here — the input names are mapping keys elsewhere in the document, which is the line §7 draws for every reference of this shape.",
+          "if": {
+            "properties": {
+              "valueFrom": {
+                "const": "INPUT"
+              }
+            },
+            "required": [
+              "valueFrom"
+            ]
+          },
+          "then": {
+            "properties": {
+              "value": false
+            },
+            "required": [
+              "input"
+            ]
+          }
+        }
+      ],
       "properties": {
         "description": {
-          "description": "Human-readable description of the output, or null when none is set.",
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
+          "description": "Human-readable description of the output. Omitted when none is set.",
+          "type": "string"
+        },
+        "input": {
+          "description": "Name of this component own input the value is read from. Required where valueFrom is INPUT and rejected on every other member.",
+          "$comment": "spec.md §6.2. A sibling mapping key rather than a document reference, so it is spelled as the bare noun a probe and a platform default `endpoint` are and does not take ADR 0007 §1 Ref suffix.",
+          "maxLength": 64,
+          "pattern": "^[a-z][a-zA-Z0-9]{0,63}$",
+          "type": "string"
         },
         "schema": {
           "description": "Data contract of the published value: type, format, sensitivity.",
           "$ref": "#/$defs/ComponentValueSchema"
         },
         "value": {
-          "description": "Static value for DECLARED outputs, or null for DERIVED outputs resolved at runtime.",
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
+          "description": "Static value for DECLARED outputs. MUST NOT be present on a DERIVED output, whose value is resolved at runtime.",
+          "type": "string"
         },
         "valueFrom": {
-          "description": "DERIVED outputs carry value=null and are platform-populated; DECLARED outputs carry a static value.",
+          "description": "Where the published value comes from: DERIVED from the running workload, DECLARED as a literal in this document, or INPUT read from one of this component own inputs.",
           "enum": [
             "DERIVED",
-            "DECLARED"
+            "DECLARED",
+            "INPUT"
           ],
           "type": "string"
         }
@@ -647,33 +618,18 @@
         "schema",
         "valueFrom"
       ],
-      "then": {
-        "properties": {
-          "value": {
-            "type": "null"
-          }
-        }
-      },
       "type": "object",
       "x-additionalPropertiesName": "outputName"
     },
     "ComponentPlatformDefault": {
       "description": "Default the platform supplies when the deploying user does not. Which endpoint a SELF_ADDRESS default derives from is named rather than assumed, because spec.md §5.2 permits more than one PUBLIC endpoint.",
-      "$comment": "spec.md §6.1. `type` names the kind of default, and is REQUIRED rather than defaulted for the reason the generator branch gives for isSensitive: a discriminator a document may omit is one two implementations may read differently. One kind exists, so this is a tagged object rather than a oneOf; a second becomes a branch beside it, and a document written against this one still validates.",
+      "$comment": "spec.md §6.1. `type` names the kind of default, and is REQUIRED rather than defaulted for the reason the generator branch gives for sensitive: a discriminator a document may omit is one two implementations may read differently. One kind exists, so this is a tagged object rather than a oneOf; a second becomes a branch beside it, and a document written against this one still validates.",
       "additionalProperties": false,
       "properties": {
         "endpoint": {
-          "description": "Name of the PUBLIC endpoint the value is derived from. Null selects the primary endpoint spec.md §5.2 elects.",
-          "anyOf": [
-            {
-              "pattern": "^[a-z][a-z0-9]{0,19}$",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
+          "description": "Name of the PUBLIC endpoint the value is derived from. Omitted, it selects the primary endpoint spec.md §5.2 elects.",
+          "pattern": "^[a-z][a-z0-9]{0,19}$",
+          "type": "string"
         },
         "source": {
           "description": "What is derived. PUBLIC_HOSTNAME for the endpoint's hostname alone and PUBLIC_URL for its full URL, both from the URL an HTTP-family endpoint publishes; PUBLIC_ADDRESS for the full host:port and PUBLIC_PORT for the port alone, both from the edge address a TCP or UDP endpoint publishes.",
@@ -704,17 +660,9 @@
       "additionalProperties": false,
       "properties": {
         "endpoint": {
-          "description": "Name of the endpoint whose port the probe targets. Null selects the primary endpoint spec.md §5.2 elects.",
-          "anyOf": [
-            {
-              "pattern": "^[a-z][a-z0-9]{0,19}$",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
+          "description": "Name of the endpoint whose port the probe targets. Omitted, it selects the primary endpoint spec.md §5.2 elects.",
+          "pattern": "^[a-z][a-z0-9]{0,19}$",
+          "type": "string"
         },
         "failureThreshold": {
           "description": "Consecutive failures required to consider the probe failing.",
@@ -766,19 +714,135 @@
     },
     "ComponentSpec": {
       "additionalProperties": false,
+      "allOf": [
+        {
+          "$comment": "spec.md §5. A component is one of two things, and the key that is present says which: `workload` is a workload this platform runs, `external` is a node it does not. Spelled as an anyOf over `required` rather than as a oneOf so a document naming neither reports ERR_MISSING_FIELD at /spec — the field an author has to add — rather than a branch count; the exclusion below is what makes it exactly one. A spec-level `type` tag was the alternative and would have been a required field on every document ever written, with a oneOf at `spec` putting every default beneath it beyond the effective-value resolution ADR 0008 requires.",
+          "anyOf": [
+            {
+              "properties": {
+                "workload": {
+                  "type": "object"
+                }
+              },
+              "required": [
+                "workload"
+              ]
+            },
+            {
+              "properties": {
+                "external": {
+                  "type": "object"
+                }
+              },
+              "required": [
+                "external"
+              ]
+            }
+          ]
+        },
+        {
+          "$comment": "spec.md §5.6. Naming both is not a composition: a node this platform does not run has nothing for a workload block to describe. The false schema anchors the diagnostic at the field that should not have been there, which is the shape BlueprintNode already uses for `revision` on a repo-local reference.",
+          "if": {
+            "properties": {
+              "external": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "external"
+            ]
+          },
+          "then": {
+            "properties": {
+              "workload": false
+            }
+          }
+        },
+        {
+          "$comment": "spec.md §5.6. An external node exists to publish values another node consumes, so one publishing nothing is a node nothing can need — the argument §5 makes for a SERVICE that exposes no endpoint. An absent contract is a missing field and an empty outputs mapping an invalid value, which is that section two-spelling distinction.",
+          "if": {
+            "properties": {
+              "external": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "external"
+            ]
+          },
+          "then": {
+            "properties": {
+              "contract": {
+                "properties": {
+                  "outputs": {
+                    "minProperties": 1
+                  }
+                },
+                "required": [
+                  "outputs"
+                ]
+              }
+            },
+            "required": [
+              "contract"
+            ]
+          }
+        },
+        {
+          "$comment": "spec.md §5.6. DERIVED means the platform, from the running workload (§6.2), and there is no running workload here. DECLARED and INPUT both stay available. A platformDefault derives from the component own public addressing and a generator mints a secret this platform would not be sharing with the service that has to accept it — the same pair, for the same reason, that §6.1 forbids beside suppliedBy: CONNECTION.",
+          "if": {
+            "properties": {
+              "external": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "external"
+            ]
+          },
+          "then": {
+            "properties": {
+              "contract": {
+                "properties": {
+                  "inputs": {
+                    "additionalProperties": {
+                      "properties": {
+                        "generator": false,
+                        "platformDefault": false
+                      }
+                    }
+                  },
+                  "outputs": {
+                    "additionalProperties": {
+                      "properties": {
+                        "valueFrom": {
+                          "not": {
+                            "const": "DERIVED"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
       "properties": {
         "contract": {
           "description": "The composition contract: typed inputs the component needs and outputs it publishes.",
           "$ref": "#/$defs/ComponentContract"
+        },
+        "external": {
+          "description": "What this component addresses when this platform does not run it. Present instead of workload, never beside it.",
+          "$ref": "#/$defs/ComponentExternal"
         },
         "workload": {
           "description": "How the component runs: source, runtime shape, endpoints, and configuration.",
           "$ref": "#/$defs/ComponentWorkload"
         }
       },
-      "required": [
-        "workload"
-      ],
       "type": "object"
     },
     "ComponentValueGenerator": {
@@ -790,16 +854,8 @@
           "type": "integer"
         },
         "charset": {
-          "description": "Explicit character set for the generated value, or null when the encoding default is used.",
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
+          "description": "Explicit character set for the generated value. Omitted when the encoding default is used.",
+          "type": "string"
         },
         "encoding": {
           "description": "Encoding applied to the random bytes: HEX, BASE64, BASE64URL, or ALPHANUMERIC.",
@@ -836,9 +892,7 @@
               "enum": {
                 "maxItems": 0
               },
-              "pattern": {
-                "type": "null"
-              }
+              "pattern": false
             }
           }
         },
@@ -858,25 +912,15 @@
           },
           "then": {
             "properties": {
-              "format": {
-                "type": "null"
-              }
+              "format": false
             }
           }
         }
       ],
       "properties": {
         "default": {
-          "description": "Pre-filled value when none is supplied, or null when the value must be provided.",
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
+          "description": "Pre-filled value when none is supplied. Omitted when the value must be provided.",
+          "type": "string"
         },
         "enum": {
           "description": "Allowed values when the value is a closed enumeration; empty when unconstrained. MUST be empty where the type is JSON.",
@@ -886,62 +930,32 @@
           "type": "array"
         },
         "format": {
-          "description": "Semantic refinement of a STRING value: EMAIL, URI, ENDPOINT_URL, CONNECTION_STRING, HOSTNAME, or TIMEZONE; null when unrefined. MUST be null where the type is not STRING. spec.md §6.3 names where each convention is published.",
-          "anyOf": [
-            {
-              "enum": [
-                "EMAIL",
-                "URI",
-                "ENDPOINT_URL",
-                "CONNECTION_STRING",
-                "HOSTNAME",
-                "TIMEZONE"
-              ],
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
+          "description": "Semantic refinement of a STRING value: EMAIL, URI, ENDPOINT_URL, CONNECTION_STRING, HOSTNAME, or TIMEZONE. Omitted when unrefined, and MUST NOT be present where the type is not STRING. spec.md §6.3 names where each convention is published.",
+          "enum": [
+            "EMAIL",
+            "URI",
+            "ENDPOINT_URL",
+            "CONNECTION_STRING",
+            "HOSTNAME",
+            "TIMEZONE"
           ],
-          "default": null
+          "type": "string"
         },
-        "isSensitive": {
+        "pattern": {
+          "description": "Regular expression the value must match. Omitted when unconstrained, and MUST NOT be present where the type is JSON.",
+          "type": "string"
+        },
+        "resourceType": {
+          "description": "Namespaced identifier of the backing resource this value addresses, matched by the blueprint connection gate when wiring the value into a consumer input. Omitted when the value addresses no particular resource. spec.md §6.3 names where the identifiers are published.",
+          "$comment": "spec.md §6.3. ADR 0009 §1: the grammar is fixed here and the membership is not, so this is a pattern rather than an enum, and §6.3 names the surface that publishes the identifiers without restating any of them. Reverse-DNS namespace then one or more lowercase segments, lookahead-free and backreference-free so it compiles under RE2 as well as ECMA-262, which spec.md §11 requires of every pattern this repository publishes.",
+          "maxLength": 255,
+          "pattern": "^[a-z][a-z0-9]*(\\.[a-z0-9][a-z0-9-]*)+$",
+          "type": "string"
+        },
+        "sensitive": {
           "description": "True when the value is secret material: handled as a secret reference, masked in UIs, never echoed back.",
           "default": false,
           "type": "boolean"
-        },
-        "pattern": {
-          "description": "Regular expression the value must match, or null when unconstrained. MUST be null where the type is JSON.",
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
-        "semanticType": {
-          "description": "Backing-service compatibility tag the Blueprint publish gate matches when wiring this value into a consumer input; null when the value is not specific to a backing service.",
-          "anyOf": [
-            {
-              "enum": [
-                "POSTGRES",
-                "MYSQL",
-                "REDIS",
-                "MONGODB",
-                "S3_BUCKET",
-                "HTTP_SERVICE",
-                "SMTP"
-              ],
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
         },
         "type": {
           "description": "Shape of the value's string form: STRING is any text, NUMBER a JSON number, BOOLEAN true or false, JSON a JSON document of any kind.",
@@ -971,24 +985,24 @@
           ],
           "type": "string"
         },
-        "isReadOnly": {
-          "description": "True when the volume is mounted read-only.",
-          "default": false,
-          "type": "boolean"
-        },
         "mountPath": {
           "description": "Absolute path where the volume is mounted in the workload.",
           "maxLength": 512,
           "pattern": "^/",
           "type": "string"
         },
-        "sizeGib": {
+        "readOnly": {
+          "description": "True when the volume is mounted read-only.",
+          "default": false,
+          "type": "boolean"
+        },
+        "sizeGiB": {
           "description": "Default provisioned size of the volume in gibibytes.",
           "type": "integer"
         }
       },
       "required": [
-        "sizeGib",
+        "sizeGiB",
         "mountPath"
       ],
       "type": "object",
@@ -998,10 +1012,10 @@
       "additionalProperties": false,
       "allOf": [
         {
-          "$comment": "Kind × field validity, spec.md §5. Every branch below is a bare conditional carrying no `type`, so lint.ts checkClosedObjects correctly skips it — the object is closed once, by the schema that declares its properties.",
+          "$comment": "Type × field validity, spec.md §5. Every branch below is a bare conditional carrying no `type`, so lint.ts checkClosedObjects correctly skips it — the object is closed once, by the schema that declares its properties.",
           "if": {
             "properties": {
-              "kind": {
+              "type": {
                 "enum": [
                   "WORKER",
                   "JOB",
@@ -1010,7 +1024,7 @@
               }
             },
             "required": [
-              "kind"
+              "type"
             ]
           },
           "then": {
@@ -1025,12 +1039,12 @@
           "$comment": "spec.md §5. The converse of the branch above: a SERVICE is the kind that serves, so it declares at least one endpoint. An absent block is a missing field and an empty one is an invalid value, which is the same two-spelling distinction the forbidden direction already makes.",
           "if": {
             "properties": {
-              "kind": {
+              "type": {
                 "const": "SERVICE"
               }
             },
             "required": [
-              "kind"
+              "type"
             ]
           },
           "then": {
@@ -1047,7 +1061,7 @@
         {
           "if": {
             "properties": {
-              "kind": {
+              "type": {
                 "enum": [
                   "JOB",
                   "CRON"
@@ -1055,7 +1069,7 @@
               }
             },
             "required": [
-              "kind"
+              "type"
             ]
           },
           "then": {
@@ -1080,12 +1094,12 @@
           },
           "if": {
             "properties": {
-              "kind": {
+              "type": {
                 "const": "CRON"
               }
             },
             "required": [
-              "kind"
+              "type"
             ]
           },
           "then": {
@@ -1128,13 +1142,13 @@
                   }
                 }
               },
-              "kind": {
+              "type": {
                 "const": "SERVICE"
               }
             },
             "required": [
               "endpoints",
-              "kind"
+              "type"
             ]
           },
           "then": {
@@ -1160,15 +1174,7 @@
       "properties": {
         "command": {
           "description": "Command the workload runs. Required for JOB and CRON, which have nothing to run without it. On a SERVICE or WORKER it overrides the image's default command.",
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
+          "type": "string"
         },
         "endpoints": {
           "description": "Endpoints the workload exposes, keyed by endpoint name. Only a SERVICE may declare one; on any other kind the mapping must be absent or empty.",
@@ -1189,26 +1195,8 @@
           "type": "array"
         },
         "health": {
-          "description": "Staged health probes (startup, readiness, liveness), or null when none are defined.",
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ComponentHealthProbes"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
-        "kind": {
-          "description": "Runtime shape: SERVICE (long-running, may expose endpoints), WORKER (long-running, no endpoints), JOB (one-shot command), or CRON (scheduled command).",
-          "enum": [
-            "SERVICE",
-            "WORKER",
-            "JOB",
-            "CRON"
-          ],
-          "type": "string"
+          "description": "Staged health probes (startup, readiness, liveness). Omitted when none are defined.",
+          "$ref": "#/$defs/ComponentHealthProbes"
         },
         "schedule": {
           "description": "Cron schedule a CRON workload runs on. Required for CRON and rejected on every other kind, where a schedule would mean nothing.",
@@ -1240,17 +1228,32 @@
             "propertyName": "type"
           }
         },
+        "type": {
+          "description": "Runtime shape: SERVICE (long-running, may expose endpoints), WORKER (long-running, no endpoints), JOB (one-shot command), or CRON (scheduled command).",
+          "enum": [
+            "SERVICE",
+            "WORKER",
+            "JOB",
+            "CRON"
+          ],
+          "type": "string"
+        },
         "volumes": {
           "description": "Default volumes provisioned for deployments, keyed by volume name.",
           "additionalProperties": {
             "$ref": "#/$defs/ComponentVolume"
           },
+          "propertyNames": {
+            "$comment": "spec.md §5.5 / ADR 0007 §4. A volume name is materialised as a named volume, so it is a DNS label on the same grammar a node name uses.",
+            "maxLength": 63,
+            "pattern": "^[a-z][a-z0-9-]{0,61}[a-z0-9]$"
+          },
           "type": "object"
         }
       },
       "required": [
-        "kind",
-        "source"
+        "source",
+        "type"
       ],
       "type": "object"
     }
