@@ -4,16 +4,16 @@ A blueprint document describes a composition of components into one deployable
 application: which components participate, how large each runs, and how they
 are wired to one another. The blueprint is the unit of deployment.
 
-A blueprint is an item document, `blueprint.yaml`, at the root of its catalog
-item. The component documents it references sit inside the same item.
+A blueprint is an [item document](../core/v1/spec.md#item-directory),
+`blueprint.yaml`, at the root of its catalog item. The component documents it references sit inside the same item.
 
 ## Versions
 
 | Major | Specification | Examples | Released? |
 |---|---|---|---|
-| `v1` | [`v1/spec.md`](v1/spec.md) | [`v1/examples/`](v1/examples/) | [Draft or released](../../docs/publication.md#draft-or-released) |
+| `v1` | [`v1/spec.md`](v1/spec.md) | [`v1/examples/`](v1/examples/) | Draft — no `blueprint/v1.*` tag yet ([how to tell](../../docs/publication.md#draft-or-released)) |
 
-## Read in this order
+## Start here
 
 1. The [core specification](../core/README.md) and the
    [component specification](../component/README.md), which this one applies
@@ -23,6 +23,11 @@ item. The component documents it references sit inside the same item.
    [§4.2 Connections](v1/spec.md#connections)
 5. [§5 Parameters](v1/spec.md#parameters) and
    [§7 Diagnostics](v1/spec.md#diagnostics)
+
+An implementation implements every section of this specification and of each
+specification it builds on, together with the external specifications they cite.
+This one cites none of its own beyond those core and component cite. The list
+above is where to begin, not what to implement.
 
 ## Builds on
 
@@ -45,7 +50,7 @@ Every ID, the clause stating it, and the cases pinning it:
 | | URL |
 |---|---|
 | Major-version alias | `https://specifications.musher.dev/blueprint/v1/blueprint.schema.json` |
-| Exact release | `https://specifications.musher.dev/blueprint/v1.<MINOR>.<PATCH>/blueprint.schema.json` |
+| Exact release (after first release) | `https://specifications.musher.dev/blueprint/v1.<MINOR>.<PATCH>/blueprint.schema.json` |
 
 Which one to use, and how to bind it, is in
 [Using the schemas](../../docs/using-schemas.md). The schema is authored in

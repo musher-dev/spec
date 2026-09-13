@@ -7,22 +7,22 @@ conformance corpora. The platform API and Musher's internal data models are
 specified elsewhere. An implementation that disagrees with what is published
 here is defective.
 
-**Status:** pre-stable. Nothing has been released yet, so every specification
-here is a draft. See [Draft or released](docs/publication.md#draft-or-released).
+**Status:** pre-stable. Whether a version is released:
+[Draft or released](docs/publication.md#draft-or-released).
 
 ## Specifications
 
-| Family | Specification | Front page | Generated reference |
+| Family | Specification | Front page | Rendered prose |
 |---|---|---|---|
-| core | [`core/v1/spec.md`](specifications/core/v1/spec.md) | [README](specifications/core/README.md) | [reference](https://specifications.musher.dev/reference/core/v1/spec/) |
-| component | [`component/v1/spec.md`](specifications/component/v1/spec.md) | [README](specifications/component/README.md) | [reference](https://specifications.musher.dev/reference/component/v1/) |
-| blueprint | [`blueprint/v1/spec.md`](specifications/blueprint/v1/spec.md) | [README](specifications/blueprint/README.md) | [reference](https://specifications.musher.dev/reference/blueprint/v1/) |
-| listing | [`listing/v1/spec.md`](specifications/listing/v1/spec.md) | [README](specifications/listing/README.md) | [reference](https://specifications.musher.dev/reference/listing/v1/) |
+| core | [`core/v1/spec.md`](specifications/core/v1/spec.md) | [README](specifications/core/README.md) | [core v1](https://specifications.musher.dev/reference/core/v1/spec/) |
+| component | [`component/v1/spec.md`](specifications/component/v1/spec.md) | [README](specifications/component/README.md) | [component v1](https://specifications.musher.dev/reference/component/v1/spec/) |
+| blueprint | [`blueprint/v1/spec.md`](specifications/blueprint/v1/spec.md) | [README](specifications/blueprint/README.md) | [blueprint v1](https://specifications.musher.dev/reference/blueprint/v1/spec/) |
+| listing | [`listing/v1/spec.md`](specifications/listing/v1/spec.md) | [README](specifications/listing/README.md) | [listing v1](https://specifications.musher.dev/reference/listing/v1/spec/) |
 
-What each family describes and how they depend on one another is set out in
-[specifications/README.md](specifications/README.md). In short, a family's
-prose, its schema and its conformance corpus are normative, and examples and
-generated documentation are not; the exact rule is
+The rendered prose is generated and informative, and is live once the site's
+first deploy has run. What each family describes and how they depend on one
+another is set out in [specifications/README.md](specifications/README.md), and
+which of its parts are normative in
 [What is normative](specifications/README.md#what-is-normative).
 
 ## I want to…
@@ -42,21 +42,21 @@ generated documentation are not; the exact rule is
 ## Repository map
 
 ```
-specifications/   one directory per family; each major version is one release unit
+specifications/   one directory per family; each major version, v<N>/, releases on its own tag line
 conformance/      the fixture format every corpus follows
 docs/             guides, conventions, traceability, and decision records
 tools/            non-normative build and check scripts (Bun and TypeScript)
 taskfiles/        the tasks behind `task check`
 .config/          every linter, formatter, and hook configuration
 .github/          contributing, security, rulesets, and workflows
-published.json    append-only ledger of every release
+published.json    append-only ledger of every release (docs/publication.md#the-ledger)
 ```
 
 ## Contributing
 
 ```sh
 task setup   # install tooling and git hooks
-task check   # run everything CI runs
+task check   # run every check CI runs, except the CI-only steps
 ```
 
 Read [CONTRIBUTING.md](.github/CONTRIBUTING.md) before opening a pull request,

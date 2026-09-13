@@ -16,8 +16,10 @@
 # evaluated per changed file. Listing a path here is therefore a commitment to
 # review every change to it — not a label.
 #
-# Invariants. Each one silently breaks the gate rather than failing loudly, so
-# `task check:rulesets` enforces all of them:
+# Invariants. Each one silently breaks the gate rather than failing loudly.
+# `task check:rulesets` checks only part of this list: RUL-05 rejects a `*`
+# catch-all, and RUL-06 checks each owner's syntax and that every root-anchored
+# literal path exists. The rest are review obligations:
 #
 #   - NEVER add a `*` catch-all. It makes every pull request code-owned and
 #     re-imposes the blanket gate this file exists to retire.
@@ -38,10 +40,11 @@
 # CODEOWNERS entry naming a nonexistent user silently disables the review gate
 # it appears to configure.
 #
-# What is deliberately NOT owned: `specifications/` and `conformance/` carry the
-# normative contract, and GOVERNANCE.md still requires maintainer approval for a
-# breaking change to either. That obligation is now social rather than
-# mechanical — ADR 0015 records the trade and why it was accepted.
+# What is deliberately NOT owned: `specifications/` carries the normative
+# contract, every family's prose, schemas and conformance corpus, and
+# `conformance/` holds only the fixture-format README. GOVERNANCE.md still
+# requires maintainer approval for a breaking change. That obligation is social
+# rather than mechanical — ADR 0015 records the trade and why it was accepted.
 
 # The gate cannot be changed unreviewed. GitHub's own recommendation: protect
 # CODEOWNERS with CODEOWNERS, and protect the ruleset the same way — between

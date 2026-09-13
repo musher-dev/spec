@@ -3,18 +3,24 @@
 Each directory here is one **family**: an independently versioned specification
 of one kind of Musher document, or, for `core`, of the rules every kind shares.
 
+<a id="kind-family"></a>A **kind family** is a family whose documents declare a
+`kind`: today `component`, `blueprint` and `listing`. Each publishes a JSON
+Schema bundle and example documents. Core is the one family that is not a kind
+family, as [How the families relate](#how-the-families-relate) explains.
+
 ## <a id="families"></a>Families
 
 | Family | `kind` | Requirement IDs | Describes | Front page |
 |---|---|---|---|---|
-| [core](core/v1/spec.md) | none: the base every family applies | `CORE-*` | The rules every Musher document shares: the envelope, version compatibility, the catalog item, the YAML profile, validation layers, and shared diagnostics. | [README](core/README.md) |
-| [component](component/v1/spec.md) | `COMPONENT` | `COMP-*` | A workload Musher runs, or an external service, plus the configuration contract it exposes. | [README](component/README.md) |
-| [blueprint](blueprint/v1/spec.md) | `BLUEPRINT` | `BP-*` | A composition of components into one deployable application. | [README](blueprint/README.md) |
-| [listing](listing/v1/spec.md) | `LISTING` | `LIST-*` | The catalog storefront entry for a blueprint or component item. | [README](listing/README.md) |
+| [core](core/v1/spec.md) | none: the base every family applies | [`CORE-*`](core/README.md#requirement-ids) | The rules every Musher document shares: the envelope, version compatibility, the [catalog item](core/v1/spec.md#item-directory), the YAML profile, validation layers, and shared diagnostics. | [README](core/README.md) |
+| [component](component/v1/spec.md) | `COMPONENT` | [`COMP-*`](component/README.md#requirement-ids) | A workload Musher runs, or an external service, plus the configuration contract it exposes. | [README](component/README.md) |
+| [blueprint](blueprint/v1/spec.md) | `BLUEPRINT` | [`BP-*`](blueprint/README.md#requirement-ids) | A composition of components into one deployable application. | [README](blueprint/README.md) |
+| [listing](listing/v1/spec.md) | `LISTING` | [`LIST-*`](listing/README.md#requirement-ids) | The catalog storefront entry for a blueprint or component item. | [README](listing/README.md) |
 
 Families version independently. Each major version is a directory, `v<MAJOR>`,
 and the exact releases within it are git tags of the form
-`<family>/v<MAJOR>.<MINOR>.<PATCH>`.
+`<family>/v<MAJOR>.<MINOR>.<PATCH>`. Each requirement ID prefix above links to
+the family's table of its full prefixes.
 
 ## <a id="how-the-families-relate"></a>How the families relate
 
@@ -71,8 +77,12 @@ family's complete behaviour. Each has executable forms:
   envelope rules for that family's documents. Core publishes no schema.
 - **The conformance corpus** is the executable form for observable outcomes. A
   family release is covered by its own corpus together with the core corpus.
+- **The fixture format**, [conformance/README.md](../conformance/README.md),
+  defines how every corpus is read: the case layout, what `metadata.json` and
+  `diagnostics.json` declare, and the profiles an implementation claims. This
+  page does not restate it; a corpus means what that page says it means.
 
-The prose, the bundle, and the corpora are normative, and none is permitted to
+The prose, the bundle, the corpora and the fixture format are normative, and none is permitted to
 disagree with another. A disagreement between two of them is a defect in the
 specification and blocks a release. Until it is fixed the prose governs, but
 that is how to read a broken contract, not a licence for a schema or a fixture
@@ -97,7 +107,11 @@ What within a single conformance case is normative is set out in
    component too.
 2. **Run two corpora**: the family version's `conformance/`, and core's at the
    edition the family release records
-   ([core v1 §9](core/v1/spec.md#editions)). Core cases run through the parser
+   ([core v1 §9](core/v1/spec.md#editions)). That edition is `requires.core` in
+   the release's [ledger](../docs/publication.md#the-ledger) entry in
+   `published.json`, repeated in `release.json` inside its release archive.
+   Before a family's first release there is no recorded edition: use core as it
+   stands on `main`. Core cases run through the parser
    alone. Declare the profile you claim, as
    [conformance/README.md](../conformance/README.md#profiles) describes.
 3. **Trace what you cover.** [docs/traceability.md](../docs/traceability.md)

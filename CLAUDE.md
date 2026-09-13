@@ -7,9 +7,10 @@ The CLI, the platform API and every SDK implement what is defined here.
 ## Non-negotiables
 
 1. **Edit sources, never build output.** Schemas are authored in
-   `specifications/<family>/v<N>/schemas/src/`. Bundles, `catalog.json`,
-   `site/` and `dist/` are build output and are not in git;
-   `task check:generated` fails if any of them is tracked.
+   `specifications/<family>/v<N>/schemas/src/`. Bundles, `catalog.json` and
+   `dist/` are build output, and `task check:generated` fails if any of them is
+   tracked. `site/` is build output too, but only `.gitignore` keeps it out of
+   git; no check covers it.
    `docs/traceability.md` and the ADR index are generated but committed: run
    `task docs`, and `task check:docs` fails when they are stale.
 2. **No remote `$ref`.** Every bundle resolves every reference inside its own
@@ -20,17 +21,21 @@ The CLI, the platform API and every SDK implement what is defined here.
    that no case pins and no runner exclusion explains.
 4. **Shared rules live in core.** A family cites `CORE-*` requirements and core
    clauses. It never restates an envelope, YAML-profile, validation-phase or
-   shared-diagnostic rule. See docs/adr/0022.
+   shared-diagnostic rule. What core is:
+   [How the families relate](specifications/README.md#how-the-families-relate).
+   See docs/adr/0022.
 5. **Validation never becomes stricter inside a major version.** A breaking
    change needs a new `v<N>` directory, *except* inside ADR 0005 §1's
    pre-publication window. That window drops the directory and the migration
    note, but not maintainer approval or the breaking-change declaration.
    `git tag -l '<family>/*'` decides which case applies, and `task check:compat`
    guards every released version.
-6. **Released bytes never change.** `published.json` (ledger version 2) is
-   append-only. The release pull request writes it through
-   `task release:record`, never a person, and `task check:ledger` rejects any
-   edit to a recorded entry. Release tags are never moved or deleted
+6. **Released bytes never change.** `published.json`, the
+   [ledger](docs/publication.md#the-ledger) (version 2), is append-only. The
+   release pull request writes it through `task release:record`. That nobody
+   edits it by hand is a convention, not a check, but `task check:published`
+   fails a pending entry that differs from a fresh derivation, and
+   `task check:ledger` rejects any edit to an entry the base branch holds. Release tags are never moved or deleted
    (`.github/rulesets/release-tags.json`). Pinned URLs serve verified immutable
    release assets, never `main` (`task check:published`, `task site:fetch`).
    See docs/adr/0006 and docs/adr/0023.
@@ -53,16 +58,18 @@ The CLI, the platform API and every SDK implement what is defined here.
     See docs/adr/0015.
 11. **Structural changes need an accepted ADR first.** An accepted ADR changes
     only by link-target maintenance: a relative link whose target moved may be
-    retargeted, and nothing else may change. `task check:adr` fails any other
-    diff. See docs/adr/0021 §4.
+    retargeted, and nothing else may change. `task check:adr` blanks only
+    relative link targets and compares absolute URLs verbatim, so it fails any
+    other diff. Whether the target really moved is a review obligation, not a
+    check. See docs/adr/0021 §4.
 12. **release-please assigns commits by path, not by scope.** A `feat`, `fix` or
     `docs` commit under `specifications/<family>/v<N>/` enters that family's
     next release, whatever its scope says. Use `refactor`, `chore`, `test`,
     `ci` or `build` for a change there that should release nothing. `main`
     squash-merges under the pull request title, so a pull request carrying more
-    than one type of change lists them in a `BEGIN_COMMIT_OVERRIDE` block. After
-    core's first release, a pull request touching `specifications/core/` never
-    uses one. See docs/adr/0023 §5.
+    than one type of change lists them in a `BEGIN_COMMIT_OVERRIDE` block, with
+    one exception for `specifications/core/`:
+    [CONTRIBUTING → Squash merges and overrides](.github/CONTRIBUTING.md#squash-merges-and-overrides).
 
 `spec.md` states the definitive rule. Schema `description` text, examples and
 the generated `/reference/` pages are informative; see

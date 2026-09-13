@@ -14,14 +14,14 @@ below.
 
 ## Ground rules
 
-1. **The prose is normative.** `spec.md` defines a family's complete behaviour.
-   The schema bundle and the conformance corpus are its executable forms, and
-   none of the three may disagree with another. See
-   [What is normative](../specifications/README.md#what-is-normative). A change
-   here obligates the CLI, the API and every SDK, so propose accordingly.
-2. **No behavioural change without conformance cases.** Add a positive and a
-   negative case that fail before the change and pass after it. See
-   [conformance/README.md](../conformance/README.md).
+1. **The prose is normative, and so are its executable forms.**
+   [What is normative](../specifications/README.md#what-is-normative) says
+   exactly what that covers. A change here obligates the CLI, the API and every
+   SDK, so propose accordingly.
+2. **No behavioural change without conformance cases** that fail before the
+   change and pass after it. [Which cases a change needs](#which-cases) says
+   which, and [conformance/README.md](../conformance/README.md) defines the
+   format.
 3. **Edit sources, never build output.** Bundles and the catalog are built, and
    nothing under `dist/` is committed.
 4. **Validation never becomes stricter within a major version.** The rule, and
@@ -29,7 +29,8 @@ below.
    [GOVERNANCE.md → Compatibility review](../GOVERNANCE.md#compatibility-review).
 5. **Shared rules live in core.** A family cites the
    [core specification](../specifications/core/v1/spec.md). It does not restate
-   core's rules.
+   core's rules. What core is, and why it has no schema, is in
+   [How the families relate](../specifications/README.md#how-the-families-relate).
 
 ## Development environment
 
@@ -38,12 +39,15 @@ The supported environment is the dev container:
 **Command Palette → Dev Containers: Reopen in Container**
 
 Outside the container you need [Bun](https://bun.sh) ≥ 1.3 and
-[Task](https://taskfile.dev) ≥ 3.5.
+[Task](https://taskfile.dev) ≥ 3.52.
 
 ```sh
 task setup     # install tool dependencies and git hooks
-task check     # run everything CI runs
+task check     # run every check CI runs, except the CI-only steps
 ```
+
+A few steps need a pull request or the network and run only in CI; they are
+listed in [tools/README.md → Runs only in CI](../tools/README.md#ci-only).
 
 The tasks live in [`taskfiles/`](../taskfiles/), included by the root
 `Taskfile.yml`. Every linter, formatter and hook config lives in
@@ -53,16 +57,24 @@ tool's own flag. Adding one has a fixed shape, which that page describes.
 ## Making a change
 
 ```sh
-# 1. Edit the authored modules
+# 1. State the rule in the prose first. spec.md is where the rule is defined.
+$EDITOR specifications/component/v1/spec.md
+
+# 2. Express it in the authored modules
 $EDITOR specifications/component/v1/schemas/src/component.schema.json
 
-# 2. Optional: build the bundle into dist/ to read it. Every check builds it in memory.
+# 3. Optional: build the bundle into dist/ to read it. Every check builds it in memory.
 task bundle
 
-# 3. Add cases proving the new behaviour, in that family version's corpus
-mkdir -p specifications/component/v1/conformance/structural/010-my-new-rule
+# 4. Add cases proving the new behaviour, in that family version's corpus.
+#    <NNN> is the next free number in the phase: list the directory to find it.
+ls specifications/component/v1/conformance/structural/
+mkdir -p specifications/component/v1/conformance/structural/<NNN>-my-new-rule
 
-# 4. Verify
+# 5. Index every new case in the corpus's cases.json. An unindexed case runs nowhere.
+$EDITOR specifications/component/v1/conformance/cases.json
+
+# 6. Verify
 task check
 ```
 
@@ -71,6 +83,15 @@ added and removed, required fields, enum members, patterns, bounds, defaults,
 diagnostics and requirement IDs, and says which of those can reject a document
 that validates today. It only reports; `check:compat` is the gate. CI runs it on
 every pull request and writes it to the job summary.
+
+### <a id="which-cases"></a>Which cases a change needs
+
+A change that adds or tightens a constraint needs a failing case that violates
+it and a passing case that meets it. A new optional field needs a passing case
+that uses the field, which fails before the change because core rejects an
+unknown field with `ERR_UNKNOWN_FIELD`. It also needs a failing case for each
+constraint the field's value carries, such as an enum, a pattern or a bound. A
+correction needs the case that was wrong, fixed.
 
 A case is a `case.yaml` when the rule is decided by reading one document. It is a
 `tree/` when the rule is decided by reading the item the document sits in, such
@@ -90,9 +111,9 @@ in the runner's exclusion list saying why the code or ID cannot be exercised.
 
 There is no blanket review requirement. A pull request that touches no path
 listed in [`.github/CODEOWNERS`](CODEOWNERS) merges once the required checks are
-green: `Lint`, `Schema`, `Site Build` and `Signed off`. Today that list holds
-only the review gate's own two configuration files. Nobody has to approve such a
-pull request.
+green; [RULESETS.md](rulesets/RULESETS.md#main-branchjson) lists them. Today
+CODEOWNERS holds only the review gate's own two configuration files. Nobody has
+to approve such a pull request.
 
 That is a deliberate trade, not an oversight. It puts the weight on the checks,
 which is where it belongs for a repository whose contract can be verified by
@@ -100,13 +121,16 @@ machine. [ADR 0015](../docs/adr/0015-selective-code-owner-review.md) explains
 it, and GOVERNANCE.md still asks for a maintainer's eyes on a change of
 consequence even where nothing blocks the merge.
 
-`task check` runs every step CI runs. What each step enforces, and the script
-behind it, are listed in [tools/README.md → Checks](../tools/README.md#checks).
+`task check` runs every step CI runs except the
+[CI-only steps](../tools/README.md#ci-only). What each step enforces, and the
+script behind it, are listed in [tools/README.md → Checks](../tools/README.md#checks).
 
 ## Commit messages
 
 [Conventional Commits](https://www.conventionalcommits.org/), enforced by a
-`commit-msg` git hook locally and on the PR title in CI.
+`commit-msg` git hook locally, and on the pull request title by
+`task check:title` inside the required `Lint` job. `main` squash-merges under
+the title, so the title is the subject that lands, and editing it re-runs CI.
 
 ```
 <type>(<scope>): <description>
@@ -117,6 +141,10 @@ Types: `feat`, `fix`, `perf`, `docs`, `chore`, `refactor`, `test`, `ci`,
 
 Scopes: `core`, `component`, `blueprint`, `listing`, `conformance`, `tools`,
 `ci`, `devcontainer`, `docs`, `repo`, `deps`, `deps-dev`.
+
+Use the family's own scope, such as `component`, for a change under
+`specifications/<family>/`, conformance cases included. `conformance` is for
+`conformance/README.md`, the fixture format, alone.
 
 `deps` and `deps-dev` are Dependabot's: a dependency update arrives as
 `build(deps):`, `build(deps-dev):`, or `ci(deps):`. See
@@ -144,9 +172,16 @@ Pick the type by what the change does to a package:
 | Corrects a rule, a schema, or a case that was wrong | `fix` | Yes |
 | Changes prose without changing a rule | `docs` | Yes |
 | Changes nothing a release asserts | `refactor`, `chore`, `test`, `ci`, `build`, `style`, `perf` | No |
+| Reverts an earlier commit | `revert` | No |
+
+`revert` releases nothing, because `.github/release-please/config.json` gives it
+no changelog section. To undo a rule that has been released, use `fix`.
 
 A commit touching two families enters both releases. A breaking change carries
-`!` or a `BREAKING CHANGE:` footer, whatever its type.
+`!` or a `BREAKING CHANGE:` footer, whatever its type, and a `Release-As: X.Y.Z`
+footer makes any commit releasable. A footer counts only in the squash commit's
+trailer block. `main` builds the squash message from the branch's commit
+messages, so put a footer at the end of the branch's last commit.
 
 Use the `core` scope for a change to `specifications/core/`. A releasable
 commit there holds every kind family's release until core has released it. See
@@ -168,8 +203,9 @@ END_COMMIT_OVERRIDE
 ```
 
 **After core's first release, a pull request touching `specifications/core/`
-must not use an override.** The core gate classifies core commits from
-`git log`, which holds the squash commit and not the pull request body. An
+must not use an override.** This is the one statement of that rule; other pages
+point here. The core gate classifies core commits from `git log`, which holds
+the squash commit and not the pull request body. An
 override there would let release-please and the gate disagree about whether core
 has a releasable change. Split the pull request, or give it a title whose type is
 right for the core change. This is a review obligation, and no check enforces it.

@@ -21,7 +21,8 @@ every identifier.
 | Bundle `$id` | The real publication URL, set by the bundler at build time. Do not write it by hand. | `…/component/v1/component.schema.json` |
 | `$defs` keys | UpperCamelCase, naming the concept. No `Seed` prefix, no `Request` suffix — those describe a platform pipeline, not a document contract. | `ComponentWorkload` |
 | `title` | Module root only. Below the root, the key already names the field; use `description` to say what it means. | `Musher Component Document` |
-| Conformance case | `<phase>-<NNN>-<description>` | `structural-001-missing-kind` |
+| Conformance case ID | `<phase>-<NNN>-<description>` | `structural-001-minimal-valid` |
+| Conformance case directory | `<phase>/<NNN>-<description>/`, under the corpus | `structural/001-minimal-valid/` |
 
 ## Enforcement
 
@@ -31,11 +32,14 @@ These rules are checked, so do not work around them.
   module: its file name, its `$id`, its `$defs` keys, and where it places
   `title`.
 - Family discovery refuses a family directory that is not lowercase kebab-case.
-- `task check:conformance` refuses a case whose ID does not follow
-  `<phase>-<NNN>-<description>`.
+- `task check:conformance` refuses a case whose ID does not lead with its phase
+  and a hyphen, whose `metadata.json` ID differs from its `cases.json` entry, or
+  whose phase the two disagree on. It does not check the `<NNN>-<description>`
+  part, or that the directory matches the ID; review holds those.
 
 ## Conformance case IDs
 
-A case ID also names the case's directory and leads with its phase. How a case
+A case ID leads with its phase, and the rest of it names the case's directory
+inside that phase's directory. How a case
 is laid out, indexed, and declared is defined in the
 [conformance suite's fixture format](../conformance/README.md).

@@ -79,7 +79,8 @@ publishes the bundle diff against the base commit to the step summary and upload
 **Draft**, because an immutable release accepts no asset once published.
 **Forced tag**, because a draft otherwise gets its tag only when published, and
 the release job, `check:published` and release-please all need it at the merge
-commit. **The title** passes `lint-pr`, and `chore` counts toward no train. **The
+commit. **The title** passes the Conventional title check, which `task check:title`
+enforces inside the required `Lint` job, and `chore` counts toward no train. **The
 sign-off** MUST match the App's commit author. `dco.yml` accepts a trailer equal to
 the author's `Name <email>`, or, when the author name ends in `[bot]` and its
 address in `[bot]@users.noreply.github.com`, one naming the same author at any
@@ -90,7 +91,10 @@ trigger workflows: the release pull request runs every required check, and the
 ledger commit re-runs them. `record` is idempotent, so nothing loops.
 `release-ledger.yml` acts only on same-repository release-please branches, mints
 its token after `record` for the push alone, and signs its commit off as the App
-identity under the same rule.
+identity under the same rule. It commits and pushes with git hooks disabled
+(`-c core.hooksPath=/dev/null`, `--no-verify`), so no hook runs with the token.
+Until that commit lands, the release pull request is red: a manifest version
+other than `0.0.0` that is neither tagged nor recorded fails `check:published`.
 
 On merge, release-please tags the merge commit and creates a draft. The release
 job checks out the tag and installs the Bun version the tag's own
@@ -100,11 +104,15 @@ released path it then:
 
 1. refuses unless immutable releases are enabled, since enabling them later
    protects no release already published;
-2. runs `task release:stage`, which checks the tag's entry against `main`'s and
-   against `tree`, runs the tagged core gate (§5), and refuses unless a rebuilt
-   pinned bundle hashes to `bundleSha256`;
-3. stages and attests the bundle and archive (§6) and uploads them to the draft;
-4. publishes, not marked latest since four trains share one repository, and
+2. refuses unless the tag is on the default branch: on a push, the tag's commit
+   must be an ancestor of `GITHUB_SHA`, since a later push may pick up an earlier
+   merge's release; on a dispatch, an ancestor of `origin/main`;
+3. runs `task release:stage`, which checks the tag's entry against the default
+   branch's ledger (`origin/main`, or `BASE_LEDGER_REF`) and against `tree`,
+   requires `examples/` for a kind family, runs the tagged core gate (§5), and
+   refuses unless a rebuilt pinned bundle hashes to `bundleSha256`;
+4. stages and attests the bundle and archive (§6) and uploads them to the draft;
+5. publishes, not marked latest since four trains share one repository, and
    asserts the release is immutable and each asset's `digest` matches.
 
 ### 3. The ledger records the tree, one hash, and what the release requires
@@ -148,21 +156,30 @@ because the base ledger is empty.
 **Offline**, `task check:published` checks a tagged entry by tree — `<tag>:<path>`
 must equal `tree`, and the tag's own ledger must hold the same entry — and never
 rebuilds it. A pending entry is rebuilt and compared: `tree` against
-`HEAD:<path>`, `bundleSha256` against a fresh pinned build. The core gate (§5)
-runs on both. A tag with no entry fails, as does a shallow clone that holds a
-non-empty ledger but no tags.
+`HEAD:<path>`, `bundleSha256` against a fresh pinned build, and the pending core
+gate (§5) must pass. A tagged entry's core check is ancestry alone:
+`core/v<requires.core>` must be an ancestor of the tag. Commit classification is
+never re-run against tagged history by newer tooling; it ran while the entry was
+pending, and again in `release:stage` on the tag's own tooling. A manifest
+version that is neither tagged nor recorded fails, as does a tag with no entry
+and a shallow clone that holds a non-empty ledger but no tags.
 
 **Online**, `task site:fetch` asks the tags endpoint for each tagged release, and
 requires it published and immutable, its conventional assets present, the
 bundle's `digest` equal to `sha256:<bundleSha256>`, and downloaded bytes with that
-hash. A published release with no ledger entry fails. After a deploy,
+hash. A published release with no ledger entry fails. CI's `Site Build` sets
+`ALLOW_PENDING_RELEASES=1`, so a tagged release not yet published, the window
+between tag and publication, warns there and is left out of the CI site build;
+the deploy fails on it. After a deploy,
 `task site:verify-live` compares every pinned URL and alias on the origin. No
 release is rebuilt by newer tooling.
 
 ### 5. A kind family release waits for core's releasable changes
 
 A **releasable commit** touches `specifications/core/v1` and is releasable as
-[ADR 0022](0022-the-musher-document-core-specification.md) §7 defines. The gate
+[ADR 0022](0022-the-musher-document-core-specification.md) §7 defines. A
+`BREAKING CHANGE:` or `BREAKING-CHANGE:` counts only as a footer in the message's
+trailer block, and a `Release-As:` footer also makes a commit releasable. The gate
 classifies commits from `git log` by the configuration release-please reads, so
 for commits without a `BEGIN_COMMIT_OVERRIDE` the two cannot disagree. An override
 lives in the pull request body, which the squash commit does not carry. After
@@ -173,9 +190,12 @@ pull request uses one before any core tag exists.
 A **pending** kind family entry fails when core's manifest reads `0.0.0`, when
 `core/v<requires.core>` is missing, or when
 `git log core/v<requires.core>..HEAD -- specifications/core/v1` holds a
-releasable commit. Non-releasable core commits only warn, for the reason ADR 0022
-§7 gives, as does a `requires.core` that trails core's manifest. A **tagged** kind
-family entry requires `core/v<requires.core>` to be an ancestor of the family tag,
+releasable commit. It also fails when its `spec.md` §2 cites no core line or a
+different one, or when `requires.core` is ahead of core's manifest.
+Non-releasable core commits only warn, for the reason ADR 0022 §7 gives, as does
+a `requires.core` that trails core's manifest. The pending gate runs in `record`,
+`check:published` and `check:editions`. A **tagged** kind family entry, in
+`release:stage`, requires `core/v<requires.core>` to be an ancestor of the family tag,
 no releasable core commit between them, and `requires.core`'s major to match the
 core line the family's `spec.md` cites.
 
@@ -216,8 +236,11 @@ or `_headers` rule.
 
 `pages.yml` becomes `deploy.yml`, run only by `workflow_call` and
 `workflow_dispatch`. `release.yml` runs on every push to `main` and calls it last,
-unless the run was cancelled or the release job failed, so every push deploys once,
-after any release it cut is published. The race ADR 0006 §5 worked around is gone,
+when the run was not cancelled and the `plan` and `artifacts` jobs each succeeded
+or were skipped, so every push deploys once, after any release it cut is
+published. A failed `release-please` job does not block the deploy, since nothing
+partial exists, and is reported red on its own. Both workflows refuse a dispatch
+from any ref other than `refs/heads/main`. The race ADR 0006 §5 worked around is gone,
 and its rejection of `on: push: tags:` survives for a new reason: an App's tag push
 would trigger it before the assets exist. The gates before the upload in ADR 0012
 §1, and the same sentence in its §6, become `check:published` and `site:fetch`.
@@ -266,7 +289,8 @@ credential path.
   without it would drop a pinned path.
 - **A kind family can wait on core** while core's release pull request is unmerged.
 - **Prerequisites before the first tag:** enable immutable releases; disable the
-  stale GitHub Pages site; create the release App (contents and pull requests
+  stale GitHub Pages site; keep squash merges titled `PR_TITLE` with the
+  `COMMIT_MESSAGES` body; create the release App (contents and pull requests
   read-write, administration read so the release job can confirm immutability)
   and its credentials, and replace the `signoff` placeholder with its identity —
   the release job refuses to run until they match; apply the

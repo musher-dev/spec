@@ -7,12 +7,12 @@ case in that family's tree and in the core corpus
 inside the family version it tests, at
 `specifications/<family>/v<major>/conformance/`.
 
-**Where this sits.** A family's `spec.md` defines its complete behaviour. This
-corpus is that prose's executable form for observable outcomes, as the JSON
-Schema bundle is its executable form for structural validity; all three are
-normative, and none is permitted to disagree with the others. A fixture that
-contradicts the prose is a defect in this repository — it blocks a release, and
-is never a licence to implement the fixture. What within a case is normative and
+**Where this sits.** A corpus is its family's executable form for observable
+outcomes, and this page, the fixture format, is normative for how a corpus is
+read. What else is normative, and how the parts relate, is set out once in
+[specifications/README.md → What is normative](../specifications/README.md#what-is-normative).
+A fixture that contradicts the prose is a defect in this repository — it blocks
+a release, and is never a licence to implement the fixture. What within a case is normative and
 what is not is set out in [What is normative](#what-is-normative) below.
 
 There is deliberately **no normative runner**. A reference implementation
@@ -65,6 +65,10 @@ family corpus keeps one `parser` case, `parser-001-reject-duplicate-keys`, to
 show that the family's pipeline applies the profile at all.
 
 ## `cases.json`
+
+The examples on this page are illustrative. `structural-001-missing-kind` stands
+for any failing case; the real `structural/001` in each kind family corpus is
+`structural-001-minimal-valid`.
 
 ```json
 {
@@ -330,7 +334,7 @@ to a phase outside the declared profile.
 ## Coverage status
 
 `parser`, `structural` and `semantic` are covered. Every diagnostic code the
-`spec.md` files declare is exercised by at least one case, with four
+`spec.md` files declare is exercised by at least one case, with five
 exceptions, all `capability`:
 
 | Code | Why it has no case |
@@ -339,9 +343,11 @@ exceptions, all `capability`:
 | `ERR_VERSION_NOT_MONOTONIC` | `capability` — comparing a version against the lineage it extends needs the catalog, and a fixture is one document with no previous release to be greater than |
 | `ERR_COMPONENT_NOT_PUBLISHED` | `capability` — only the registry holds publication state, and a fixture is a tree of files none of which has one |
 | `ERR_UNKNOWN_COMPUTE_PROFILE` | `capability` — the slug grammar is fixtured, but which profiles are offered changes when the platform gains hardware to back a tier, not when this repository releases |
+| `ERR_UNKNOWN_RESOURCE_TYPE` | `capability` — the grammar is fixtured, but membership is a registry [ADR 0009](../docs/adr/0009-resource-type-registry.md) §2 puts outside this repository, and its §3 forbids an offline client from reporting the code at all |
 
-That table is not prose anyone has to remember to update.
-`task check:conformance` derives it: every `ERR_*` row in a family's own
+That table is a copy, and it can go stale; the list that counts is the runner's
+`UNCOVERED`. What `task check:conformance` enforces is the rule behind it: every
+`ERR_*` row in a family's own
 diagnostics table must be exercised by an indexed case or appear in the
 runner's `UNCOVERED` list with a reason. A row of core's table counts as
 exercised by a case in any corpus, because the core corpus is `parser`-only and

@@ -5,8 +5,8 @@ normative.** The contract is each family's `spec.md`, its schema sources and its
 conformance corpus. These scripts are one non-normative reading of them, and
 where a script and the prose disagree, the script has a defect.
 
-The runtime is [Bun](https://bun.sh) 1.3.14, the version `tools/.bun-version`
-names. CI installs that version from the file, and a release job installs the
+The runtime is [Bun](https://bun.sh), at the version
+[`tools/.bun-version`](.bun-version) names. CI installs that version from the file, and a release job installs the
 version its tag's copy names. Bun runs the TypeScript directly, so there is no
 build step. Dependencies are pinned by `bun.lock`, and `task setup` installs
 them.
@@ -39,9 +39,10 @@ Every task in [`taskfiles/`](../taskfiles/) runs from this directory as
 ## <a id="checks"></a>Checks
 
 `task check` runs these steps in this order. CI runs the same steps across its
-three jobs: **Lint** runs `task ci:lint` and `check:types`, **Schema** runs
-`task ci:test`, and **Site Build** runs `check:published`. Every step must pass
-before a pull request merges.
+jobs: **Lint** runs `task ci:lint` and `check:types`, **Schema** runs
+`task ci:test`, and **Site Build** runs `check:published`, then the CI-only
+steps listed [below](#ci-only). Every step must pass before a pull request
+merges.
 
 | Task | What it enforces | Script | Rule IDs |
 |---|---|---|---|
@@ -71,6 +72,21 @@ before a pull request merges.
 A step named by a tool rather than a script reads its configuration from
 [`.config/`](../.config/README.md), or from `biome.json` and `tsconfig.json` here.
 
+### <a id="ci-only"></a>Runs only in CI
+
+These need a pull request, the network or a GitHub token, so `task check` does
+not run them. Everything else CI runs, `task check` runs locally.
+
+| Step | Job | When | Script |
+|---|---|---|---|
+| DCO sign-off on every commit | `Signed off` | Pull requests | `.github/workflows/dco.yml` |
+| `check:title`: the pull request title is a Conventional Commit, with a type and scope from `.github/conventional-commits.yaml` | `Lint` | Pull requests | `src/policy/commits.ts` |
+| `check:ledger`: `published.json` edits no entry the base branch holds | `Site Build` | Pull requests | `src/publication/ledger.ts check` |
+| `site:fetch`, then `site:build` | `Site Build` | Every run | `src/publication/fetch.ts`, `src/publication/site.ts` |
+
+`lint-pr.yml` still runs on pull requests, to lowercase a Dependabot title, but
+the title is enforced by `check:title`.
+
 ## Build, release and site tasks
 
 These are not part of `task check`. Each takes the variables (`NAME=value` on
@@ -82,11 +98,12 @@ the command line) and environment variables shown.
 | `docs` | Regenerates `docs/traceability.md` and the ADR index | `src/render/traceability.ts`, `src/render/adr-index.ts` | — |
 | `catalog` | Regenerates `dist/catalog.json` | `src/publication/catalog.ts` | — |
 | `changes` | Reports what the branch does to the published contract | `src/publication/changes.ts` | `BASE` variable, default `origin/main`; `-- --diff` |
+| `check:title` | Fails unless the pull request title is a Conventional Commit using the vocabulary in `.github/conventional-commits.yaml` | `src/policy/commits.ts` | `PR_TITLE` environment variable, required |
 | `check:ledger` | Fails if `published.json` changed a recorded entry | `src/publication/ledger.ts check` | `BASE_REF` environment variable; without it, only parses |
 | `check:published:online` | Verifies every tagged release's GitHub release and assets, without caching | `src/publication/fetch.ts --verify-only` | `GITHUB_TOKEN`, else `gh auth token`; `GITHUB_REPOSITORY` |
 | `release:record` | Records every pending release in `published.json`, applying the core gate | `src/publication/record.ts` | — |
-| `release:stage` | Verifies a tagged release and stages its assets into `dist/release/` | `src/publication/stage.ts` | `TAG` variable, required; `SOURCE_DATE_EPOCH`, default `0` |
-| `site:fetch` | Verifies every tagged release on GitHub and caches its bundle in `.cache/releases/` | `src/publication/fetch.ts` | `GITHUB_TOKEN`, else `gh auth token`; `GITHUB_REPOSITORY` |
+| `release:stage` | Verifies a tagged release and stages its assets into `dist/release/` | `src/publication/stage.ts` | `TAG` variable, required; `SOURCE_DATE_EPOCH`, default `0`; `BASE_LEDGER_REF`, default `origin/main` |
+| `site:fetch` | Verifies every tagged release on GitHub and caches its bundle in `.cache/releases/` | `src/publication/fetch.ts` | `GITHUB_TOKEN`, else `gh auth token`; `GITHUB_REPOSITORY`; `ALLOW_PENDING_RELEASES=1` turns an unpublished tagged release into a warning |
 | `site:build` | Runs `site:fetch` when the ledger has a tagged entry, then assembles `site/` | `src/publication/site.ts` | As `site:fetch` |
 | `site:deploy` | Uploads `site/` to Cloudflare Pages | `wrangler pages deploy` | `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, both required; `PAGES_PROJECT` variable |
 | `site:verify-live` | Fetches every pinned URL and alias from the origin and compares hashes | `src/render/verify-live.ts` | `ORIGIN` variable, else `SITE_ORIGIN`, else the production host |
@@ -102,7 +119,9 @@ A guard test in `src/lib/layout.test.ts` fails the suite when any other module
 outside `testing/` quotes a string beginning `specifications/` or
 `conformance/`, or assembles one from `'schemas', 'dist'` segments.
 
-The layout distinguishes two roles of family. **Core** is the base family: it
+The layout distinguishes two roles of family, as
+[specifications/README.md](../specifications/README.md#kind-family) defines
+them. **Core** is the base family: it
 defines no `kind`, carries prose and a parser-phase corpus, and has no schema and
 no examples. Every other family is a **kind** family, which binds core's
 parameters and publishes a bundle. `discoverFamilies` lists core first, and
@@ -117,6 +136,9 @@ The bundler's command line is a downstream contract:
 ```sh
 bun tools/src/schema/bundle.ts --stdout <family>/<major> [--version X.Y.Z]
 ```
+
+This is how to get a bundle before a family's first release, when no exact
+release URL exists yet: pin a commit of this repository and run it there.
 
 It prints one bundle: the major-version alias, or with `--version` the pinned
 bundle carrying that release's `$id`. With no arguments it writes every bundle

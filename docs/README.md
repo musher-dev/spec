@@ -48,4 +48,12 @@ every guide by who it is for.
 
 - [Architecture decision records](adr/README.md): why the repository and the
   specifications are the way they are, indexed with what supersedes or refines
-  each one. An accepted ADR is not edited; it is superseded.
+  each one. An accepted ADR is not edited, except to retarget a relative link;
+  it is superseded.
+- New to the decisions? Start with the three that shape the repository today:
+  [ADR 0021](adr/0021-repository-organized-around-the-family-version.md), how
+  the repository is organized;
+  [ADR 0022](adr/0022-the-musher-document-core-specification.md), the core
+  specification; and
+  [ADR 0023](adr/0023-published-bytes-are-immutable-release-assets.md), how a
+  release is published. The index shows which earlier records they supersede.

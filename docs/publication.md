@@ -1,8 +1,10 @@
 # Publication
 
 How a change on `main` becomes a released, immutable family version served at
-`https://specifications.musher.dev`. This page is for maintainers. It describes
-the pipeline as it runs. The policy it implements lives in
+`https://specifications.musher.dev`. [Draft or released](#draft-or-released)
+and [Release assets](#release-assets) are for anyone reading or consuming a
+version. The rest describes the pipeline as it runs, for maintainers. The policy
+it implements lives in
 [GOVERNANCE.md → Release process](../GOVERNANCE.md#release-process), and the
 reasoning behind it lives in
 [ADR 0006](adr/0006-publication-from-tags.md) and
@@ -23,22 +25,32 @@ release line, tagged `<family>/v<MAJOR>.<MINOR>.<PATCH>`.
    the App. The App token matters here, because a push made with `GITHUB_TOKEN`
    triggers no workflow, and a release pull request would then never report its
    required checks.
-2. **Ledger entry.** On that pull request, `release-ledger.yml` runs
-   `task release:record`. For each manifest version that has no tag yet, it
-   inserts or updates the pending entry in `published.json`, applying the
-   [core gate](#the-core-gate). It then pushes the ledger commit as the App, and
-   that push re-runs the required checks: `task check:published` re-derives the
-   entry and fails if it is stale.
+2. **Ledger entry.** Until its version is recorded, the release pull request is
+   red: `task check:published` fails on a manifest version, other than `0.0.0`,
+   that is neither tagged nor in `published.json`. `release-ledger.yml` runs
+   `task release:record` on that pull request. For each manifest version that
+   has no tag yet, it inserts or updates the pending entry in `published.json`,
+   applying the [core gate](#the-core-gate). It then commits and pushes as the
+   App, with git hooks disabled (`-c core.hooksPath=/dev/null` and
+   `--no-verify`), so no hook runs while the App token is in scope. That push
+   re-runs the required checks, and `task check:published` re-derives the entry
+   and fails if it is stale.
 3. **Tag and draft.** The release pull request squash-merges, and the strict
    status policy means its branch is up to date first. release-please tags the
    merge commit and creates a **draft** GitHub Release. The tag is forced at
    merge because a draft would otherwise get its tag only when published.
-4. **Stage.** The `artifacts` job checks out the tag and installs the Bun
-   version named in the tag's own `tools/.bun-version`. It refuses to continue
-   unless immutable releases are enabled on the repository. It then runs
-   `task release:stage TAG=<tag>`, which:
-   - requires the tag's ledger entry to equal `main`'s;
+4. **Stage.** The `artifacts` job refuses to continue unless immutable releases
+   are enabled on the repository. It checks out the tag and applies the **tag
+   guard**: on a push, the tag's commit must be an ancestor of the pushed commit
+   (`GITHUB_SHA`), because a later push may pick up the release an earlier merge
+   tagged; on a dispatch, it must be an ancestor of `origin/main`. Either way the
+   tag must be on the default branch. The job installs the Bun version named in
+   the tag's own `tools/.bun-version`, and runs
+   `task release:stage TAG=<tag>` on the tag's own tooling, which:
+   - requires the tag's ledger entry to equal the entry in the default branch's
+     ledger, read at `origin/main`, or at `BASE_LEDGER_REF` when that is set;
    - requires `<tag>:<path>` to hash to the recorded `tree`;
+   - requires `examples/` at the tag for a kind family;
    - runs the tagged core gate;
    - rebuilds the pinned bundle and requires its SHA-256 to equal `bundleSha256`;
    - stages the assets into `dist/release/`.
@@ -52,10 +64,14 @@ release line, tagged `<family>/v<MAJOR>.<MINOR>.<PATCH>`.
 7. **Deploy.** The last job of `release.yml` calls `deploy.yml`, which runs, in
    order, `task check:published`, `task site:fetch`, `task site:build`,
    `task site:deploy` and `task site:verify-live`. It runs on every push, after
-   any release that push cut, unless the run was cancelled or a release job
-   failed.
+   any release that push cut, when the run was not cancelled and the `plan` and
+   `artifacts` jobs each succeeded or were skipped. A failed `release-please`
+   job does not block it: nothing partial exists when release-please fails, so
+   `main` still deploys, and the failure is reported red on its own job. Both
+   `release.yml` and `deploy.yml` refuse a manual dispatch from any ref other
+   than `refs/heads/main`.
 
-### Release assets
+### <a id="release-assets"></a>Release assets
 
 | Release | Assets |
 |---|---|
@@ -65,7 +81,8 @@ release line, tagged `<family>/v<MAJOR>.<MINOR>.<PATCH>`.
 `<family>.schema.json` is the pinned bundle, carrying the exact-version `$id`.
 It holds the same bytes the site serves at the pinned URL.
 
-A kind family archive holds:
+Every archive unpacks into one top-level directory, `<family>-v<MAJOR>/`, such
+as `component-v1/`. A kind family archive's directory holds:
 
 - the bundle, `spec.md`, `examples/` and `conformance/`;
 - `core/spec.md` and `core/conformance/`, read from the `core/v<requires.core>`
@@ -73,10 +90,13 @@ A kind family archive holds:
 - `LICENSE`, `NOTICE` and `release.json`, which names the tag, the commit and
   the core edition.
 
-A core archive holds `spec.md`, `conformance/`, `LICENSE`, `NOTICE` and
-`release.json`. In both archives, `conformance/` sits at the top level and
-carries the fixture contract, `conformance/README.md`. Archives are
-deterministic: fixed tar ordering, owner and mtime, and `gzip -n`.
+A core archive's directory holds `spec.md`, `conformance/`, `LICENSE`, `NOTICE`
+and `release.json`. In both archives, `conformance/` carries the fixture format,
+`conformance/README.md`, beside the corpus. Archives are deterministic: fixed tar
+ordering, owner and mtime, and `gzip -n`.
+
+How to check an asset's digest and provenance is in
+[SECURITY.md → Verifying a release](../.github/SECURITY.md#verifying-a-release).
 
 Every check builds bundles in memory. `task bundle` writes them to `dist/` only
 for reading, vendoring and editor bindings. CI also uploads `dist/` as a build
@@ -94,12 +114,22 @@ A family version is **released** when all three of these hold:
 Anything else is a draft. `spec.md` on `main` is the draft of its line's next
 version, and it may change until that version is tagged.
 
+To see what is released, read `published.json` or run
+`git tag -l '<family>/*'`. The site's index pages say the same, per family.
+
+To read the prose of a released version rather than the draft, use any of:
+
+- the rendered page, `https://specifications.musher.dev/reference/<family>/v<X.Y.Z>/spec/`,
+  built from the tag;
+- `spec.md` inside the release archive;
+- git: `git show <family>/v<X.Y.Z>:<path>/spec.md`, where `<path>` is the
+  ledger entry's `path`, today `specifications/<family>/v<MAJOR>`.
+
+The site's pages exist once the first deploy has run.
+
 The alias `/<family>/v<N>/<family>.schema.json` serves the newest release of
 that major, with its `$id` restamped to the alias URL. Before a major's first
 tag, the alias is built from `main`, so it moves with every push.
-
-To see what is released, read `published.json` or run
-`git tag -l '<family>/*'`. The site's index pages say the same, per family.
 
 ## What the site serves
 
@@ -124,29 +154,38 @@ from the ledger, not from the working tree, so a family version removed from
 built from its verified bundle, with prose and examples read at its tag under
 the ledger's `path`.
 
+**The draft window.** release-please tags a merge commit before the release job
+publishes its release, so for a few minutes a tagged entry has no published
+release. CI's `Site Build` sets `ALLOW_PENDING_RELEASES=1`: there, such an entry
+is a warning, and its release is left out of the site CI builds. The deploy sets
+no such variable, and fails on it.
+
 **Core is prose-only.** It publishes no schema, so it has index and reference
 pages but no pinned path, no alias, no `versions.json` and no `_headers` rule.
 
 Everything under `/reference/` and every index page is informative, and is
 regenerated on every deploy. No release archive carries the HTML.
 
-## Cache policy
+## <a id="cache-policy"></a>Cache policy
 
 `site.ts` generates `_headers` from the same enumeration that writes the tree,
 so a path's cache policy cannot drift from the path itself.
 
-| Path | `Cache-Control` |
+| Path | Header |
 |---|---|
-| `/<family>/v<X.Y.Z>/*` | `public, max-age=31536000, immutable` |
-| Alias bundles, `versions.json`, `catalog.json`, `published.json` | `public, max-age=300, must-revalidate` |
-| Index pages, `/reference/` | No rule. Pages serves `public, max-age=0, must-revalidate` |
+| Every path | `Access-Control-Allow-Origin: *`, `X-Content-Type-Options: nosniff` |
+| `*.schema.json` | `Content-Type: application/schema+json; charset=utf-8` |
+| `*.sha256` | `Content-Type: text/plain; charset=utf-8` |
+| `/<family>/v<X.Y.Z>/*` | `Cache-Control: public, max-age=31536000, immutable` |
+| Alias bundles, `versions.json`, `catalog.json`, `published.json` | `Cache-Control: public, max-age=300, must-revalidate` |
+| Index pages, `/reference/` | No rule. Pages serves `Cache-Control: public, max-age=0, must-revalidate` |
 
-Every path also gets CORS and `nosniff`, and schemas are served as
-`application/schema+json`. Cloudflare Pages applies every matching rule and
-comma-joins duplicate header names, so no two rules may set the same header on
-one path. The build fails if two do, and it also fails at ninety rules, below
-Pages' limit of one hundred. `Deprecation` and `Sunset` headers are not
-generated yet
+Open CORS means a browser-based validator can fetch a schema directly, and an
+alias is revalidated within five minutes of a release. Cloudflare Pages applies
+every matching rule and comma-joins duplicate header names, so no two rules may
+set the same header on one path. The build fails if two do, and it also fails at
+ninety rules, below Pages' limit of one hundred. `Deprecation` and `Sunset`
+headers are not generated yet
 ([ADR 0012](adr/0012-cloudflare-pages-publication.md), follow-up 1).
 
 The reasoning is in [ADR 0012 §2](adr/0012-cloudflare-pages-publication.md) and
@@ -177,22 +216,39 @@ The reasoning is in [ADR 0012 §2](adr/0012-cloudflare-pages-publication.md) and
 | `path` | The family version directory at that release. A release is read through this field, which is how it survives a later layout change. |
 | `tree` | Git's tree id for `path` at the tagged commit. It covers prose, sources, examples and corpus in one value. |
 | `bundleSha256` | SHA-256 of the pinned bundle, which is also the release asset. `null` exactly when the family publishes no schema, which today means core. |
-| `requires` | Exact versions of the families this release was built against. Required on a kind family entry, and forbidden on core's. `requires.core` is core's manifest version when the entry is recorded. |
+| `requires` | Exact versions of the families this release was built against. Required on a kind family entry, and forbidden on core's. `requires.core` is core's manifest version when the entry is recorded. This is where a release's core edition is recorded; the archive's `release.json` repeats it. |
 
 **The ledger is append-only.** An entry is *pending* until its tag exists, and
 *tagged* after that. `task release:record` inserts or updates pending entries
-only, and nobody edits the file by hand. `task check:ledger` compares the file
-against the base branch and fails if any tagged entry was edited or removed.
+on a release pull request. Nobody edits the file by hand, which is a convention
+rather than a check. `task check:ledger` compares the file against the pull
+request's base commit and fails if any entry the base holds was edited or
+removed, pending entries included.
+
+A pending entry reaches `main` when its release pull request merges, and from
+then on it is as fixed as a tagged one. release-please tags that merge commit in
+the same run, so the entry normally becomes tagged at once. If no tag is
+created, the entry stays pending on `main`: `task check:published` keeps
+rebuilding it against `HEAD`, and fails once a later commit changes its `path`.
 
 The checks that read the ledger:
 
 - **`task check:published`** runs offline, against git.
-  - For a tagged entry, `<tag>:<path>` must equal `tree`, and the tag's own
-    `published.json` must hold the same entry.
-  - A pending entry is rebuilt, and must match `HEAD` and a fresh pinned build.
+  - A tagged entry is verified by three things only: `<tag>:<path>` must equal
+    `tree`, the tag's own `published.json` must hold the same entry, and a kind
+    family's `core/v<requires.core>` must be an ancestor of the tag. Nothing
+    else is re-run against tagged history. Commit classification ran while the
+    entry was pending, and `task release:stage` ran it again on the tag's own
+    tooling, so newer tooling never re-judges it.
+  - A pending entry is rebuilt, must match `HEAD` and a fresh pinned build, and
+    must pass the pending core gate.
+  - A manifest version other than `0.0.0` that is neither tagged nor recorded
+    fails.
   - A tag with no entry fails.
   - A shallow clone holding entries but no tags fails, rather than reporting
     nothing to check.
+- **`task check:ledger`** is the append-only check above. It runs in CI's
+  `Site Build`, on pull requests only.
 - **`task check:published:online`** runs the online half of `task site:fetch`
   without writing the cache. For each tagged entry, the GitHub Release must be
   published and immutable, carry its conventional assets, and have a bundle
@@ -208,28 +264,40 @@ and its bytes are checked on GitHub.
 
 A kind family release records the core edition it was built and tested against
 ([core v1 §9](../specifications/core/v1/spec.md#editions)). The gate keeps that
-record true. `task release:record`, `task check:published`,
-`task check:editions` and `task release:stage` all apply it.
+record true. The pending gate runs in `task release:record`,
+`task check:published` and `task check:editions`. The tagged gate runs in
+`task release:stage`, on the tag's own tooling.
 
-**A releasable core commit** touches `specifications/core/v1` and either has a
-type that release-please's changelog shows (`feat`, `fix` or `docs`, per
-`.github/release-please/config.json`) or is breaking (`!`, or a
-`BREAKING CHANGE:` footer). Merge commits are ignored. So is a releasable commit
-that does not touch core.
+**A releasable core commit** touches `specifications/core/v1` and either:
+
+- has a type that release-please's changelog shows: `feat`, `fix` or `docs`, per
+  `.github/release-please/config.json`;
+- is breaking: `!` after the type or scope, or a `BREAKING CHANGE:` or
+  `BREAKING-CHANGE:` footer;
+- or carries a `Release-As:` footer.
+
+A footer counts only in the commit message's trailer block, its last paragraph.
+The same words elsewhere in the body do not count. Merge commits are ignored, and
+so is a releasable commit that does not touch core.
 
 A **pending** kind family entry fails when any of these hold:
 
+- the family's `spec.md` is missing, or its §2 "Normative dependencies" table
+  cites no core line;
 - core's manifest version is `0.0.0`, meaning core has never been released;
+- `requires.core` belongs to a different core line than the one §2 cites;
+- `requires.core` is ahead of core's manifest version;
 - the tag `core/v<requires.core>` does not exist;
 - `git log core/v<requires.core>..HEAD -- specifications/core/v1` contains a
   releasable commit.
 
-A **tagged** kind family entry fails unless all of these hold:
+A **tagged** kind family entry, staged by `task release:stage`, fails unless all
+of these hold:
 
 - `core/v<requires.core>` is an ancestor of the family tag;
 - no releasable core commit lies between the two;
 - the major version of `requires.core` matches the core line the family's
-  `spec.md` cites.
+  `spec.md` cites at the tag.
 
 **Warnings, not failures.** A non-releasable core commit since the recorded
 edition (`chore`, `refactor`, `test` and the like) warns. So does a
@@ -237,13 +305,9 @@ edition (`chore`, `refactor`, `test` and the like) warns. So does a
 release for a hidden type, so blocking on one would hold every family until
 someone manufactured a releasable core commit.
 
-**No commit override on core.** The gate reads commits from `git log`.
-release-please also honours a `BEGIN_COMMIT_OVERRIDE` block in a pull request
-body, and the squash commit does not carry that block. After core's first
-release, a pull request touching `specifications/core/` therefore must not use
-an override, or the gate and release-please could disagree. This is a review
-obligation, not a check; see
-[CONTRIBUTING → Commit messages](../.github/CONTRIBUTING.md#commit-messages).
+**No commit override on core.** The gate reads commits from `git log`, so it
+cannot see a `BEGIN_COMMIT_OVERRIDE` block. The rule that follows from that is in
+[CONTRIBUTING → Squash merges and overrides](../.github/CONTRIBUTING.md#squash-merges-and-overrides).
 
 ## When a release is wrong
 
@@ -265,10 +329,10 @@ follow-up 1).
 If `release.yml` fails after the tag exists but before the release is
 published, the version is tagged but not released. Every deploy then fails at
 `task site:fetch`, because deploying without the release would drop a pinned
-path. Recover by dispatching the release workflow with the tag:
+path. Recover by dispatching the release workflow from `main` with the tag:
 
 ```sh
-gh workflow run release.yml --repo musher-dev/specifications -f tag=component/v1.2.0
+gh workflow run release.yml --repo musher-dev/specifications --ref main -f tag=component/v1.2.0
 ```
 
 A dispatched run skips release-please, finds the release by listing releases,
@@ -279,7 +343,8 @@ and does only what is undone:
 - verifies a release that is already published, without changing it.
 
 It checks out the tag and uses the tag's tooling and Bun version, so a dispatch
-from a newer `main` still builds what the tag describes. Re-running it is safe.
+from a newer `main` still builds what the tag describes. The tag guard requires
+the tag to be an ancestor of `origin/main`. Re-running it is safe.
 
 ## Prerequisites before the first tag
 
@@ -291,13 +356,30 @@ starting with core, is tagged:
    published.
 2. **Disable GitHub Pages** on the repository. The origin is Cloudflare Pages,
    and a stale Pages site must not answer for the same content.
-3. **Create the release GitHub App.** Grant it Contents read and write, Pull
+3. **Keep the squash-merge settings.** `main` accepts squash merges only, and
+   two repository settings decide what the squash commit says. Neither is a
+   ruleset field, so nothing in `.github/rulesets/` can carry them. Check both
+   with
+   `gh api repos/musher-dev/specifications --jq '{squash_merge_commit_title, squash_merge_commit_message}'`.
+   - `squash_merge_commit_title` must be `PR_TITLE`. `task check:title`
+     validates the pull request title, and release-please and the core gate read
+     the merged subject, so the two must be the same string. Under the default,
+     a single-commit pull request lands that commit's subject instead
+     ([RULESETS.md](../.github/rulesets/RULESETS.md#the-selective-code-owner-review-gate),
+     invariant 7).
+   - `squash_merge_commit_message` must be `COMMIT_MESSAGES`. The squash body
+     is then the branch's own commit messages, the text the `commit-msg` hook
+     and `Signed off` read, and its trailer block is the end of the branch's last
+     commit. That is where a `BREAKING CHANGE:` or `Release-As:` footer has to
+     sit to count. `PR_BODY` would land the pull request description, which no
+     check reads, and `BLANK` would drop every footer.
+4. **Create the release GitHub App.** Grant it Contents read and write, Pull
    requests read and write, and Administration read, which the release job uses
    to confirm immutable releases are enabled before it publishes. GitHub adds
    Metadata read to every App. Install it on this repository, then record its id
    as the repository variable `RELEASE_APP_ID` and its private key as the
    repository secret `RELEASE_APP_PRIVATE_KEY`.
-4. **Set the release sign-off.** The `signoff` in
+5. **Set the release sign-off.** The `signoff` in
    `.github/release-please/config.json` holds a placeholder:
 
    ```
@@ -310,16 +392,16 @@ starting with core, is tagged:
    release job compares the value on the default branch with the App's commit
    author, and it refuses to continue until they match, because every release
    pull request would otherwise fail `Signed off`.
-5. **Serve `specifications.musher.dev` from Cloudflare Pages.** Attach the
+6. **Serve `specifications.musher.dev` from Cloudflare Pages.** Attach the
    custom domain to the Pages project `task site:deploy` names. Store a token
    scoped to that one project as `CLOUDFLARE_API_TOKEN`, and the account as
    `CLOUDFLARE_ACCOUNT_ID`.
-6. **Redirect the old host.** `schemas.musher.dev` is being retired. Once the
+7. **Redirect the old host.** `schemas.musher.dev` is being retired. Once the
    redirect is in place, it answers with a `301` to the same path on
    `specifications.musher.dev`. No published `$id` names the old host, so
    nothing here depends on the redirect lasting.
-7. **Apply the updated `release-tags` ruleset**, which covers
+8. **Apply the updated `release-tags` ruleset**, which covers
    `refs/tags/core/**`, with `gh api -X PUT` as
    [RULESETS.md](../.github/rulesets/RULESETS.md) shows.
-8. **Rehearse** the whole flow in a scratch repository, then release core
+9. **Rehearse** the whole flow in a scratch repository, then release core
    before any kind family.

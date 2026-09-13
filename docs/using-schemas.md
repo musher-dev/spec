@@ -1,32 +1,40 @@
 # Using the schemas
 
-Every kind family publishes one JSON Schema (draft 2020-12) bundle per major
-version, and one per exact release. This page is for anyone validating Musher
-documents: in an editor, in automation, or offline. Core publishes no schema;
-its rules reach a document through each family's bundle.
+Every [kind family](../specifications/README.md#kind-family) publishes one
+JSON Schema (draft 2020-12) bundle per major version, and one per exact release.
+This page is for anyone validating Musher documents: in an editor, in
+automation, or offline. Core publishes no schema, for the reason
+[How the families relate](../specifications/README.md#how-the-families-relate)
+gives.
 
 ## <a id="which-url"></a>Which URL
 
-| URL | Serves | Changes? | Use for |
-|---|---|---|---|
-| `https://specifications.musher.dev/<family>/v<MAJOR>/<family>.schema.json` | The newest release in the major, or a build of `main` before the major's first release | Yes, on every release | Editors and people |
-| `https://specifications.musher.dev/<family>/v<MAJOR>.<MINOR>.<PATCH>/<family>.schema.json` | Exactly one release | Never | CI, automation, and audit |
+| Name | URL | Serves | Changes? | Use for |
+|---|---|---|---|---|
+| Major-version alias | `https://specifications.musher.dev/<family>/v<MAJOR>/<family>.schema.json` | The newest release in the major, or a build of `main` before the major's first release | Yes, on every release | Editors and people |
+| Exact release | `https://specifications.musher.dev/<family>/v<MAJOR>.<MINOR>.<PATCH>/<family>.schema.json` | Exactly one release | Never | CI, automation, and audit |
 
-Each bundle's `$id` is the URL it is served at. Exact-release URLs exist only
-once a family has released; each has a `.sha256` file beside it, and
-`/<family>/versions.json` lists every release of a family. Whether a version
-has been released is explained in
-[Draft or released](publication.md#draft-or-released).
+Each bundle's `$id` is the URL it is served at. Each exact release URL has a
+`.sha256` file beside it, and `/<family>/versions.json` lists every release of a
+family.
+
+**Exact release URLs exist only after a family's first release.** Until then
+there is nothing immutable to pin, and whether a version has been released is
+explained in [Draft or released](publication.md#draft-or-released).
 
 ## <a id="in-your-editor"></a>In your editor
 
-Add a modeline to the top of a document:
+Add a modeline to the top of a document, naming its family's alias:
 
 ```yaml
-# yaml-language-server: $schema=https://specifications.musher.dev/component/v1/component.schema.json
-specVersion: v1
-kind: COMPONENT
+# yaml-language-server: $schema=https://specifications.musher.dev/<family>/v1/<family>.schema.json
 ```
+
+| Family | Modeline |
+|---|---|
+| component | `# yaml-language-server: $schema=https://specifications.musher.dev/component/v1/component.schema.json` |
+| blueprint | `# yaml-language-server: $schema=https://specifications.musher.dev/blueprint/v1/blueprint.schema.json` |
+| listing | `# yaml-language-server: $schema=https://specifications.musher.dev/listing/v1/listing.schema.json` |
 
 Or bind by file name in VS Code's `settings.json`, with the Red Hat YAML
 extension. These are the same patterns the catalog below publishes:
@@ -66,18 +74,29 @@ which is exactly what makes it the wrong target for a build: the bytes behind it
 change when a release ships. An exact release URL serves the same bytes for as
 long as the site exists.
 
+Before a family's first release, automation has no exact URL to pin, and the
+alias moves with every push to `main`. Pin a commit of this repository instead,
+and build the bundle from it:
+
+```sh
+git -C specifications checkout <commit>
+bun specifications/tools/src/schema/bundle.ts --stdout <family>/v1 > <family>.schema.json
+```
+
+The bundler needs no `bun install`
+([tools/README.md → Bundler CLI](../tools/README.md#bundler-cli)). Switch to the
+exact release URL once the family releases.
+
 ## <a id="offline"></a>Offline and vendoring
 
 Every bundle is self-contained: every `$ref` resolves inside its own `$defs`,
 so no validator ever makes a network request to evaluate a document.
 
 To vendor a release, download its assets from
-[GitHub Releases](https://github.com/musher-dev/specifications/releases). Each
-kind family release attaches its bundle and a `.tar.gz` archive holding the bundle,
-`spec.md`, the examples, and the conformance corpus; a kind family's archive
-also carries the core specification and core corpus at the edition it was built
-against ([ADR 0023](adr/0023-published-bytes-are-immutable-release-assets.md)
-§6). The bundle in a release is byte-for-byte what its exact release URL serves.
+[GitHub Releases](https://github.com/musher-dev/specifications/releases). What
+each release attaches, and what its archive holds, is listed in
+[Publication → Release assets](publication.md#release-assets). The bundle in a
+release is byte-for-byte what its exact release URL serves.
 
 To inspect the schema a checkout would publish, run `task bundle`, which writes
 it under `dist/`.
@@ -90,17 +109,10 @@ covered, with commands, in
 
 ## <a id="headers"></a>Headers you will see
 
-| Path | Header |
-|---|---|
-| Every path | `Access-Control-Allow-Origin: *`, `X-Content-Type-Options: nosniff` |
-| `*.schema.json` | `Content-Type: application/schema+json; charset=utf-8` |
-| `*.sha256` | `Content-Type: text/plain; charset=utf-8` |
-| An exact release's files | `Cache-Control: public, max-age=31536000, immutable` |
-| A major-version alias, and `versions.json` | `Cache-Control: public, max-age=300, must-revalidate` |
-
-Open CORS means a browser-based validator can fetch a schema directly. An alias
-is revalidated within five minutes of a release. How these headers are
-generated is part of [Publication](publication.md).
+Every path is served with open CORS, so a browser-based validator can fetch a
+schema directly. An exact release is cached as immutable, and an alias is
+revalidated within five minutes of a release. The full table is in
+[Publication → Cache policy](publication.md#cache-policy).
 
 ## <a id="moved-host"></a>Moved host
 
@@ -109,5 +121,5 @@ retired: once the redirect is in place, it answers with a `301` to the same path
 on `specifications.musher.dev`. Every `$id` names the new host, and nothing was
 ever released under the old one, so no exact release URL moves. Point
 automation, and every modeline and binding, at `specifications.musher.dev` now
-rather than relying on the redirect: it is not live yet, and not every validator
-follows one.
+rather than relying on the redirect. The redirect is not live yet, and not
+every validator follows one.

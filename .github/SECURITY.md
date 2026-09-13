@@ -35,10 +35,10 @@ Specification design disagreements are not security issues. Open a normal issue.
 ## Verifying a release
 
 Every release is a published **immutable** GitHub Release. Once published, its
-tag and assets cannot change, and GitHub records a digest for each asset. A kind
-family release (`component`, `blueprint`, `listing`) carries
-`<family>.schema.json` and `<family>-v<X.Y.Z>.tar.gz`; a core release carries
-`core-v<X.Y.Z>.tar.gz`. Every asset has a SLSA provenance attestation.
+tag and assets cannot change, and GitHub records a digest for each asset. Which
+assets each release carries is listed in
+[Publication → Release assets](../docs/publication.md#release-assets). Every
+asset has a SLSA provenance attestation.
 
 ```sh
 # The release is published and immutable

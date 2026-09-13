@@ -1,10 +1,12 @@
 # Component specification
 
-A component document describes one reusable graph node: a workload Musher runs,
-or an external service, plus the configuration contract it exposes. A component
+A component document describes one reusable node of a blueprint's component
+graph ([blueprint §4](../blueprint/v1/spec.md#components)): a workload Musher
+runs, or an external service, plus the configuration contract it exposes. A component
 is never deployed on its own; a [blueprint](../blueprint/README.md) composes it.
 
-Component documents sit inside a catalog item rather than naming one, commonly
+Component documents sit inside a
+[catalog item](../core/v1/spec.md#item-directory) rather than naming one, commonly
 as `components/<name>.yaml`, `component.yaml` or `component-<name>.yaml`, the
 patterns [editors bind](../../docs/using-schemas.md#in-your-editor).
 
@@ -12,9 +14,9 @@ patterns [editors bind](../../docs/using-schemas.md#in-your-editor).
 
 | Major | Specification | Examples | Released? |
 |---|---|---|---|
-| `v1` | [`v1/spec.md`](v1/spec.md) | [`v1/examples/`](v1/examples/) | [Draft or released](../../docs/publication.md#draft-or-released) |
+| `v1` | [`v1/spec.md`](v1/spec.md) | [`v1/examples/`](v1/examples/) | Draft — no `component/v1.*` tag yet ([how to tell](../../docs/publication.md#draft-or-released)) |
 
-## Read in this order
+## Start here
 
 1. The [core specification](../core/README.md), which this one applies
 2. [§2 Document envelope](v1/spec.md#envelope), for what this family binds
@@ -23,6 +25,14 @@ patterns [editors bind](../../docs/using-schemas.md#in-your-editor).
 4. [§6 Configuration contract](v1/spec.md#contract), including
    [§6.3 Value schemas](v1/spec.md#value-schema)
 5. [§8 Diagnostics](v1/spec.md#diagnostics)
+
+An implementation implements every section of this specification and of each
+specification it builds on, together with the external specifications they cite.
+This one cites [RFC 5321](https://www.rfc-editor.org/rfc/rfc5321), [RFC
+3986](https://www.rfc-editor.org/rfc/rfc3986), [RFC
+1123](https://www.rfc-editor.org/rfc/rfc1123) and the [IANA Time Zone
+Database](https://www.iana.org/time-zones). The list above is where to begin,
+not what to implement.
 
 ## Builds on
 
@@ -51,7 +61,7 @@ Every ID, the clause stating it, and the cases pinning it:
 | | URL |
 |---|---|
 | Major-version alias | `https://specifications.musher.dev/component/v1/component.schema.json` |
-| Exact release | `https://specifications.musher.dev/component/v1.<MINOR>.<PATCH>/component.schema.json` |
+| Exact release (after first release) | `https://specifications.musher.dev/component/v1.<MINOR>.<PATCH>/component.schema.json` |
 
 Which one to use, and how to bind it, is in
 [Using the schemas](../../docs/using-schemas.md). The schema is authored in

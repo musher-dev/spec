@@ -31,9 +31,11 @@ Call sites are [`Taskfile.yml`](../Taskfile.yml), [`taskfiles/`](../taskfiles/),
 `.config/lefthook.yml`, and [`.github/workflows/`](../.github/workflows/).
 Tool versions are pinned in
 [`tools/package.json`](../tools/package.json) for anything installed by Bun,
-and in [`.devcontainer/mise.toml`](../.devcontainer/mise.toml) for the rest —
-with the CI workflow mirroring the same version, because CI is not a mise host
-and does not read that file.
+and in [`.devcontainer/mise.toml`](../.devcontainer/mise.toml) for the rest.
+CI is not a mise host and does not read that file. The CI workflows pin the
+tools they install themselves, Task and actionlint, to the same versions.
+ShellCheck is the exception: CI uses the copy preinstalled on the runner image,
+which is not pinned and can differ from the container's.
 
 ## Rules
 
