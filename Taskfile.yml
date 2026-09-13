@@ -72,6 +72,7 @@ tasks:
       - task: check:test
       - task: check:commits
       - task: check:links
+      - task: check:adr
       - task: check:md
       - task: check:spelling
       - task: check:shell

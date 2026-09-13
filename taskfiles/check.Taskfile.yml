@@ -117,6 +117,13 @@ tasks:
     cmds:
       - bun run src/policy/links.ts
 
+  adr:
+    desc: Verify ADR numbering and relations, and hold accepted ADRs to link-target-only edits (ADR-01..ADR-04)
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      # ADR-04 compares against BASE_REF when set, else origin/main, else skips.
+      - bun run src/policy/adr.ts
+
   md:
     desc: Lint Markdown against .config/markdown/markdownlint.jsonc
     dir: '{{.ROOT_DIR}}'
