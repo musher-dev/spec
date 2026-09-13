@@ -73,7 +73,7 @@ publishes the bundle diff against the base commit to the step summary and upload
 "draft": true,
 "force-tag-creation": true,
 "pull-request-title-pattern": "chore(repo): release${component} ${version}",
-"signoff": "<app-slug>[bot] <<app-id>+<app-slug>[bot]@users.noreply.github.com>"
+"signoff": "<app-slug>[bot] <<bot-user-id>+<app-slug>[bot]@users.noreply.github.com>"
 ```
 
 **Draft**, because an immutable release accepts no asset once published.
@@ -266,7 +266,10 @@ credential path.
   without it would drop a pinned path.
 - **A kind family can wait on core** while core's release pull request is unmerged.
 - **Prerequisites before the first tag:** enable immutable releases; disable the
-  stale GitHub Pages site; create the release App and its credentials; apply the
+  stale GitHub Pages site; create the release App (contents and pull requests
+  read-write, administration read so the release job can confirm immutability)
+  and its credentials, and replace the `signoff` placeholder with its identity —
+  the release job refuses to run until they match; apply the
   `release-tags` ruleset with `refs/tags/core/**`; serve the new host and redirect
   the old one; pass a scratch-repository rehearsal; release core first.
 
