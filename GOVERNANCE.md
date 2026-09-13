@@ -53,9 +53,15 @@ Structural changes need an accepted ADR first. That covers:
 - Changing the release, versioning, or publication model
 - Any change requiring a new major version
 - Changing the conformance fixture contract
+- Changing core — admitting a rule to the
+  [core specification](specifications/core/v1/spec.md), moving one out of it, or
+  changing what a family takes from it
 
 ADRs live in [`docs/adr/`](docs/adr/), are numbered sequentially, and are
-immutable once accepted — supersede, never rewrite.
+immutable once accepted — supersede, never rewrite. The one edit an accepted ADR
+admits is retargeting a relative link whose target moved, and
+[ADR 0021 §4](docs/adr/0021-repository-organized-around-the-family-version.md)
+sets out exactly what that permits; `task check:adr` enforces it.
 
 ## Compatibility review
 
@@ -67,10 +73,11 @@ Any change that would cause a previously valid document to fail validation is a
 3. A migration note in the new major's `spec.md`
 
 Requirement 1 is an obligation on the maintainer, not a gate the repository
-enforces: `specifications/` and `conformance/` are deliberately unowned, so a
-breaking change is not blocked awaiting a review. What *is* enforced on every
-pull request is the machinery that detects the breakage — `check:drift`,
-`check:compat`, `check:published`, and the conformance suite, all required. See
+enforces: `specifications/`, which holds every family's prose, schemas and
+conformance corpus, is deliberately unowned, so a breaking change is not blocked
+awaiting a review. What *is* enforced on every pull request is the machinery
+that detects the breakage — `check:compat`, `check:published`, and the
+conformance suite, all required. See
 [ADR 0015 §4](docs/adr/0015-selective-code-owner-review.md).
 
 Adding a required field, narrowing an enum, tightening a pattern, and removing
@@ -137,30 +144,26 @@ of any other vocabulary of this shape.
 
 ## Release process
 
-Releases are automated. Merging a Conventional Commit to `main` opens a
-release-please PR; merging that PR tags the release and triggers publication.
-
-1. The release pull request records the pending version in
-   [`published.json`](published.json) — its path and the checksums of the bytes
-   about to be tagged
-2. Tag `<family>/v<MAJOR>.<MINOR>.<PATCH>` is created
-3. A `.tar.gz` of the bundle, prose, and conformance suite is built with
-   SHA-256 checksums and a SLSA provenance attestation
-4. The archive is attached to a GitHub Release
-5. The schema is published to `https://specifications.musher.dev/<family>/…`, rebuilt
-   from the tag rather than from `main`, with the cache policy for its path
-   generated alongside it
-6. `catalog.json` is regenerated for editor discovery
+Releases are automated, one release line per family version, core included.
+Merging a Conventional Commit to `main` opens a release-please PR. That PR
+records the pending version in [`published.json`](published.json), and merging
+it tags `<family>/v<MAJOR>.<MINOR>.<PATCH>`. The schema and a release archive
+are then attached, with SLSA provenance, to a GitHub Release published as
+immutable, and `https://specifications.musher.dev/` is deployed from the
+verified assets. [docs/publication.md](docs/publication.md) describes every step,
+the ledger, the core gate, and recovery from a failed release.
 
 Released versions are **immutable**. Tag deletion and update are blocked by
-repository ruleset, and `published.json` is append-only — a rewritten tag or an
-edited entry fails CI and stops the deploy rather than silently altering a URL
-documented as permanent. A flawed release is corrected by publishing a
+repository ruleset, a published release's assets cannot change, and
+`published.json` is append-only — a rewritten tag, a changed asset, or an
+edited entry fails verification and stops the deploy rather than silently
+altering a URL documented as permanent. A flawed release is corrected by publishing a
 superseding patch, and the flawed version is marked with `deprecated: true` plus
 HTTP `Deprecation` and `Sunset` headers pointing at the migration guide.
 
-[ADR 0006](docs/adr/0006-publication-from-tags.md) sets out the publication
-model and why the ledger exists.
+[ADR 0006](docs/adr/0006-publication-from-tags.md) sets out why the ledger
+exists, and [ADR 0023](docs/adr/0023-published-bytes-are-immutable-release-assets.md)
+makes released bytes immutable release assets.
 
 ## Deprecation and retirement
 

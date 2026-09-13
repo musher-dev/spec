@@ -25,29 +25,36 @@ but real:
 - **A schema that accepts a document the specification forbids**, where the gap
   has a security consequence — for example accepting a path that escapes the
   project root, or an unpinned image reference.
-- **Supply chain integrity** — a mismatch between a release tarball, its
-  published SHA-256 checksum, and its SLSA provenance attestation.
+- **Supply chain integrity** — a mismatch between a release asset, the digest
+  GitHub records for it, the `bundleSha256` in `published.json`, the bytes
+  served at its pinned URL, and its SLSA provenance attestation.
 - **Vulnerabilities in `tools/`**, which run in CI with repository credentials.
 
 Specification design disagreements are not security issues. Open a normal issue.
 
 ## Verifying a release
 
-Every release attaches a `.tar.gz`, a matching `.sha256`, and a SLSA provenance
-attestation.
+Every release is a published **immutable** GitHub Release. Once published, its
+tag and assets cannot change, and GitHub records a digest for each asset. A kind
+family release (`component`, `blueprint`, `listing`) carries
+`<family>.schema.json` and `<family>-v<X.Y.Z>.tar.gz`; a core release carries
+`core-v<X.Y.Z>.tar.gz`. Every asset has a SLSA provenance attestation.
 
 ```sh
-# Checksums
-sha256sum --check component-v1.0.0.tar.gz.sha256
+# The release is published and immutable
+gh release verify component/v1.0.0 --repo musher-dev/specifications
+
+# A downloaded file matches the digest GitHub recorded for that asset
+gh release verify-asset component/v1.0.0 component-v1.0.0.tar.gz --repo musher-dev/specifications
 
 # Provenance
 gh attestation verify component-v1.0.0.tar.gz --repo musher-dev/specifications
 ```
 
-A published schema can be verified without downloading a release. Each
-exact-version URL has a `.sha256` beside it, and
-[`published.json`](https://specifications.musher.dev/published.json) records the
-checksum of every version ever released:
+A schema served from `specifications.musher.dev` can be verified without the
+release. Each exact-version URL has a `sha256sum`-format `.sha256` sidecar
+beside it, and [`published.json`](https://specifications.musher.dev/published.json)
+records each release's `bundleSha256`, the hash of those same bytes:
 
 ```sh
 curl -sO https://specifications.musher.dev/component/v1.0.0/component.schema.json
@@ -55,8 +62,8 @@ curl -s https://specifications.musher.dev/component/v1.0.0/component.schema.json
   | sha256sum --check -
 ```
 
-A pinned URL whose bytes do not match what `published.json` records is a
-supply-chain report, not a bug — see below.
+A pinned URL whose bytes do not match the release asset, or the `bundleSha256`
+that `published.json` records, is a supply-chain report, not a bug — see below.
 
 ## Supported versions
 
