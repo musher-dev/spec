@@ -281,5 +281,6 @@ describe('verifyPublications', () => {
     const clone = join(scratch, 'clone')
     git(scratch, ['clone', '-q', '--depth', '1', '--no-tags', `file://${fx.root}`, clone])
     expect(verify(clone).failures).toEqual([expect.stringContaining('shallow clone with no tags')])
-  })
+    // A real `git clone` against a fixture repository: slow on a loaded runner.
+  }, 30_000)
 })
