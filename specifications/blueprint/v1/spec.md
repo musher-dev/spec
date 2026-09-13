@@ -11,8 +11,9 @@ BCP 14 [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119) and
 [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174) when, and only when, they
 appear in all capitals, as shown here.
 
-> **What is normative.** This document defines the complete behaviour of the
-> specification. The JSON Schema bundle is its executable form for structural
+> **What is normative.** This document, together with the
+> [Musher Document Core Specification](../../core/v1/spec.md) it applies,
+> defines the complete behaviour of the specification. The JSON Schema bundle is its executable form for structural
 > validity, and the [conformance corpus](../../../conformance/README.md) is its
 > executable form for observable outcomes; both are normative, and neither is
 > permitted to disagree with this document or with the other. Schema
@@ -96,7 +97,8 @@ are stated once for every family in
 [`CORE-ITEM-001`](../../core/v1/spec.md#CORE-ITEM-001) binds `metadata.slug` to
 the item directory name, and
 [`CORE-ITEM-002`](../../core/v1/spec.md#CORE-ITEM-002) binds
-`metadata.revision` to the sibling listing's. The third is this family's:
+`metadata.revision` to that of every other item document in the item — where
+the item holds a sibling listing, to the listing's. The third is this family's:
 
 | ID | Rule | Diagnostic |
 |---|---|---|
@@ -110,6 +112,13 @@ use, with nothing in the directory saying which is live. The diagnostic
 anchors at `/spec/components` — the mapping that should have named the file —
 because a JSON Pointer addresses this document, and the file it is complaining
 about is not in it.
+
+**What v1 does not constrain.** An item holding a `blueprint.yaml` and no
+`listing.yaml` is not rejected. The revision rule takes two item documents, so
+where the blueprint is the only one it goes silent rather than failing, and
+nothing in [core v1 §4.2](../../core/v1/spec.md#item-identity) requires the
+sibling listing [§3.1](#item-directory) shows. Closing this needs a rule that
+rejects items validating today, which makes it a breaking change.
 
 ### <a id="item-directory"></a>3.1 The item directory
 
@@ -495,7 +504,7 @@ pinned, if at all, by [§4.4](#placement-constraints).
 actually available is not a property of this document, and a node naming one
 that is not is rejected with `ERR_UNKNOWN_COMPUTE_PROFILE` in the `capability`
 phase. Deciding it needs the catalog, which needs the network, which
-[§6](#validation-layers) forbids the earlier phases from reaching — so an
+[core v1 §6](../../core/v1/spec.md#validation-layers) forbids the earlier phases from reaching — so an
 offline implementation MUST NOT report it, on the same grounds
 [§4.1](#component-reference) gives for a published component reference. It has
 not been given the means to check.
@@ -962,7 +971,8 @@ the cycle is in the graph the document describes, not in the document's own
 structure.
 
 **Published references.** Resolving a published reference is `capability`
-([§6](#validation-layers)) precisely because it needs the catalog. An
+([core v1 §6](../../core/v1/spec.md#validation-layers)) precisely because it
+needs the catalog. An
 implementation MUST NOT reach the network during `parser`, `structural`, or
 `semantic`, so a blueprint composed entirely of repo-local references validates
 completely offline. A validator that resolved published references early would

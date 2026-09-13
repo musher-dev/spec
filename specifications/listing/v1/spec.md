@@ -11,8 +11,9 @@ BCP 14 [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119) and
 [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174) when, and only when, they
 appear in all capitals, as shown here.
 
-> **What is normative.** This document defines the complete behaviour of the
-> specification. The JSON Schema bundle is its executable form for structural
+> **What is normative.** This document, together with the
+> [Musher Document Core Specification](../../core/v1/spec.md) it applies,
+> defines the complete behaviour of the specification. The JSON Schema bundle is its executable form for structural
 > validity, and the [conformance corpus](../../../conformance/README.md) is its
 > executable form for observable outcomes; both are normative, and neither is
 > permitted to disagree with this document or with the other. Schema
@@ -100,7 +101,8 @@ reason it carries none there.
 document ([§3.1](#component-item)), so no single one of them is *the*
 component. Pinning to a designated one would need a field naming which, which
 is contract surface added to reproduce what the blueprint shape gets from its
-graph — and it would contradict component §4, which says no item is pinned to a
+graph — and it would contradict
+[component §4](../../component/v1/spec.md#metadata), which says no item is pinned to a
 component beneath it.
 
 **What v1 does not constrain.** A listing declaring `listingKind: BLUEPRINT` in
@@ -131,10 +133,12 @@ are siblings under that one root.
 
 Two names in that tree are fixed: `listing.yaml`, and `media/` by
 [§5](#media). Component documents MAY sit anywhere under the root —
-`components/` is the same convention blueprint §3.1 describes, and a flat
+`components/` is the same convention
+[blueprint §3.1](../../blueprint/v1/spec.md#item-directory) describes, and a flat
 sibling is equally valid.
 
-**An item MAY hold more than one component document.** Blueprint §3's
+**An item MAY hold more than one component document.**
+[Blueprint §3](../../blueprint/v1/spec.md#identity)'s
 `ERR_UNREFERENCED_COMPONENT` has no analogue in this shape. That rule exists
 because a blueprint's graph names the documents it deploys, so a document the
 graph does not name is invisible; there is no graph here to name anything.

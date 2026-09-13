@@ -43,7 +43,7 @@ or [listing](../../listing/v1/spec.md) — and that family's specification appli
 this one, binding the parameters [§1.1](#bindings) leaves open.
 
 A family specification cites a clause of this document by its major line and
-section, as "core v1 §6.1", and always as a link to the clause's anchor
+section, as `core v1 §6.1`, and always as a link to the clause's anchor
 ([§9](#editions)).
 
 **Out of scope for this document**
@@ -69,9 +69,9 @@ A family specification MUST also declare its **normative dependencies**, in a
 table headed "Normative dependencies" that follows the bindings table and names
 each specification whose rules the family applies, with the major line it
 applies. Every family names core. A family that applies a rule another family
-defines names that family too. The diagnostic codes a family's documents may
-carry are its own, those of [§7](#diagnostics), and those its dependencies
-declare. Tooling reads the table, so it stays a table.
+defines names that family too. A family's diagnostic registry comprises its own
+table, core's ([§7](#diagnostics)), and those of the families it declares as
+dependencies. Tooling reads the table, so it stays a table.
 
 A family specification narrows this document where it says so and relaxes it
 nowhere.
@@ -235,8 +235,8 @@ fields the item document's family defines in its `metadata`.
 | <a id="CORE-ITEM-001"></a>`CORE-ITEM-001` | An item document's `metadata.slug` MUST equal the item directory name. | `ERR_SLUG_MISMATCH` |
 | <a id="CORE-ITEM-002"></a>`CORE-ITEM-002` | Every item document in an item MUST carry the same `metadata.revision`. | `ERR_VERSION_MISMATCH` |
 
-A document handed over with no directory has no item root, and an
-implementation in that position MUST NOT report either rule.
+A document handed over with no directory has no item root, and
+[§4.1](#item-directory) says what that means for both rules.
 
 **The item documents are one item's halves.** A listing whose revision has
 moved ahead of its blueprint describes something other than what would be
@@ -458,15 +458,12 @@ code names one condition.
 
 ## <a id="conformance"></a>8. Conformance
 
-An implementation conforms to a family specification when it produces the
-declared outcome for every case in that family's corpus and in the core corpus
-([§8.1](#core-corpus)).
-
 **A claim to conform to a family release covers two sets of cases**: the
-release's own, and the core corpus at the core edition the release records
-([§9](#editions)). An implementation MUST pass both under its declared profile.
-It MAY also run a later core v1 corpus, and MUST NOT substitute one for the
-other.
+release's own corpus, and the core corpus ([§8.1](#core-corpus)) at the core
+edition the release records ([§9](#editions)). An implementation conforms when
+it produces the declared outcome for every case in both, and MUST pass both
+under its declared profile. It MAY also run a later core v1 corpus, and MUST NOT
+substitute one for the other.
 
 Implementations MUST run the fixture corpus in their own CI. Passing a fixture
 that is declared to fail is a conformance failure.
@@ -490,8 +487,9 @@ directory.
 
 An adapter runs a core case through its parser alone. `expected: pass` means the
 parser accepts the document, and no later phase runs. A core case's document
-carries an otherwise valid envelope, but its `kind` has no effect, and an adapter
-MUST NOT dispatch on it. The parser runs before a family is chosen, so an
+need not be a valid envelope, because no later phase reads it. Where it carries a
+`kind`, that value is `COMPONENT` and has no effect, and an adapter MUST NOT
+dispatch on it. The parser runs before a family is chosen, so an
 implementation covering several families runs the core corpus once — once per
 parser, where it has more than one.
 
@@ -509,23 +507,26 @@ document as "core v1 §N" and never names an exact edition in prose: an edition
 in prose would turn every core patch release into a prose edit in every family.
 Every citation MUST be a link to the clause's anchor. A section number standing
 alone is read as a section of the document it appears in, so an unlinked
-"core v1 §6.1" in a family specification points a reader at the family's own
+`core v1 §6.1` in a family specification points a reader at the family's own
 §6.1.
 
 **A family release records the edition.** Each release of a family records the
 core edition it was built and tested against, and carries that edition's
 `spec.md` and corpus with it. A conformance claim against the release names that
 edition ([§8](#conformance)), so the two corpora the claim names both exist and
-were tested together. How the edition is recorded, and the checks that hold a
-family release while this document has unreleased changes, are set out in
+were tested together. How the edition is recorded, the checks that hold a
+family release while this document has unreleased releasable changes, and why
+its other unreleased changes only warn, are set out in
 [ADR 0023](../../../docs/adr/0023-published-bytes-are-immutable-release-assets.md).
 
-**What a release of this document may change.** Within v1, a release of this
-document MAY add a clause, a code, a case or a relaxation, and MUST NOT reject a
-document an earlier v1 edition accepted — [§3](#compatibility) applied to every
-family at once, which is why [§1.2](#admission) admits only rules that grow by
-addition. A rule that needs narrowing is core v2, a new line that each family
-adopts in a major release of its own.
+**What a release of this document may change.** This paragraph is informative:
+it records this repository's release policy. Within v1, a minor release of this
+document adds a clause, a case or a relaxation, and adds a code only for a
+condition an earlier v1 edition already rejects. No release rejects a document
+an earlier v1 edition accepted — [§3](#compatibility) applied to every family at
+once, which is why [§1.2](#admission) admits only rules that grow by addition.
+A rule that needs narrowing is core v2, a new line that each family adopts in a
+major release of its own.
 
 ## <a id="known-debt"></a>10. Known debt
 

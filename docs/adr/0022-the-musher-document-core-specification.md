@@ -167,7 +167,10 @@ exceptions this section names.
 - `CORE-ITEM-002` requires every item document in an item to carry the same
   `metadata.revision`. With one item document, that is trivially true, which
   keeps listing's reasoning that a `COMPONENT` item's revision is bound to
-  nothing.
+  nothing. It also changes a meaning, deliberately: `BP-ID-002` was
+  unconditional, so a blueprint item with no `listing.yaml` failed it, and that
+  item now passes. Blueprint §3 records the gap as one v1 does not constrain,
+  as listing §3 already does for a `BLUEPRINT` listing with no blueprint.
 - `ERR_VERSION_MISMATCH` has one meaning: `metadata.revision` disagrees with
   another item document in the same item.
 - Component §7.1's "governs all three families" becomes "governs every family
@@ -180,6 +183,12 @@ exceptions this section names.
 - Listing §3.1's "the two definitions agree wherever both apply" has nothing
   left to reconcile: core §4.1 is the one definition, and the item documents of
   one item are siblings under it.
+- Blueprint §10's containment paragraphs, written about a `componentRef`
+  reference, become core §11's "Paths inside an item", written about any path a
+  document names. That is a deliberate widening. Listing §10 adopted only the
+  symlink and resolved-location requirements, and its media paths are now also
+  held to the rule that an implementation MUST NOT follow a path outside the
+  item root even when the target is readable, as every family's paths are.
 
 **Requirement IDs.** Old IDs are retired and never reused.
 `musher-dev/platform` and `musher-dev/catalog` cite them in code and tests, and
@@ -194,8 +203,9 @@ this table is their migration:
 | `BP-ID-002`, `LIST-ID-002` | `CORE-ITEM-002` | Item documents agree on `metadata.revision` |
 | `BP-ID-003` | `BP-ID-003` | Unchanged |
 
-Component keeps stub headings carrying `#compatibility`, `#validation-layers`,
-`#yaml-profile` and `#format-policy`. [ADR 0003](0003-controlled-vocabulary-placement.md)
+Component keeps stub sections under its `#compatibility` and
+`#validation-layers` headings, and its §7 stub carries `#yaml-profile` and
+`#format-policy` as inline anchors. [ADR 0003](0003-controlled-vocabulary-placement.md)
 and [ADR 0013](0013-value-shape-vocabulary.md) link those anchors, and a stub
 keeps each link pointing somewhere true. A stub MUST NOT keep a retired
 requirement anchor, because a retired ID that still resolves reads as a live
@@ -267,8 +277,9 @@ A `structural` case needs a schema, and core has none. An item-identity case
 needs a document of some kind inside a directory. So core's corpus holds only
 `parser` cases, and an adapter runs each through its parser alone.
 `expected: pass` means the parser accepts the document, and no later phase
-runs. The documents keep an otherwise valid envelope. Their `kind` has no
-effect, and an adapter MUST NOT dispatch on it. The parser runs before
+runs. A document need not be a valid envelope, because no later phase reads it.
+Where it carries a `kind`, that value is `COMPONENT` and has no effect, and an
+adapter MUST NOT dispatch on it. The parser runs before
 dispatch, so an implementation covering several families runs the core corpus
 once.
 

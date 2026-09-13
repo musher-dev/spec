@@ -11,8 +11,9 @@ BCP 14 [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119) and
 [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174) when, and only when, they
 appear in all capitals, as shown here.
 
-> **What is normative.** This document defines the complete behaviour of the
-> specification. The JSON Schema bundle is its executable form for structural
+> **What is normative.** This document, together with the
+> [Musher Document Core Specification](../../core/v1/spec.md) it applies,
+> defines the complete behaviour of the specification. The JSON Schema bundle is its executable form for structural
 > validity, and the [conformance corpus](../../../conformance/README.md) is its
 > executable form for observable outcomes; both are normative, and neither is
 > permitted to disagree with this document or with the other. Schema
@@ -282,7 +283,7 @@ a name is a hazard rather than a matter of taste.
 **The grammar is narrower than a slug, and deliberately.** A name does not
 become a DNS label; it is composed *into* one, beside the other names that
 identify the deployment. Two properties follow from that, and neither holds for
-the slug grammar [core v1 §5.1](../../core/v1/spec.md#label-grammar)
+the label grammar [core v1 §5.1](../../core/v1/spec.md#label-grammar)
 names:
 
 1. **A separator has to survive.** Whatever character an implementation joins
@@ -786,7 +787,8 @@ phase.
 MUST NOT be `CONNECTION`. `semantic`, `ERR_INPUT_NOT_REFERENCEABLE`. An output
 reading a wired input would depend on an inbound edge, which is the dependency
 this section's invariant exists to exclude — and it is what would make
-blueprint §4.2's legal cycles unresolvable rather than merely cyclic.
+[blueprint §4.2](../../blueprint/v1/spec.md#connections)'s legal cycles
+unresolvable rather than merely cyclic.
 
 **An earlier draft of this section stated the invariant as "an output MUST NOT
 depend on a value the component received over an inbound connection".** That is
