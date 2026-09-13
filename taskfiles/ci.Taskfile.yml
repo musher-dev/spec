@@ -36,5 +36,6 @@ tasks:
       - task: :check:conformance
       - task: :check:standards
       - task: :check:parity
+      - task: :check:editions
       - task: :check:compat
       - task: :check:test

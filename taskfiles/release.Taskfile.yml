@@ -1,23 +1,28 @@
-# Publication ledger tasks.
+# Release tasks, under the `release` namespace (docs/adr/0023).
 #
-# Included under the `ledger` namespace: `task ledger:record`, `ledger:sync`.
-# `ledger:check` lives with the other checks, in check.Taskfile.yml, because it
-# is a gate rather than a write.
+# `release:record` runs on a release-please pull request branch and writes the
+# pending entries into published.json; `release:stage` runs in the release job,
+# checked out at the tag, and writes the files the release attaches.
 #
-# published.json is append-only (see docs/adr/0006). Nothing here edits an
-# entry; `record` adds the pending release, `sync` backfills tags that exist
-# but were never recorded.
+# published.json is append-only (docs/adr/0006). `record` inserts or updates
+# only entries whose tag does not exist yet; nothing here edits a tagged entry.
+# The gates live in check.Taskfile.yml: check:published, check:ledger,
+# check:editions.
 version: '3'
 
 tasks:
   record:
-    desc: Record the pending release from the release-please manifest
+    desc: Record every pending release in published.json, enforcing the core gate
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/publication/ledger.ts record
+      - bun run src/publication/record.ts
 
-  sync:
-    desc: Backfill ledger entries for tags that exist but were never recorded
+  stage:
+    desc: Verify a tagged release and stage its assets into dist/release (TAG=<family>/vX.Y.Z)
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    requires:
+      vars: [TAG]
     cmds:
-      - bun run src/publication/ledger.ts sync
+      # Writes <family>.schema.json (kind families only) and
+      # <family>-v<X.Y.Z>.tar.gz, and prints their sha256 in sha256sum format.
+      - bun run src/publication/stage.ts '{{.TAG}}' '{{.ROOT_DIR}}/dist/release'

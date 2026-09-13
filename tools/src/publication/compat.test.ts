@@ -1,48 +1,49 @@
 /**
  * The compatibility replay must replay something.
  *
- * It reads each release's examples and conformance corpus out of the tag. Read
- * at a path the tag does not carry, that corpus is empty, the replay checks
- * zero documents, and the gate reports that nothing regressed. These tests hold
- * that a missing corpus is a failure instead.
+ * It reads each release's examples and conformance corpus out of the tag, under
+ * the ledger's path. Read at a path the tag does not carry, that corpus is
+ * empty, the replay checks zero documents, and the gate reports that nothing
+ * regressed. These tests hold that a missing corpus is a failure instead.
  */
 import { afterEach, describe, expect, test } from 'bun:test'
-import { CORE_FAMILY, discoverFamilies, Failures, familyPaths, LayoutError } from '../lib/layout.ts'
+import { discoverKinds, Failures, familyPaths, LayoutError } from '../lib/layout.ts'
 import { FixtureRepo } from '../testing/fixture.ts'
+import { Pipeline } from '../testing/pipeline.ts'
 import { replayAll, replayRelease } from './compat.ts'
-import { record } from './ledger.ts'
-import { discoverReleases } from './released.ts'
+import { readLedger, taggedEntries } from './ledger.ts'
 
 const COMPONENT = familyPaths('component', 'v1')
 
 let repo: FixtureRepo | null = null
-
-function fixture(): FixtureRepo {
-  repo = new FixtureRepo()
-  return repo
-}
 
 afterEach(() => {
   repo?.cleanup()
   repo = null
 })
 
-/** Release component 1.0.0, optionally without one of its parts. */
-function cut(fx: FixtureRepo, without?: 'examples' | 'conformance'): void {
+/** Release component 1.0.0 to its tag, optionally without one of its parts. */
+function cut(without?: 'examples' | 'conformance'): FixtureRepo {
+  const fx = new FixtureRepo()
+  repo = fx
+  const p = new Pipeline(fx)
+  p.releaseCore('1.0.0')
   fx.writeFamilySkeleton('component', 'v1')
   if (without !== undefined) fx.remove(COMPONENT[without])
-  fx.writeSources('component', 'v1', fx.bundleDoc('component', 'v1'))
-  fx.setManifest({ [COMPONENT.manifestKey]: '1.0.0' })
-  record(fx.root)
-  fx.commit('chore: release component 1.0.0')
-  fx.tag('component/v1.0.0')
+  p.releaseKind('component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'), {
+    skeleton: false,
+    publish: false,
+  })
+  return fx
 }
 
 function replay(fx: FixtureRepo, failures: Failures): number {
-  const [family] = discoverFamilies(fx.root)
-  const [release] = discoverReleases(fx.root)
-  if (family === undefined || release === undefined) throw new Error('fixture has no release')
-  return replayRelease(fx.root, family, release, failures)
+  const family = discoverKinds(fx.root).find((f) => f.name === 'component')
+  const recorded = taggedEntries(fx.root, readLedger(fx.root)).find(
+    (r) => r.release.family === 'component',
+  )
+  if (family === undefined || recorded === undefined) throw new Error('fixture has no release')
+  return replayRelease(fx.root, family, recorded, failures)
 }
 
 function thrown(fn: () => unknown): unknown {
@@ -56,8 +57,7 @@ function thrown(fn: () => unknown): unknown {
 
 describe('replayRelease', () => {
   test("replays a release's examples from its tag", () => {
-    const fx = fixture()
-    cut(fx)
+    const fx = cut()
     const failures = new Failures()
     expect(replay(fx, failures)).toBe(1)
     expect(failures.count).toBe(0)
@@ -65,8 +65,7 @@ describe('replayRelease', () => {
 
   for (const part of ['examples', 'conformance'] as const) {
     test(`a release tag lacking its ${part} throws rather than replaying nothing`, () => {
-      const fx = fixture()
-      cut(fx, part)
+      const fx = cut(part)
       const error = thrown(() => replay(fx, new Failures()))
       expect(error).toBeInstanceOf(LayoutError)
       expect((error as Error).message).toContain('component/v1.0.0')
@@ -76,26 +75,16 @@ describe('replayRelease', () => {
 
   describe('replayAll', () => {
     test('skips a core release, which accepted no document a schema decided', () => {
-      const fx = fixture()
-      fx.writeCoreSkeleton('v1')
-      fx.setManifest({ [familyPaths(CORE_FAMILY, 'v1').manifestKey]: '1.0.0' })
-      record(fx.root)
-      fx.commit('chore: release core 1.0.0')
-      fx.tag('core/v1.0.0')
-
+      const fx = new FixtureRepo()
+      repo = fx
+      new Pipeline(fx).releaseCore('1.0.0')
       const failures = new Failures()
       expect(replayAll(fx.root, failures)).toEqual({ replayed: 0, checked: 0 })
       expect(failures.count).toBe(0)
     })
 
     test('still replays a kind release beside a core one', () => {
-      const fx = fixture()
-      fx.writeCoreSkeleton('v1')
-      fx.commit('feat(core): the base family')
-      fx.tag('core/v1.0.0')
-      cut(fx)
-
-      // `cut` recorded only component; core needs no ledger to be skipped here.
+      const fx = cut()
       const failures = new Failures()
       expect(replayAll(fx.root, failures)).toEqual({ replayed: 1, checked: 1 })
       expect(failures.count).toBe(0)

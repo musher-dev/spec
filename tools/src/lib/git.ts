@@ -111,3 +111,92 @@ export function readBlobAtRef(repoRoot: string, ref: string, path: string): Buff
   const { status, stdout } = run(repoRoot, ['cat-file', 'blob', `${ref}:${path}`])
   return status === 0 ? stdout : null
 }
+
+/** True when `ref` names a tag in this repository. */
+export function tagExists(repoRoot: string, tag: string): boolean {
+  const { status, stderr } = run(repoRoot, ['rev-parse', '--verify', '--quiet', `refs/tags/${tag}`])
+  if (status === 0) return true
+  if (status === 1) return false
+  throw new Error(`git rev-parse refs/tags/${tag} failed (${status}) — ${stderr.trim()}`)
+}
+
+/** Throw unless `ref` resolves to a commit. The guard before reading anything at it. */
+export function assertCommit(repoRoot: string, ref: string): string {
+  return git(repoRoot, ['rev-parse', '--verify', `${ref}^{commit}`])
+}
+
+/**
+ * Whether commit `a` is an ancestor of (or equal to) commit `b`.
+ *
+ * `merge-base --is-ancestor` answers 0 or 1; anything else — a ref that does
+ * not resolve, a corrupt object — is an error, not a "no".
+ */
+export function isAncestor(repoRoot: string, a: string, b: string): boolean {
+  const { status, stderr } = run(repoRoot, ['merge-base', '--is-ancestor', a, b])
+  if (status === 0) return true
+  if (status === 1) return false
+  throw new Error(`git merge-base --is-ancestor ${a} ${b} failed (${status}) — ${stderr.trim()}`)
+}
+
+/**
+ * Git's tree id for a directory as of a ref, or null when the ref does not carry
+ * that path as a directory.
+ *
+ * The ref must exist: a missing ref throws rather than reading as "no tree",
+ * because the caller would otherwise report a moved directory for what is a
+ * tag that was never fetched.
+ */
+export function treeId(repoRoot: string, ref: string, path: string): string | null {
+  assertCommit(repoRoot, ref)
+  const spec = `${ref}:${path}`
+  const { status, stdout, stderr } = run(repoRoot, ['rev-parse', '--verify', '--quiet', spec])
+  if (status === 1) return null
+  if (status !== 0) {
+    throw new Error(`git rev-parse ${spec} failed (${status}) — ${stderr.trim()}`)
+  }
+  const id = stdout.toString('utf8').trim()
+  return git(repoRoot, ['cat-file', '-t', id]) === 'tree' ? id : null
+}
+
+/** Whether the working tree or the index differs from HEAD anywhere under `path`. */
+export function isDirty(repoRoot: string, path: string): boolean {
+  return git(repoRoot, ['status', '--porcelain', '--untracked-files=all', '--', path]) !== ''
+}
+
+export interface LogEntry {
+  readonly sha: string
+  readonly subject: string
+  readonly body: string
+}
+
+/**
+ * The non-merge commits reachable from `to` and not from `from` that touch
+ * `path`, newest first.
+ *
+ * Merge commits are left out on purpose: a merge carries no change of its own
+ * that a conventional-commit reader would classify, and release-please skips
+ * them too.
+ */
+export function logRange(repoRoot: string, from: string, to: string, path: string): LogEntry[] {
+  assertCommit(repoRoot, from)
+  assertCommit(repoRoot, to)
+  const { status, stdout, stderr } = run(repoRoot, [
+    'log',
+    '--no-merges',
+    '--format=%H%x00%s%x00%b%x1e',
+    `${from}..${to}`,
+    '--',
+    path,
+  ])
+  if (status !== 0) {
+    throw new Error(`git log ${from}..${to} -- ${path} failed (${status}) — ${stderr.trim()}`)
+  }
+  const entries: LogEntry[] = []
+  for (const record of stdout.toString('utf8').split('\x1e')) {
+    const trimmed = record.replace(/^\n+/, '')
+    if (trimmed === '') continue
+    const [sha = '', subject = '', body = ''] = trimmed.split('\0')
+    entries.push({ sha, subject, body: body.trimEnd() })
+  }
+  return entries
+}

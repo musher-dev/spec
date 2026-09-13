@@ -12,18 +12,37 @@
  * identity and signing are passed per-commit, so a developer's global config,
  * signing key, or hook path cannot change what these tests do.
  */
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { git } from '../lib/git.ts'
 import {
+  CONFORMANCE_README,
   CORE_FAMILY,
   canonicalJson,
   familyPaths,
   type Json,
   LEDGER_FILE,
+  LICENSE_FILE,
+  NOTICE_FILE,
+  RELEASE_PLEASE_CONFIG_FILE,
   RELEASE_PLEASE_MANIFEST_FILE,
+  readJson,
 } from '../lib/layout.ts'
+
+/** The changelog sections this repository configures: feat, fix and docs visible. */
+export const RELEASE_SECTIONS: readonly { type: string; hidden?: boolean }[] = [
+  { type: 'feat' },
+  { type: 'fix' },
+  { type: 'docs' },
+  { type: 'perf', hidden: true },
+  { type: 'chore', hidden: true },
+  { type: 'refactor', hidden: true },
+  { type: 'test', hidden: true },
+  { type: 'ci', hidden: true },
+  { type: 'build', hidden: true },
+  { type: 'style', hidden: true },
+]
 
 const IDENTITY = [
   '-c',
@@ -116,17 +135,106 @@ export class FixtureRepo {
     this.writeFile(RELEASE_PLEASE_MANIFEST_FILE, canonicalJson(entries))
   }
 
+  /** Set one package's manifest version, keeping the others. */
+  setManifestVersion(key: string, version: string): void {
+    const path = join(this.root, RELEASE_PLEASE_MANIFEST_FILE)
+    const current = existsSync(path) ? (readJson(path) as { [k: string]: string }) : {}
+    this.setManifest({ ...current, [key]: version })
+  }
+
+  /** The release-please config the core gate reads its releasable types from. */
+  writeReleaseConfig(
+    sections: readonly { type: string; hidden?: boolean }[] = RELEASE_SECTIONS,
+  ): void {
+    this.writeFile(
+      RELEASE_PLEASE_CONFIG_FILE,
+      canonicalJson({
+        'changelog-sections': sections.map((s) => ({ ...s, section: s.type })) as unknown as Json,
+      }),
+    )
+  }
+
+  /** The repository-level files every release archive carries. */
+  writeRepositoryFiles(): void {
+    this.writeFile(LICENSE_FILE, 'Apache License 2.0 (fixture)\n')
+    this.writeFile(NOTICE_FILE, 'Fixture notice\n')
+    this.writeFile(CONFORMANCE_README, '# Conformance (fixture)\n')
+    this.writeReleaseConfig()
+  }
+
+  /**
+   * A kind family spec.md: `prose`, then a §2 carrying the bindings and
+   * dependency tables the core gate reads the cited core line from.
+   */
+  kindSpec(family: string, prose = '## <a id="scope"></a>1. Scope\n', coreLine = 'v1'): string {
+    return [
+      prose.trimEnd(),
+      '',
+      '## <a id="envelope"></a>2. Envelope',
+      '',
+      '| Core parameter | This family |',
+      '|---|---|',
+      `| \`kind\` | \`${family.toUpperCase().replace(/-/g, '_')}\` |`,
+      '| `metadata` | [§3](#metadata) |',
+      '| Fields accepting `null` | none |',
+      '| Item document | No — it sits inside an item |',
+      '',
+      '**Normative dependencies**',
+      '',
+      '| Specification | Line |',
+      '|---|---|',
+      `| [core](../../core/${coreLine}/spec.md) | ${coreLine} |`,
+      '',
+    ].join('\n')
+  }
+
   setLedger(ledger: Json): void {
     this.writeFile(LEDGER_FILE, canonicalJson(ledger))
   }
 
-  commit(message: string): void {
+  /** Commit everything. A `body` becomes the message body, where footers live. */
+  commit(message: string, body?: string): void {
     git(this.root, ['add', '-A'])
-    git(this.root, [...IDENTITY, 'commit', '-m', message, '--quiet'])
+    const bodyArgs = body === undefined ? [] : ['-m', body]
+    git(this.root, [...IDENTITY, 'commit', '--allow-empty', '-m', message, ...bodyArgs, '--quiet'])
+  }
+
+  /** Create and switch to a branch at HEAD. */
+  branch(name: string): void {
+    git(this.root, ['checkout', '-q', '-b', name])
+  }
+
+  checkout(name: string): void {
+    git(this.root, ['checkout', '-q', name])
+  }
+
+  /** Merge a branch with a merge commit, as a non-squash merge would. */
+  merge(name: string, message: string): void {
+    git(this.root, [...IDENTITY, 'merge', '--no-ff', '-q', '-m', message, name])
+  }
+
+  /** Git's tree id for a path at a ref. */
+  treeId(ref: string, path: string): string {
+    return git(this.root, ['rev-parse', `${ref}:${path}`])
   }
 
   tag(name: string): void {
     git(this.root, [...IDENTITY, 'tag', name])
+  }
+
+  /** Move a tag — which the release-tags ruleset forbids, and which a test forges to prove it is caught. */
+  forceTag(name: string, ref: string): void {
+    git(this.root, [...IDENTITY, 'tag', '-f', name, ref])
+  }
+
+  hasTag(name: string): boolean {
+    return git(this.root, ['tag', '--list', name]) === name
+  }
+
+  /** Whether the spec at `path` already carries a §2 bindings section. */
+  hasBindings(path: string): boolean {
+    const absolute = join(this.root, path)
+    return existsSync(absolute) && readFileSync(absolute, 'utf8').includes('<a id="envelope">')
   }
 
   head(): string {

@@ -30,7 +30,7 @@ includes:
     flatten: true
   check: taskfiles/check.Taskfile.yml
   ci: taskfiles/ci.Taskfile.yml
-  ledger: taskfiles/release.Taskfile.yml
+  release: taskfiles/release.Taskfile.yml
 
 tasks:
   default:
@@ -68,6 +68,7 @@ tasks:
       - task: check:standards
       - task: check:parity
       - task: check:published
+      - task: check:editions
       - task: check:compat
       - task: check:test
       - task: check:commits

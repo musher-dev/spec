@@ -6,11 +6,14 @@
  *   /<family>/v1/<family>.schema.json        moving alias within the major
  *   /<family>/v1.2.0/<family>.schema.json    immutable, published once
  *
- * **Pinned paths are rebuilt from tags, never from the working tree.** Every
- * release this repository has ever cut is reassembled on every deploy, so a
- * pinned URL neither moves when `main` moves nor disappears when a newer
- * version ships. The working tree feeds the alias only, and only until the
- * major has its first tag.
+ * **Pinned paths are served from verified immutable release assets, never
+ * from the working tree and never rebuilt.** Releases are enumerated from
+ * `published.json`, and each pinned bundle is read only from what
+ * `task site:fetch` verified against its GitHub release and the ledger's
+ * `bundleSha256` (docs/adr/0023 §7). A pinned URL neither moves when `main`
+ * moves nor disappears when a newer version ships. A released major's alias is
+ * its newest pinned bundle with `$id` restamped; the working tree feeds the
+ * alias only until the major has its first release.
  *
  * The origin is Cloudflare Pages, so the cache contract is stated here rather
  * than in an edge rule this repository cannot see. `_headers` is generated from
@@ -21,12 +24,12 @@
  * property over the paths actually written, not over the paths someone
  * remembered. See docs/adr/0012.
  *
- * The guarantee that the bytes themselves never change is made here too, and
- * checked by `task check:published`.
+ * The guarantee that the bytes themselves never change is checked offline by
+ * `task check:published` and online by `task site:fetch`.
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
-import { isShallow, readBlobAtRef } from '../lib/git.ts'
+import { isShallow, listTreeFiles, readBlobAtRef } from '../lib/git.ts'
 import {
   CATALOG_NAME,
   CORE_FAMILY,
@@ -34,13 +37,16 @@ import {
   discoverFamilies,
   familyPaths,
   hasPart,
+  inRepo,
   type Json,
   parseSpecPath,
+  RELEASE_CACHE_DIR,
   REPO_ROOT,
   REPO_URL,
   relativeToRepo,
-  releasedPartFiles,
-  releasedSpec,
+  releaseDirPaths,
+  requireFileAtRef,
+  requireTreeAtRef,
   SITE_DIR,
   SPECIFICATIONS_ROOT,
 } from '../lib/layout.ts'
@@ -49,20 +55,22 @@ import { type ProseContext, readOutline, renderProse } from '../render/prose.ts'
 import { buildReference, renderReference } from '../render/reference.ts'
 import { familyBundle } from '../schema/bundle.ts'
 import { buildCatalog } from './catalog.ts'
+import { readCachedBundle } from './fetch.ts'
 import {
-  discoverReleases,
   LEDGER_FILE,
-  loadRelease,
-  pendingNotices,
-  pinnedUrl,
-  type Release,
+  type RecordedRelease,
   readLedger,
   serializeLedger,
-} from './released.ts'
+  taggedEntries,
+} from './ledger.ts'
+import { aliasUrl, discoverReleases, pinnedUrl, sha256, stampId } from './releases.ts'
+import { pendingNotices } from './verify.ts'
 
 export interface SiteOptions {
   readonly repoRoot: string
   readonly siteDir: string
+  /** Where `site:fetch` cached verified release assets. Defaults to the repository's. */
+  readonly cacheDir?: string
 }
 
 export interface SiteResult {
@@ -127,7 +135,7 @@ const SHAPE_RULES: readonly HeaderRule[] = [
   },
 ]
 
-function write(path: string, contents: string): void {
+function write(path: string, contents: string | Buffer): void {
   mkdirSync(dirname(path), { recursive: true })
   writeFileSync(path, contents, 'utf8')
 }
@@ -162,6 +170,8 @@ interface ReferenceTarget {
   /** The family's validated example documents, at the same ref. */
   readonly examples: readonly ExampleDoc[]
   readonly ref: string
+  /** The family version directory at `ref` — the ledger's `path` for a release. */
+  readonly dir: string
   /** Null for a schema-less family: it has no schema URL to link. */
   readonly schemaPath: string | null
 }
@@ -187,6 +197,7 @@ interface ProseLine {
   readonly major: string
   /** The newest tag in the major, or `main` while the major has no tag. */
   readonly ref: string
+  readonly dir: string
 }
 
 /** A schema-less family's release: a tag and nothing served under it but prose. */
@@ -202,6 +213,7 @@ interface Alias {
   readonly path: string
   /** The tag the alias serves, or `main` while the major has no tag. */
   readonly ref: string
+  readonly dir: string
 }
 
 /**
@@ -285,9 +297,13 @@ export function assembleSite(options: SiteOptions): SiteResult {
   const { repoRoot, siteDir } = options
 
   const ledger = readLedger(repoRoot)
-  const releases = discoverReleases(repoRoot)
+  const cacheDir = options.cacheDir ?? inRepo(repoRoot, RELEASE_CACHE_DIR)
 
-  if (releases.length === 0 && Object.keys(ledger.releases).length > 0 && isShallow(repoRoot)) {
+  if (
+    Object.keys(ledger.releases).length > 0 &&
+    discoverReleases(repoRoot).length === 0 &&
+    isShallow(repoRoot)
+  ) {
     throw new Error(
       `${LEDGER_FILE} records released versions but no tags are present and this is a ` +
         'shallow clone. Run `git fetch --tags --unshallow` — deploying from here would ' +
@@ -302,7 +318,7 @@ export function assembleSite(options: SiteOptions): SiteResult {
   // failure says what is wrong rather than reporting an overlapping splat.
   for (const name of [
     ...discoverFamilies(repoRoot).map((family) => family.name),
-    ...releases.map((release) => release.family),
+    ...Object.keys(ledger.releases).map((tag) => tag.split('/')[0] as string),
   ]) {
     if (name === RESERVED_PATH) {
       throw new Error(
@@ -321,15 +337,17 @@ export function assembleSite(options: SiteOptions): SiteResult {
   /** Cache-Control rules, one per published path or per pinned release. */
   const cacheRules: HeaderRule[] = []
 
-  const emit = (path: string, contents: string): void => {
+  const emit = (path: string, contents: string | Buffer): void => {
     write(join(siteDir, ...path.split('/')), contents)
     served.push(`/${path}`)
   }
 
   // ---------------------------------------------------------------------------
-  // Pinned paths, straight from the tags.
+  // Pinned paths, from verified release assets only. Enumerated from the ledger,
+  // so a family retired from the working tree keeps serving what it published.
   // ---------------------------------------------------------------------------
-  const newestByMajor = new Map<string, Release>()
+  const releases = taggedEntries(repoRoot, ledger)
+  const newestByMajor = new Map<string, { recorded: RecordedRelease; pinned: Buffer }>()
   const versionsByFamily = new Map<string, PublishedVersion[]>()
   const references: ReferenceTarget[] = []
   let pinned = 0
@@ -337,7 +355,7 @@ export function assembleSite(options: SiteOptions): SiteResult {
   // A schema-less family (core) publishes prose only: no pinned path, no alias,
   // no inventory, and therefore no `_headers` rule. Its releases are tracked
   // apart from the schema families' so none of that can reach it by accident.
-  const newestProseByMajor = new Map<string, Release>()
+  const newestProseByMajor = new Map<string, RecordedRelease>()
   const proseReleasesByFamily = new Map<string, ProseRelease[]>()
   const proseLines: ProseLine[] = []
 
@@ -346,15 +364,19 @@ export function assembleSite(options: SiteOptions): SiteResult {
    * carries none. Every other ref is a released tag, where a missing file means
    * the layout moved and throws rather than publishing a page with no prose.
    */
-  const specAt = (family: string, major: string, ref: string): string | null => {
+  const specAt = (family: string, major: string, ref: string, dir: string): string | null => {
     if (ref === 'main') {
       const local = discoverFamilies(repoRoot).find((f) => f.name === family && f.major === major)
       return local !== undefined && existsSync(local.specPath)
         ? readFileSync(local.specPath, 'utf8')
         : null
     }
-    const blob = releasedSpec(repoRoot, ref, family, major)
-    return blob === null ? null : blob.toString('utf8')
+    // At a tag, under the ledger's `path` — where the release lived then.
+    const path = releaseDirPaths(dir).spec
+    if (hasPart(family, major, 'spec')) {
+      return requireFileAtRef(repoRoot, ref, path, `${family}/${major} spec.md`).toString('utf8')
+    }
+    return readBlobAtRef(repoRoot, ref, path)?.toString('utf8') ?? null
   }
 
   /**
@@ -366,7 +388,7 @@ export function assembleSite(options: SiteOptions): SiteResult {
    * an intention. Reading them at the same ref as the schema is what keeps it
    * true for a released version as well as for `main`.
    */
-  const examplesAt = (family: string, major: string, ref: string): ExampleDoc[] => {
+  const examplesAt = (family: string, major: string, ref: string, dir: string): ExampleDoc[] => {
     const isExample = (path: string): boolean => path.endsWith('.yaml') || path.endsWith('.yml')
     if (ref === 'main') {
       const local = discoverFamilies(repoRoot).find((f) => f.name === family && f.major === major)
@@ -376,33 +398,38 @@ export function assembleSite(options: SiteOptions): SiteResult {
         .sort()
         .map((name) => ({ name, body: readFileSync(join(local.examplesDir, name), 'utf8') }))
     }
-    const dir = familyPaths(family, major).examples
-    return releasedPartFiles(repoRoot, ref, family, major, 'examples')
+    const examples = releaseDirPaths(dir).examples
+    const files = hasPart(family, major, 'examples')
+      ? requireTreeAtRef(repoRoot, ref, examples, `${family}/${major} examples`)
+      : listTreeFiles(repoRoot, ref, examples)
+    return files
       .filter(isExample)
       .sort()
       .map((path) => {
         const blob = readBlobAtRef(repoRoot, ref, path)
         return {
-          name: path.slice(dir.length + 1),
+          name: path.slice(examples.length + 1),
           body: blob === null ? '' : blob.toString('utf8'),
         }
       })
       .filter((example) => example.body !== '')
   }
 
-  for (const release of releases) {
-    if (!hasPart(release.family, release.major, 'schema')) {
+  for (const recorded of releases) {
+    const { release, entry } = recorded
+    if (entry.bundleSha256 === null) {
       references.push({
         family: release.family,
         major: release.major,
         version: `v${release.version}`,
         bundle: null,
-        spec: specAt(release.family, release.major, release.tag),
+        spec: specAt(release.family, release.major, release.tag, entry.path),
         examples: [],
         ref: release.tag,
+        dir: entry.path,
         schemaPath: null,
       })
-      newestProseByMajor.set(`${release.family}/${release.major}`, release)
+      newestProseByMajor.set(`${release.family}/${release.major}`, recorded)
       proseReleasesByFamily.set(release.family, [
         ...(proseReleasesByFamily.get(release.family) ?? []),
         { version: release.version, tag: release.tag },
@@ -411,12 +438,20 @@ export function assembleSite(options: SiteOptions): SiteResult {
       continue
     }
 
-    const loaded = loadRelease(repoRoot, release, ledger)
+    const pinnedBytes = readCachedBundle(cacheDir, release.tag, entry.bundleSha256)
+    if (pinnedBytes === null) {
+      throw new Error(
+        `${release.tag}: no verified release asset in ${relativeToRepo(cacheDir)}. Run ` +
+          '`task site:fetch` — a pinned path is served only from bytes verified against its ' +
+          `immutable GitHub release and ${LEDGER_FILE}.`,
+      )
+    }
     const fileName = `${release.family}.schema.json`
     const dir = `${release.family}/v${release.version}`
 
-    emit(`${dir}/${fileName}`, loaded.published)
-    emit(`${dir}/${fileName}.sha256`, checksumFile(loaded.publishedSha256, fileName))
+    emit(`${dir}/${fileName}`, pinnedBytes)
+    // Computed from the verified bytes, not copied from the ledger.
+    emit(`${dir}/${fileName}.sha256`, checksumFile(sha256(pinnedBytes), fileName))
     // One rule for the release, not one per file: the sidecar is as immutable
     // as the bytes it attests, and a directory rule says so in half the budget.
     cacheRules.push({ source: `/${dir}/*`, headers: [IMMUTABLE] })
@@ -427,24 +462,24 @@ export function assembleSite(options: SiteOptions): SiteResult {
       family: release.family,
       major: release.major,
       version: `v${release.version}`,
-      // The tag's own bytes. `published` differs only by its restamped `$id`,
-      // and the prose at that tag describes `source`.
-      bundle: loaded.source.toString('utf8'),
-      spec: specAt(release.family, release.major, release.tag),
-      examples: examplesAt(release.family, release.major, release.tag),
+      // The verified bytes this path serves; prose and examples at the tag.
+      bundle: pinnedBytes.toString('utf8'),
+      spec: specAt(release.family, release.major, release.tag, entry.path),
+      examples: examplesAt(release.family, release.major, release.tag, entry.path),
       ref: release.tag,
+      dir: entry.path,
       schemaPath: `/${dir}/${fileName}`,
     })
 
     // `releases` is sorted oldest-first, so the last write per major wins.
-    newestByMajor.set(`${release.family}/${release.major}`, release)
+    newestByMajor.set(`${release.family}/${release.major}`, { recorded, pinned: pinnedBytes })
     versionsByFamily.set(release.family, [
       ...(versionsByFamily.get(release.family) ?? []),
       {
         version: release.version,
         tag: release.tag,
         url: pinnedUrl(release),
-        sha256: loaded.publishedSha256,
+        sha256: entry.bundleSha256,
       },
     ])
   }
@@ -463,39 +498,54 @@ export function assembleSite(options: SiteOptions): SiteResult {
     contents: string,
     ref: string,
     origin: string,
+    dir: string,
   ): void => {
     const path = `${family}/${major}/${family}.schema.json`
     emit(path, contents)
     cacheRules.push({ source: `/${path}`, headers: [REVALIDATE] })
-    aliases.push({ family, major, path: `/${path}`, ref })
+    aliases.push({ family, major, path: `/${path}`, ref, dir })
     references.push({
       family,
       major,
       version: major,
       bundle: contents,
-      spec: specAt(family, major, ref),
-      examples: examplesAt(family, major, ref),
+      spec: specAt(family, major, ref, dir),
+      examples: examplesAt(family, major, ref, dir),
       ref,
+      dir,
       schemaPath: `/${path}`,
     })
     console.log(`  ✓ /${path} (alias → ${origin})`)
   }
 
-  for (const [key, release] of newestByMajor) {
+  for (const [key, { recorded, pinned: bytes }] of newestByMajor) {
     const [family, major] = key.split('/') as [string, string]
-    const loaded = loadRelease(repoRoot, release, ledger)
-    // The alias build, not the pinned copy: a built bundle's `$id` already
-    // names the alias URL, so these need no restamping.
-    writeAlias(family, major, loaded.source.toString('utf8'), release.tag, release.tag)
+    // The newest verified pinned bundle under the alias identity: the same
+    // bytes but for `$id`, so the alias cannot describe anything unreleased.
+    const { release, entry } = recorded
+    writeAlias(
+      family,
+      major,
+      stampId(bytes, aliasUrl(family, major)),
+      release.tag,
+      release.tag,
+      entry.path,
+    )
   }
 
-  const writeProseLine = (family: string, major: string, ref: string, origin: string): void => {
-    const spec = specAt(family, major, ref)
+  const writeProseLine = (
+    family: string,
+    major: string,
+    ref: string,
+    origin: string,
+    dir: string,
+  ): void => {
+    const spec = specAt(family, major, ref, dir)
     if (spec === null) {
       console.log(`  · ${family}/${major}: no spec.md — skipped`)
       return
     }
-    proseLines.push({ family, major, ref })
+    proseLines.push({ family, major, ref, dir })
     references.push({
       family,
       major,
@@ -504,20 +554,22 @@ export function assembleSite(options: SiteOptions): SiteResult {
       spec,
       examples: [],
       ref,
+      dir,
       schemaPath: null,
     })
     console.log(`  ✓ /${RESERVED_PATH}/${family}/${major}/spec/ (prose only → ${origin})`)
   }
 
-  for (const [key, release] of newestProseByMajor) {
+  for (const [key, { release, entry }] of newestProseByMajor) {
     const [family, major] = key.split('/') as [string, string]
-    writeProseLine(family, major, release.tag, release.tag)
+    writeProseLine(family, major, release.tag, release.tag, entry.path)
   }
 
   for (const family of discoverFamilies(repoRoot)) {
+    const workingDir = familyPaths(family.name, family.major).dir
     if (!hasPart(family.name, family.major, 'schema')) {
       if (newestProseByMajor.has(`${family.name}/${family.major}`)) continue
-      writeProseLine(family.name, family.major, 'main', 'working tree')
+      writeProseLine(family.name, family.major, 'main', 'working tree', workingDir)
       continue
     }
     if (newestByMajor.has(`${family.name}/${family.major}`)) continue
@@ -528,7 +580,7 @@ export function assembleSite(options: SiteOptions): SiteResult {
       console.log(`  · ${family.name}/${family.major}: no schema modules authored — skipped`)
       continue
     }
-    writeAlias(family.name, family.major, bundle, 'main', 'working tree')
+    writeAlias(family.name, family.major, bundle, 'main', 'working tree', workingDir)
   }
 
   // ---------------------------------------------------------------------------
@@ -642,7 +694,7 @@ export function assembleSite(options: SiteOptions): SiteResult {
             `<p class="muted">${link(`/${RESERVED_PATH}/`, 'Reference')} / ${escapeHtml(target.family)} ` +
               `/ ${escapeHtml(target.version)}</p>`,
             renderProse(target.spec, context, `${target.family}/${target.major}/spec.md`),
-            `<footer>${link(proseUrl(target.family, target.major, target.ref), 'Source')}</footer>`,
+            `<footer>${link(proseUrl(target.dir, target.ref), 'Source')}</footer>`,
           ].join('\n'),
         ),
       )
@@ -661,7 +713,7 @@ export function assembleSite(options: SiteOptions): SiteResult {
             renderProse(target.spec, context, `${target.family}/${target.major}/spec.md`),
             `<footer>${link(`/${base}/`, 'Field reference')} · ` +
               `${link(schemaPath, 'JSON Schema')} · ` +
-              `${link(proseUrl(target.family, target.major, target.ref), 'Source')}</footer>`,
+              `${link(proseUrl(target.dir, target.ref), 'Source')}</footer>`,
           ].join('\n'),
         ),
       )
@@ -681,7 +733,7 @@ export function assembleSite(options: SiteOptions): SiteResult {
           schemaPath,
           prosePath,
           examplesPath,
-          sourceUrl: proseUrl(target.family, target.major, target.ref),
+          sourceUrl: proseUrl(target.dir, target.ref),
           links: context,
         }),
       ),
@@ -738,7 +790,7 @@ function linkResolver(
   target: ReferenceTarget,
   rendered: readonly ReferenceTarget[],
 ): (href: string) => string {
-  const paths = familyPaths(target.family, target.major)
+  const paths = releaseDirPaths(target.dir)
   const from = paths.dir
   return (href: string): string => {
     if (href.startsWith('#') || /^[a-z][a-z0-9+.-]*:/i.test(href)) return href
@@ -854,9 +906,9 @@ function renderReferenceIndex(rendered: readonly ReferenceTarget[]): string {
   )
 }
 
-/** A `spec.md` on GitHub, at the ref the reader is actually looking at. */
-function proseUrl(family: string, major: string, ref: string): string {
-  return `${REPO_URL}/blob/${ref}/${familyPaths(family, major).spec}`
+/** A `spec.md` on GitHub, at the ref the reader is actually looking at, under that ref's directory. */
+function proseUrl(dir: string, ref: string): string {
+  return `${REPO_URL}/blob/${ref}/${releaseDirPaths(dir).spec}`
 }
 
 function renderIndex(
@@ -880,7 +932,7 @@ function renderIndex(
         `<td>${muted}</td>`,
         `<td>${latest === undefined ? '<span class="muted">unreleased</span>' : escapeHtml(latest.version)}</td>`,
         `<td>${muted}</td>`,
-        `<td>${line === undefined ? muted : link(proseUrl(family, line.major, line.ref), 'spec.md')}</td>`,
+        `<td>${line === undefined ? muted : link(proseUrl(line.dir, line.ref), 'spec.md')}</td>`,
         `<td>${line === undefined ? muted : link(`/${RESERVED_PATH}/${family}/${line.major}/spec/`, 'specification')}</td>`,
         '</tr>',
       ].join('')
@@ -894,7 +946,7 @@ function renderIndex(
       `<td>${alias === undefined ? '<span class="muted">—</span>' : `<code>${link(alias.path, alias.path)}</code>`}</td>`,
       `<td>${latest === undefined ? '<span class="muted">unreleased</span>' : escapeHtml(latest.version)}</td>`,
       `<td>${versions.length === 0 ? '<span class="muted">—</span>' : link(`/${family}/versions.json`, 'versions.json')}</td>`,
-      `<td>${alias === undefined ? '<span class="muted">—</span>' : link(proseUrl(family, alias.major, alias.ref), 'spec.md')}</td>`,
+      `<td>${alias === undefined ? '<span class="muted">—</span>' : link(proseUrl(alias.dir, alias.ref), 'spec.md')}</td>`,
       `<td>${alias === undefined ? '<span class="muted">—</span>' : link(`/${RESERVED_PATH}/${family}/${alias.major}/`, 'reference')}</td>`,
       '</tr>',
     ].join('')
@@ -913,8 +965,8 @@ function renderIndex(
       `<tbody>${rows.join('')}</tbody>`,
       '</table>',
       '<p>An alias moves within its major version as backward-compatible additions ship.',
-      'Automation must pin an exact version instead — those paths are rebuilt from their git',
-      'tags on every deploy, carry an <code>$id</code> naming that exact URL, and never change.</p>',
+      'Automation must pin an exact version instead — those paths are served from verified',
+      'immutable release assets, carry an <code>$id</code> naming that exact URL, and never change.</p>',
       `<p>The ${link(`/${RESERVED_PATH}/`, 'reference')} explains each family field by field, ` +
         'beside its specification. It is generated from the bytes each version serves, and is ' +
         'informative — the specification and the bundle are what govern.</p>',
@@ -939,7 +991,7 @@ function renderFamilyIndex(
       `<td><code>${link(alias.path, alias.path)}</code></td>`,
       `<td>${escapeHtml(alias.major)}</td>`,
       `<td>${alias.ref === 'main' ? '<span class="muted">unreleased — tracks main</span>' : `<code>${escapeHtml(alias.ref)}</code>`}</td>`,
-      `<td>${link(proseUrl(family, alias.major, alias.ref), 'spec.md')}</td>`,
+      `<td>${link(proseUrl(alias.dir, alias.ref), 'spec.md')}</td>`,
       '</tr>',
     ].join(''),
   )
@@ -1040,7 +1092,7 @@ function renderProseFamilyIndex(
       '<tr>',
       `<td>${link(`/${RESERVED_PATH}/${family}/${line.major}/spec/`, line.major)}</td>`,
       `<td>${line.ref === 'main' ? '<span class="muted">unreleased — tracks main</span>' : `<code>${escapeHtml(line.ref)}</code>`}</td>`,
-      `<td>${link(proseUrl(family, line.major, line.ref), 'spec.md')}</td>`,
+      `<td>${link(proseUrl(line.dir, line.ref), 'spec.md')}</td>`,
       '</tr>',
     ].join(''),
   )

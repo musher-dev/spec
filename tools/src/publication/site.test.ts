@@ -8,41 +8,54 @@
  * two tests here are the ones that catch each of those.
  */
 import { afterEach, describe, expect, test } from 'bun:test'
-import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { join, relative } from 'node:path'
-import { CORE_FAMILY, canonicalJson, familyPaths, LayoutError } from '../lib/layout.ts'
+import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { dirname, join, relative } from 'node:path'
+import { CORE_FAMILY, canonicalJson, familyPaths, type Json, LayoutError } from '../lib/layout.ts'
+import { pinnedBundle } from '../schema/bundle.ts'
+import { gitReader } from '../schema/sources.ts'
 import { FixtureRepo } from '../testing/fixture.ts'
-import { record } from './ledger.ts'
+import { Pipeline } from '../testing/pipeline.ts'
+import { cachedBundlePath } from './fetch.ts'
+import { LEDGER_FILE, type LedgerEntry, readLedger, serializeLedger } from './ledger.ts'
+import { aliasUrl, sha256, stampId } from './releases.ts'
 import { assembleSite, type HeaderRule, renderHeaders } from './site.ts'
 
 const COMPONENT = familyPaths('component', 'v1')
 const CORE = familyPaths(CORE_FAMILY, 'v1')
 
 let repo: FixtureRepo | null = null
+let pipeline: Pipeline | null = null
 
 function fixture(): FixtureRepo {
   repo = new FixtureRepo()
+  pipeline = new Pipeline(repo)
   return repo
 }
 
 afterEach(() => {
   repo?.cleanup()
   repo = null
+  pipeline = null
 })
 
-/** Cut a release the way the pipeline does: manifest, ledger entry, then tag. */
-function cut(fx: FixtureRepo, family: string, major: string, version: string, doc: unknown) {
-  fx.writeSources(family, major, doc as never)
-  fx.setManifest({ [familyPaths(family, major).manifestKey]: version })
-  record(fx.root)
-  fx.commit(`chore: release ${family} ${version}`)
-  fx.tag(`${family}/v${version}`)
+function p(): Pipeline {
+  if (pipeline === null) throw new Error('no fixture')
+  return pipeline
 }
 
-/** Cut a release carrying every part the layout says a release has. */
-function release(fx: FixtureRepo, family: string, major: string, version: string, doc: unknown) {
-  fx.writeFamilySkeleton(family, major)
-  cut(fx, family, major, version, doc)
+/**
+ * Release a version the way the pipeline does — record, tag, stage, publish —
+ * and verify every published release into the cache the site reads.
+ */
+async function release(
+  _fx: FixtureRepo,
+  family: string,
+  major: string,
+  version: string,
+  doc: Json,
+) {
+  p().releaseKind(family, major, version, doc)
+  await p().fetch()
 }
 
 /** The error a call throws, or undefined when it returns. */
@@ -121,13 +134,13 @@ describe('assembleSite', () => {
   const PROSE = '## <a id="scope"></a>1. Released prose\n'
   const DRAFT = '## <a id="scope"></a>1. Unreleased prose\n'
 
-  test('the reference describes the tag the alias serves, not the working tree', () => {
+  test('the reference describes the tag the alias serves, not the working tree', async () => {
     // The bug this rules out is invisible today: with no tags, a reference
     // built from the working tree passes everything and starts lying on the
     // first release.
     const fx = fixture()
     fx.writeFile(COMPONENT.spec, PROSE)
-    release(
+    await release(
       fx,
       'component',
       'v1',
@@ -173,10 +186,10 @@ describe('assembleSite', () => {
     expect(readSite(fx, 'reference', 'component', 'v1', 'index.html')).toContain('drafted')
   })
 
-  test('no reference path draws a Cache-Control header', () => {
+  test('no reference path draws a Cache-Control header', async () => {
     const fx = fixture()
     fx.writeFile(COMPONENT.spec, PROSE)
-    release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
+    await release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
 
     const site = join(fx.root, 'site')
     assembleSite({ repoRoot: fx.root, siteDir: site })
@@ -191,12 +204,12 @@ describe('assembleSite', () => {
     }
   })
 
-  test('the reference costs no header rules, however many versions it renders', () => {
+  test('the reference costs no header rules, however many versions it renders', async () => {
     const fx = fixture()
     fx.writeFile(COMPONENT.spec, PROSE)
-    release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
-    release(fx, 'component', 'v1', '1.1.0', fx.bundleDoc('component', 'v1'))
-    release(fx, 'component', 'v1', '1.2.0', fx.bundleDoc('component', 'v1'))
+    await release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
+    await release(fx, 'component', 'v1', '1.1.0', fx.bundleDoc('component', 'v1'))
+    await release(fx, 'component', 'v1', '1.2.0', fx.bundleDoc('component', 'v1'))
 
     const site = join(fx.root, 'site')
     assembleSite({ repoRoot: fx.root, siteDir: site })
@@ -204,11 +217,11 @@ describe('assembleSite', () => {
     expect(servedPaths(site).filter((p) => p.startsWith('/reference/')).length).toBeGreaterThan(3)
   })
 
-  test('the examples page carries every example, verbatim, from the same ref', () => {
+  test('the examples page carries every example, verbatim, from the same ref', async () => {
     const fx = fixture()
     fx.writeFile(COMPONENT.spec, PROSE)
     fx.writeFile(`${COMPONENT.examples}/minimal.yaml`, 'kind: COMPONENT # released\n')
-    release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
+    await release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
 
     // Move both the example and add a second one on main.
     fx.writeFile(`${COMPONENT.examples}/minimal.yaml`, 'kind: COMPONENT # on main\n')
@@ -264,13 +277,16 @@ describe('assembleSite', () => {
     )
   })
 
-  test('a release tag lacking examples/ fails loudly rather than rendering none', () => {
+  test('a release tag lacking examples/ fails loudly rather than rendering none', async () => {
     // Before the layout module, a moved examples directory read as "this
     // release has no examples" and the site deployed without them.
     const fx = fixture()
     fx.writeFamilySkeleton('component', 'v1')
     fx.remove(COMPONENT.examples)
-    cut(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
+    p().releaseKind('component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'), {
+      skeleton: false,
+    })
+    await p().fetch()
 
     const error = thrown(() => assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site') }))
     expect(error).toBeInstanceOf(LayoutError)
@@ -278,20 +294,32 @@ describe('assembleSite', () => {
     expect((error as Error).message).toContain(COMPONENT.examples)
   })
 
-  test('a release tag lacking spec.md fails loudly rather than rendering no prose', () => {
+  test('a ledger path whose tag carries no spec.md fails loudly rather than rendering no prose', async () => {
+    // A release cannot be recorded without prose — the core gate reads its §2 —
+    // so the only way to reach this is a ledger path the tag does not carry.
     const fx = fixture()
-    fx.writeFamilySkeleton('component', 'v1')
-    fx.remove(COMPONENT.spec)
-    cut(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
+    await release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
+    const ledger = readLedger(fx.root)
+    const entry = ledger.releases['component/v1.0.0']
+    fx.writeFile(
+      LEDGER_FILE,
+      serializeLedger({
+        version: 2,
+        releases: {
+          ...ledger.releases,
+          'component/v1.0.0': { ...(entry as LedgerEntry), path: COMPONENT.conformance },
+        },
+      }),
+    )
 
     const error = thrown(() => assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site') }))
     expect(error).toBeInstanceOf(LayoutError)
-    expect((error as Error).message).toContain(COMPONENT.spec)
+    expect((error as Error).message).toContain(`${COMPONENT.conformance}/spec.md`)
   })
 
-  test('a pinned path does not move when main moves', () => {
+  test('a pinned path does not move when main moves', async () => {
     const fx = fixture()
-    release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
+    await release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
 
     assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site') })
     const atRelease = readSite(fx, 'component', 'v1.0.0', 'component.schema.json')
@@ -307,10 +335,16 @@ describe('assembleSite', () => {
     expect(afterEdit).not.toContain('edited')
   })
 
-  test('every released version survives a later release', () => {
+  test('every released version survives a later release', async () => {
     const fx = fixture()
-    release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
-    release(fx, 'component', 'v1', '1.1.0', fx.bundleDoc('component', 'v1', { minProperties: 1 }))
+    await release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
+    await release(
+      fx,
+      'component',
+      'v1',
+      '1.1.0',
+      fx.bundleDoc('component', 'v1', { minProperties: 1 }),
+    )
 
     assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site') })
 
@@ -321,10 +355,16 @@ describe('assembleSite', () => {
     expect(second).toContain('minProperties')
   })
 
-  test('each pinned copy carries its own exact-version $id', () => {
+  test('each pinned copy carries its own exact-version $id', async () => {
     const fx = fixture()
-    release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
-    release(fx, 'component', 'v1', '1.1.0', fx.bundleDoc('component', 'v1', { minProperties: 1 }))
+    await release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
+    await release(
+      fx,
+      'component',
+      'v1',
+      '1.1.0',
+      fx.bundleDoc('component', 'v1', { minProperties: 1 }),
+    )
 
     assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site') })
 
@@ -340,10 +380,16 @@ describe('assembleSite', () => {
     expect(first.$id).not.toBe(second.$id)
   })
 
-  test('the alias tracks the newest release once a major is tagged', () => {
+  test('the alias tracks the newest release once a major is tagged', async () => {
     const fx = fixture()
-    release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
-    release(fx, 'component', 'v1', '1.1.0', fx.bundleDoc('component', 'v1', { minProperties: 1 }))
+    await release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
+    await release(
+      fx,
+      'component',
+      'v1',
+      '1.1.0',
+      fx.bundleDoc('component', 'v1', { minProperties: 1 }),
+    )
 
     // An unreleased change must not reach the alias now that tags exist.
     fx.writeSources(
@@ -386,9 +432,9 @@ describe('assembleSite', () => {
     expect(readSite(fx, 'component', 'v1', 'component.schema.json')).toContain('pre-tag')
   })
 
-  test('a checksum sidecar accompanies every pinned path, and none accompanies an alias', () => {
+  test('a checksum sidecar accompanies every pinned path, and none accompanies an alias', async () => {
     const fx = fixture()
-    release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
+    await release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
 
     assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site') })
 
@@ -401,9 +447,9 @@ describe('assembleSite', () => {
     expect(() => readSite(fx, 'component', 'v1', 'component.schema.json.sha256')).toThrow()
   })
 
-  test('assembly is deterministic', () => {
+  test('assembly is deterministic', async () => {
     const fx = fixture()
-    release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
+    await release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
 
     assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site-a') })
     assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site-b') })
@@ -419,9 +465,9 @@ describe('assembleSite', () => {
     }
   })
 
-  test('a release is recorded against the family version directory it was built from', () => {
+  test('a release is recorded against the family version directory it was built from', async () => {
     const fx = fixture()
-    release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
+    await release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
 
     // No bundle is tracked, so the ledger names where the release's sources
     // lived rather than a bundle path the tag never carried.
@@ -432,10 +478,16 @@ describe('assembleSite', () => {
     expect(readSite(fx, 'component', 'v1.0.0', 'component.schema.json')).toContain('$id')
   })
 
-  test('versions.json inventories every published version', () => {
+  test('versions.json inventories every published version', async () => {
     const fx = fixture()
-    release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
-    release(fx, 'component', 'v1', '1.1.0', fx.bundleDoc('component', 'v1', { minProperties: 1 }))
+    await release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
+    await release(
+      fx,
+      'component',
+      'v1',
+      '1.1.0',
+      fx.bundleDoc('component', 'v1', { minProperties: 1 }),
+    )
 
     assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site') })
     const inventory = JSON.parse(readSite(fx, 'component', 'versions.json'))
@@ -456,10 +508,16 @@ describe('assembleSite', () => {
   // rules that match the same path set the same header.
   // ---------------------------------------------------------------------------
 
-  test('no published path draws the same header from two rules', () => {
+  test('no published path draws the same header from two rules', async () => {
     const fx = fixture()
-    release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
-    release(fx, 'component', 'v1', '1.1.0', fx.bundleDoc('component', 'v1', { minProperties: 1 }))
+    await release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
+    await release(
+      fx,
+      'component',
+      'v1',
+      '1.1.0',
+      fx.bundleDoc('component', 'v1', { minProperties: 1 }),
+    )
     fx.writeSources('listing', 'v1', fx.bundleDoc('listing', 'v1'))
     fx.commit('feat(listing): an untagged family')
 
@@ -473,9 +531,9 @@ describe('assembleSite', () => {
     }
   })
 
-  test('a pinned path is immutable and its alias is not', () => {
+  test('a pinned path is immutable and its alias is not', async () => {
     const fx = fixture()
-    release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
+    await release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
 
     assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site') })
     const rules = parseHeaders(readSite(fx, '_headers'))
@@ -488,9 +546,9 @@ describe('assembleSite', () => {
     ])
   })
 
-  test('a checksum sidecar inherits its release immutability and its own type', () => {
+  test('a checksum sidecar inherits its release immutability and its own type', async () => {
     const fx = fixture()
-    release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
+    await release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
 
     assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site') })
     const sidecar = resolve(
@@ -502,9 +560,9 @@ describe('assembleSite', () => {
     expect(sidecar.get('Content-Type')).toEqual(['text/plain; charset=utf-8'])
   })
 
-  test('every schema is served cross-origin as application/schema+json', () => {
+  test('every schema is served cross-origin as application/schema+json', async () => {
     const fx = fixture()
-    release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
+    await release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
 
     assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site') })
     const rules = parseHeaders(readSite(fx, '_headers'))
@@ -551,9 +609,9 @@ describe('assembleSite', () => {
   // The human entry point.
   // ---------------------------------------------------------------------------
 
-  test('the root index names every family and its alias', () => {
+  test('the root index names every family and its alias', async () => {
     const fx = fixture()
-    release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
+    await release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
     fx.writeSources('listing', 'v1', fx.bundleDoc('listing', 'v1'))
     fx.commit('feat(listing): an untagged family')
 
@@ -567,10 +625,16 @@ describe('assembleSite', () => {
     expect(index).toContain(`/blob/main/${familyPaths('listing', 'v1').spec}`)
   })
 
-  test('a family index lists every published version with its checksum', () => {
+  test('a family index lists every published version with its checksum', async () => {
     const fx = fixture()
-    release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
-    release(fx, 'component', 'v1', '1.1.0', fx.bundleDoc('component', 'v1', { minProperties: 1 }))
+    await release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
+    await release(
+      fx,
+      'component',
+      'v1',
+      '1.1.0',
+      fx.bundleDoc('component', 'v1', { minProperties: 1 }),
+    )
 
     assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site') })
     const page = readSite(fx, 'component', 'index.html')
@@ -597,7 +661,7 @@ describe('assembleSite', () => {
     expect(page).not.toContain('versions.json')
   })
 
-  test('a not-found page is published', () => {
+  test('a not-found page is published', async () => {
     const fx = fixture()
     fx.writeSources('component', 'v1', fx.bundleDoc('component', 'v1'))
     fx.setManifest({ [COMPONENT.manifestKey]: '0.0.0' })
@@ -612,20 +676,10 @@ describe('assembleSite', () => {
   // A family that ships no schema (core, docs/adr/0022).
   // ---------------------------------------------------------------------------
 
-  /** Cut a core release: prose and corpus only, recorded in the interim ledger form. */
-  function releaseCore(fx: FixtureRepo, version: string, prose: string): void {
-    fx.writeFile(CORE.spec, prose)
-    fx.writeCoreSkeleton('v1')
-    fx.setManifest({ [CORE.manifestKey]: version })
-    record(fx.root)
-    fx.commit(`chore: release core ${version}`)
-    fx.tag(`core/v${version}`)
-  }
-
-  test('a schema-less family publishes prose pages only, from its tag, with no header rule', () => {
+  test('a schema-less family publishes prose pages only, from its tag, with no header rule', async () => {
     const fx = fixture()
-    release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
-    releaseCore(fx, '1.0.0', '## <a id="scope"></a>1. Core released prose\n')
+    p().releaseCore('1.0.0', '## <a id="scope"></a>1. Core released prose\n')
+    await release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
     fx.writeFile(CORE.spec, '## <a id="scope"></a>1. Core draft prose\n')
     fx.commit('docs(core): an unreleased edit')
 
@@ -703,5 +757,92 @@ describe('assembleSite', () => {
     // Core leads the root index.
     const index = readSite(fx, 'index.html')
     expect(index.indexOf('href="/core/"')).toBeLessThan(index.indexOf('href="/component/"'))
+  })
+  // ---------------------------------------------------------------------------
+  // Pinned bytes come from verified release assets and nowhere else.
+  // ---------------------------------------------------------------------------
+
+  test('a tagged release with no verified asset in the cache throws rather than rebuilding', () => {
+    const fx = fixture()
+    // Recorded, tagged and published, but never fetched.
+    p().releaseKind('component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
+    expect(() => assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site') })).toThrow(
+      /component\/v1\.0\.0: no verified release asset .* Run `task site:fetch`/,
+    )
+  })
+
+  test('a cached bundle that no longer hashes to the ledger is a miss', async () => {
+    const fx = fixture()
+    await release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
+    writeFileSync(cachedBundlePath(p().cacheDir, 'component/v1.0.0'), '{"tampered":true}\n')
+    expect(() => assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site') })).toThrow(
+      /task site:fetch/,
+    )
+  })
+
+  test('a released alias is the newest pinned bundle with its $id restamped', async () => {
+    const fx = fixture()
+    await release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
+    await release(
+      fx,
+      'component',
+      'v1',
+      '1.1.0',
+      fx.bundleDoc('component', 'v1', { minProperties: 1 }),
+    )
+
+    assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site') })
+    const pinned = readSite(fx, 'component', 'v1.1.0', 'component.schema.json')
+    expect(readSite(fx, 'component', 'v1', 'component.schema.json')).toBe(
+      stampId(pinned, aliasUrl('component', 'v1')),
+    )
+  })
+
+  test("the ledger's path locates a release's prose and examples at its tag", async () => {
+    const fx = fixture()
+    p().releaseCore('1.0.0')
+    // A release recorded where an older layout kept the family.
+    const legacy = 'legacy/component-v1'
+    fx.writeSources('component', 'v1', fx.bundleDoc('component', 'v1'))
+    fx.writeFile(
+      `${legacy}/spec.md`,
+      fx.kindSpec('component', '## <a id="scope"></a>1. Legacy prose\n'),
+    )
+    fx.writeFile(`${legacy}/examples/legacy.yaml`, 'kind: COMPONENT # legacy\n')
+    fx.commit('feat(component): the legacy layout')
+    const pinned = pinnedBundle({ name: 'component', major: 'v1', repoRoot: fx.root }, '1.0.0', {
+      reader: gitReader(fx.root, 'HEAD'),
+    }) as string
+    fx.writeFile(
+      LEDGER_FILE,
+      serializeLedger({
+        version: 2,
+        releases: {
+          ...readLedger(fx.root).releases,
+          'component/v1.0.0': {
+            path: legacy,
+            tree: fx.treeId('HEAD', legacy),
+            bundleSha256: sha256(pinned),
+            requires: { core: '1.0.0' },
+          },
+        },
+      }),
+    )
+    fx.commit('chore(repo): release component 1.0.0')
+    fx.tag('component/v1.0.0')
+    // This tooling would not stage a release at a path it does not build from,
+    // so seed the cache with the verified bytes the release would have carried.
+    const cached = cachedBundlePath(p().cacheDir, 'component/v1.0.0')
+    mkdirSync(dirname(cached), { recursive: true })
+    writeFileSync(cached, pinned)
+
+    assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site') })
+    expect(readSite(fx, 'reference', 'component', 'v1.0.0', 'spec', 'index.html')).toContain(
+      'Legacy prose',
+    )
+    expect(readSite(fx, 'reference', 'component', 'v1.0.0', 'examples', 'index.html')).toContain(
+      '# legacy',
+    )
+    expect(readSite(fx, 'index.html')).toContain(`/blob/component/v1.0.0/${legacy}/spec.md`)
   })
 })

@@ -86,16 +86,34 @@ tasks:
   # --- The publication record ------------------------------------------------
 
   published:
-    desc: Verify every released version against the publication ledger
+    desc: Verify every recorded release against git and the ledger, offline (docs/adr/0023 §4)
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/publication/published.ts
+      # Tagged entries by tree id and the tag's own ledger, never rebuilt;
+      # pending entries against HEAD and a fresh pinned build. Needs full history
+      # and tags: a shallow clone with a non-empty ledger fails.
+      - bun run src/publication/verify.ts
+
+  published:online:
+    desc: Verify every tagged release's GitHub release and assets, without caching
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      # Reads GITHUB_TOKEN, else `gh auth token`, else goes unauthenticated;
+      # GITHUB_REPOSITORY overrides the repository derived from REPO_URL.
+      - bun run src/publication/fetch.ts --verify-only
 
   ledger:
-    desc: Fail if published.json changed anything already recorded
+    desc: Fail if published.json changed anything already recorded (BASE_REF=<ref>)
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
+      # Compares against BASE_REF; without it only parses the ledger.
       - bun run src/publication/ledger.ts check
+
+  editions:
+    desc: Report where core stands and gate every pending kind family release on it
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/publication/core-gate.ts
 
   compat:
     desc: Replay every released version's accepted documents against the candidate schema

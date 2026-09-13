@@ -13,13 +13,15 @@
  * is a question about documents, not about schema text. So this replays the
  * documents.
  *
- * The corpus is read out of each release's own tag rather than the working
- * tree, which is what makes removing a fixture unable to hide a regression.
+ * The corpus is read out of each release's own tag, under the directory its
+ * ledger entry records, rather than from the working tree — which is what makes
+ * removing a fixture unable to hide a regression. Releases are the ledger's
+ * tagged entries (docs/adr/0023); core's are skipped.
  *
  * NON-NORMATIVE, like everything under tools/.
  */
 
-import { readBlobAtRef } from '../lib/git.ts'
+import { listTreeFiles, readBlobAtRef } from '../lib/git.ts'
 import {
   discoverFamilies,
   Failures,
@@ -28,11 +30,12 @@ import {
   isObject,
   type Json,
   REPO_ROOT,
-  releasedPartFiles,
+  releaseDirPaths,
+  requireTreeAtRef,
 } from '../lib/layout.ts'
 import { parseDocument } from '../validation/document.ts'
 import { compileFamily } from '../validation/validator.ts'
-import { discoverReleases, type Release } from './released.ts'
+import { type RecordedRelease, readLedger, taggedEntries } from './ledger.ts'
 
 interface Subject {
   /** Repo-relative path as of the tag, for the diagnostic. */
@@ -48,28 +51,28 @@ interface Subject {
  * and report the release as not having regressed, which is the one answer this
  * gate must never give by accident.
  */
-function subjectsAt(repoRoot: string, family: Family, release: Release): Subject[] {
+function partFiles(
+  repoRoot: string,
+  { release, entry }: RecordedRelease,
+  part: 'examples' | 'conformance',
+): string[] {
+  const path = releaseDirPaths(entry.path)[part]
+  return hasPart(release.family, release.major, part)
+    ? requireTreeAtRef(repoRoot, release.tag, path, `${release.family}/${release.major} ${part}`)
+    : listTreeFiles(repoRoot, release.tag, path)
+}
+
+function subjectsAt(repoRoot: string, recorded: RecordedRelease): Subject[] {
+  const { release } = recorded
   const subjects: Subject[] = []
 
-  for (const path of releasedPartFiles(
-    repoRoot,
-    release.tag,
-    family.name,
-    release.major,
-    'examples',
-  )) {
+  for (const path of partFiles(repoRoot, recorded, 'examples')) {
     if (!path.endsWith('.yaml') && !path.endsWith('.yml')) continue
     const blob = readBlobAtRef(repoRoot, release.tag, path)
     if (blob !== null) subjects.push({ path, source: blob.toString('utf8') })
   }
 
-  for (const path of releasedPartFiles(
-    repoRoot,
-    release.tag,
-    family.name,
-    release.major,
-    'conformance',
-  )) {
+  for (const path of partFiles(repoRoot, recorded, 'conformance')) {
     if (!path.endsWith('/metadata.json')) continue
     const blob = readBlobAtRef(repoRoot, release.tag, path)
     if (blob === null) continue
@@ -107,11 +110,12 @@ function subjectsAt(repoRoot: string, family: Family, release: Release): Subject
 export function replayRelease(
   repoRoot: string,
   family: Family,
-  release: Release,
+  recorded: RecordedRelease,
   failures: Failures,
 ): number {
+  const { release } = recorded
   const validate = compileFamily(family)
-  const subjects = subjectsAt(repoRoot, family, release)
+  const subjects = subjectsAt(repoRoot, recorded)
 
   for (const subject of subjects) {
     const parsed = parseDocument(subject.source)
@@ -152,8 +156,9 @@ export function replayAll(
   let replayed = 0
   let checked = 0
 
-  for (const release of discoverReleases(repoRoot)) {
-    if (!hasPart(release.family, release.major, 'schema')) continue
+  for (const recorded of taggedEntries(repoRoot, readLedger(repoRoot))) {
+    const { release, entry } = recorded
+    if (entry.bundleSha256 === null) continue
     const family = families.get(`${release.family}/${release.major}`)
     if (family === undefined) {
       // A retired family still has published versions, but no current schema to
@@ -161,7 +166,7 @@ export function replayAll(
       console.log(`  · ${release.tag}: no ${release.family}/${release.major} in the working tree`)
       continue
     }
-    const count = replayRelease(repoRoot, family, release, failures)
+    const count = replayRelease(repoRoot, family, recorded, failures)
     console.log(`  ✓ ${release.tag}: ${count} document(s) replayed`)
     replayed += count
     checked += 1

@@ -40,6 +40,15 @@ export const TRACEABILITY_FILE = 'docs/traceability.md'
  * `task check:generated` fails if git holds anything under it (docs/adr/0023).
  */
 export const DIST_DIR = 'dist'
+/** Tool caches, never tracked. */
+export const CACHE_DIR = '.cache'
+/** Verified release assets, one directory per release tag, as `task site:fetch` writes them. */
+export const RELEASE_CACHE_DIR = `${CACHE_DIR}/releases`
+/** Where `task release:stage` writes the files a release attaches (docs/adr/0023). */
+export const RELEASE_STAGE_DIR = `${DIST_DIR}/release`
+/** Carried in every release archive beside the family's own files. */
+export const LICENSE_FILE = 'LICENSE'
+export const NOTICE_FILE = 'NOTICE'
 /** The tooling's sources, which a base commit's own bundler is extracted from. */
 export const TOOLS_SOURCE_ROOT = 'tools/src'
 /** The bundler's command line — a downstream contract (see its module comment). */
@@ -92,16 +101,33 @@ export interface FamilyPaths {
   readonly manifestKey: string
 }
 
-export function familyPaths(name: string, major: string): FamilyPaths {
-  const dir = `${SPECIFICATIONS_ROOT}/${name}/${major}`
+/** The parts of a family version directory, wherever that directory is. */
+export type ReleaseDirPaths = Pick<
+  FamilyPaths,
+  'dir' | 'spec' | 'schemas' | 'src' | 'examples' | 'conformance'
+>
+
+/**
+ * The parts of a family version under an arbitrary directory — the `path` a
+ * ledger entry recorded, which is where that release lived at its tag even if
+ * the layout has since moved.
+ */
+export function releaseDirPaths(dir: string): ReleaseDirPaths {
   return {
     dir,
     spec: `${dir}/spec.md`,
     schemas: `${dir}/schemas`,
     src: `${dir}/schemas/src`,
-    bundle: `${DIST_DIR}/${name}/${major}/${name}.schema.json`,
     examples: `${dir}/examples`,
     conformance: `${dir}/conformance`,
+  }
+}
+
+export function familyPaths(name: string, major: string): FamilyPaths {
+  const dir = `${SPECIFICATIONS_ROOT}/${name}/${major}`
+  return {
+    ...releaseDirPaths(dir),
+    bundle: `${DIST_DIR}/${name}/${major}/${name}.schema.json`,
     manifestKey: dir,
   }
 }
