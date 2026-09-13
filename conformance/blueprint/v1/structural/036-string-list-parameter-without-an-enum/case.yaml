@@ -1,0 +1,22 @@
+# The mirror of component structural/071. §5.3 does not restate component
+# §6.3's rules, it enforces them on the same terms and in the same phase, and
+# this is the case that proves the second half of that sentence about the member
+# added last.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  revision: 1
+spec:
+  components:
+    db:
+      componentRef: ./components/postgres.yaml
+      size: general.standard.small
+      connections: {}
+  parameters:
+    telemetry:
+      schema:
+        type: STRING_LIST
+      required: false
+      ui:
+        label: Telemetry to export

@@ -1,0 +1,28 @@
+# The parameter asks for one value; the input it covers reads a list of them.
+# This is why component §6.3 puts the multiplicity in `type` rather than in a
+# field beside it: STRING and STRING_LIST are two members, so §5.3's existing
+# rule separates them and no rule had to be added here to say so. A boolean
+# sitting next to `type` would have left both ends reading STRING and this
+# blueprint accepted, with the form collecting a word where the workload parses
+# an array.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  revision: 1
+spec:
+  components:
+    db:
+      componentRef: ./components/postgres.yaml
+      size: general.standard.small
+      connections: {}
+  parameters:
+    telemetry:
+      schema:
+        type: STRING
+        enum:
+          - logs
+          - metrics
+      required: true
+      ui:
+        label: Telemetry to export

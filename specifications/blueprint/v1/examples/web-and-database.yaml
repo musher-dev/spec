@@ -52,3 +52,18 @@ spec:
       required: false
       ui:
         label: Site title
+    telemetry:
+      schema:
+        type: STRING_LIST
+        enum:
+          - logs
+          - metrics
+          - traces
+        default: '["logs"]'
+      required: false
+      ui:
+        label: Telemetry to export
+        enumLabels:
+          logs: Logs
+          metrics: Metrics
+          traces: Traces

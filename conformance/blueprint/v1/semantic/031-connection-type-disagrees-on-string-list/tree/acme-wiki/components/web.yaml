@@ -1,0 +1,25 @@
+specVersion: v1
+kind: COMPONENT
+metadata:
+  revision: 1
+spec:
+  workload:
+    type: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+    endpoints:
+      web:
+        containerPort: 8080
+        protocol: HTTP
+        visibility: PRIVATE
+  contract:
+    inputs:
+      replicas:
+        schema:
+          type: STRING_LIST
+          enum:
+            - primary
+            - replica
+        suppliedBy: CONNECTION
+    outputs: {}

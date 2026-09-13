@@ -1,0 +1,8 @@
+{
+  "id": "semantic-031-connection-type-disagrees-on-string-list",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/blueprint/v1/spec.md#connections",
+  "summary": "A STRING output wired into a STRING_LIST input is rejected by the type rule that already exists.",
+  "document": "acme-wiki/blueprint.yaml"
+}

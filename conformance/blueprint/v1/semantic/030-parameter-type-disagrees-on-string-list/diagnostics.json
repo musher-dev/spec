@@ -1,0 +1,6 @@
+[
+  {
+    "code": "ERR_INCOMPATIBLE_PARAMETER_TYPE",
+    "path": "/spec/parameters/telemetry/schema/type"
+  }
+]
