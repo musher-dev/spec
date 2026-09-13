@@ -41,8 +41,9 @@ Protects the default branch:
 - **Required status checks**: `Lint`, `Schema`, `Site Build`, `Signed off`,
   each pinned to `integration_id: 15368` so only the GitHub Actions app can
   satisfy them. `Schema` is the one that matters most — it carries the
-  conformance, compatibility and build-output gates. `Site Build` carries the publication-ledger gates. `Signed off`
-  is the DCO check CONTRIBUTING.md requires.
+  conformance, compatibility and build-output gates. `Site Build` carries the
+  publication-ledger gates and verifies every published release asset. `Signed
+  off` is the DCO check CONTRIBUTING.md requires.
 - **Deletion and force-push blocked.**
 
 ### The selective code-owner review gate

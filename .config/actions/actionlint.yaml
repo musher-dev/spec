@@ -15,4 +15,7 @@ self-hosted-runner:
 # is exhaustive on purpose -- with it, `vars.TYPO` is a build failure instead of
 # an empty string that silently changes what a job does. Add a name here in the
 # same change that adds the variable to the repository settings.
-config-variables: []
+config-variables:
+  # The release GitHub App's id. Its private key is the RELEASE_APP_PRIVATE_KEY
+  # secret. Read by release.yml and release-ledger.yml.
+  - RELEASE_APP_ID
