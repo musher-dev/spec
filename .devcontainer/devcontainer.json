@@ -149,15 +149,15 @@
         "yaml.schemas": {
           "./specifications/component/v1/schemas/dist/component.schema.json": [
             "specifications/component/v1/examples/*.yaml",
-            "conformance/component/v1/**/case.yaml"
+            "specifications/component/v1/conformance/**/case.yaml"
           ],
           "./specifications/blueprint/v1/schemas/dist/blueprint.schema.json": [
             "specifications/blueprint/v1/examples/*.yaml",
-            "conformance/blueprint/v1/**/case.yaml"
+            "specifications/blueprint/v1/conformance/**/case.yaml"
           ],
           "./specifications/listing/v1/schemas/dist/listing.schema.json": [
             "specifications/listing/v1/examples/*.yaml",
-            "conformance/listing/v1/**/case.yaml"
+            "specifications/listing/v1/conformance/**/case.yaml"
           ]
         },
 

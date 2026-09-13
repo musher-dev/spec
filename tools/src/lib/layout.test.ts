@@ -92,7 +92,7 @@ describe('familyPaths', () => {
       dist: 'specifications/component/v1/schemas/dist',
       bundle: 'specifications/component/v1/schemas/dist/component.schema.json',
       examples: 'specifications/component/v1/examples',
-      conformance: 'conformance/component/v1',
+      conformance: 'specifications/component/v1/conformance',
       manifestKey: 'specifications/component/v1',
     })
   })
@@ -107,7 +107,7 @@ describe('familyPaths', () => {
 
   test('a conformance link is relative to the page that carries it', () => {
     expect(conformanceLink('docs', 'component', 'v1', 'parser/parser-001-x')).toBe(
-      '../conformance/component/v1/parser/parser-001-x/',
+      '../specifications/component/v1/conformance/parser/parser-001-x/',
     )
   })
 })

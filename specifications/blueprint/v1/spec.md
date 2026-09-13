@@ -873,7 +873,7 @@ family adds:
 ## <a id="conformance"></a>8. Conformance
 
 An implementation conforms when it produces the declared outcome for every
-fixture in [`conformance/blueprint/v1/`](../../../conformance/blueprint/v1/).
+fixture in [`specifications/blueprint/v1/conformance/`](conformance/).
 
 An implementation MUST declare the **profile** it claims, as
 [component §9](../../component/v1/spec.md#conformance) requires and

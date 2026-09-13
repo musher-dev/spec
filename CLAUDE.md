@@ -56,9 +56,10 @@ specifications/<family>/v<major>/
   schemas/src/         authored modules (normative input)
   schemas/dist/        generated compound bundle (normative output, committed)
   examples/            example documents, validated in CI
-conformance/<family>/v<major>/
-  cases.json           index of test vectors
-  <phase>/<case-id>/   metadata.json + case.yaml + diagnostics.json
+  conformance/
+    cases.json         index of test vectors
+    <phase>/<case-id>/ metadata.json + case.yaml + diagnostics.json
+conformance/README.md  the fixture format every corpus follows
 tools/src/<concern>/   non-normative Bun scripts — the only language-bound code
 docs/adr/              architecture decision records
 .config/               every linter, formatter, and hook config (see its README)

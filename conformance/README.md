@@ -2,7 +2,8 @@
 
 A language-neutral corpus of test vectors. An implementation conforms to a
 Musher specification family when it produces the declared outcome for every
-case in that family's tree.
+case in that family's tree. Each corpus lives inside the family version it
+tests, at `specifications/<family>/v<major>/conformance/`.
 
 **Where this sits.** A family's `spec.md` defines its complete behaviour. This
 corpus is that prose's executable form for observable outcomes, as the JSON
@@ -24,7 +25,7 @@ honest inside this repository and carries no special authority.
 ## Layout
 
 ```
-conformance/<family>/v<major>/
+specifications/<family>/v<major>/conformance/
   cases.json                   index of every case
   <phase>/<case-id>/
     metadata.json              declared outcome
@@ -110,7 +111,7 @@ that a media path stays inside the item. A single `case.yaml` cannot state any
 of them, so a case may instead carry a `tree/`:
 
 ```
-conformance/blueprint/v1/semantic/003-slug-disagrees-with-directory/
+specifications/blueprint/v1/conformance/semantic/003-slug-disagrees-with-directory/
   metadata.json      "document": "acme-wiki/blueprint.yaml"
   diagnostics.json
   tree/
@@ -323,10 +324,12 @@ it as passed.
 ## Adding a case
 
 1. Pick the phase and the next free sequence number in that phase.
-2. Create `<phase>/<NNN>-<description>/` with `metadata.json`, and either a
-   `case.yaml` or a `tree/` plus a `document` naming the file inside it.
+2. Create `<phase>/<NNN>-<description>/` under
+   `specifications/<family>/v<major>/conformance/`, with `metadata.json`, and
+   either a `case.yaml` or a `tree/` plus a `document` naming the file inside
+   it.
 3. For a failing case, add `diagnostics.json`.
-4. Add the entry to `cases.json`. A directory that is not indexed runs nowhere,
+4. Add the entry to that corpus's `cases.json`. A directory that is not indexed runs nowhere,
    and `task check:conformance` reports it rather than leaving it to be assumed
    green.
 5. Run `task check:conformance`.

@@ -1012,7 +1012,7 @@ is required here — is the field that constrains each member.
 above already forbids it wherever `type` is not `STRING`, and a `STRING_LIST`
 is not a `STRING`. The
 row in the table above records the outcome rather than a second rule, and
-[`structural/074`](../../../conformance/component/v1/structural/074-string-list-with-a-format/)
+[`structural/074`](conformance/structural/074-string-list-with-a-format/)
 is the fixture that holds it down.
 
 **The multiplicity is in `type` rather than beside it.** An earlier draft of
@@ -1382,7 +1382,7 @@ to a vocabulary and this table is no different.
 
 An implementation conforms to this specification when it produces the declared
 outcome for every fixture in
-[`conformance/component/v1/`](../../../conformance/component/v1/).
+[`specifications/component/v1/conformance/`](conformance/).
 
 Implementations MUST run the fixture corpus in their own CI. Passing a fixture
 that is declared to fail is a conformance failure.

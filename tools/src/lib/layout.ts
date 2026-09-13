@@ -23,10 +23,12 @@ import { listTreeFiles, readBlobAtRef } from './git.ts'
 
 /** Where every family's tree lives. */
 export const SPECIFICATIONS_ROOT = 'specifications'
-/** Where every family's conformance corpus lives today. */
-const CONFORMANCE_ROOT = 'conformance'
-/** The conformance suite's own index of profiles and fixture format. */
-export const CONFORMANCE_README = `${CONFORMANCE_ROOT}/README.md`
+/**
+ * The conformance suite's own index of profiles and fixture format. It stays at
+ * the root because every family's corpus follows it; each corpus itself lives
+ * inside its family version (see docs/adr/0021 §2).
+ */
+export const CONFORMANCE_README = 'conformance/README.md'
 /** The publication ledger. See docs/adr/0006. */
 export const LEDGER_FILE = 'published.json'
 export const RELEASE_PLEASE_MANIFEST_FILE = '.github/release-please/manifest.json'
@@ -67,7 +69,7 @@ export function familyPaths(name: string, major: string): FamilyPaths {
     dist: `${dir}/schemas/dist`,
     bundle: `${dir}/schemas/dist/${name}.schema.json`,
     examples: `${dir}/examples`,
-    conformance: `${CONFORMANCE_ROOT}/${name}/${major}`,
+    conformance: `${dir}/conformance`,
     manifestKey: dir,
   }
 }
@@ -233,7 +235,6 @@ if (!existsSync(join(REPO_ROOT, SPECIFICATIONS_ROOT))) {
   )
 }
 export const SPECIFICATIONS_DIR = join(REPO_ROOT, SPECIFICATIONS_ROOT)
-export const CONFORMANCE_DIR = join(REPO_ROOT, CONFORMANCE_ROOT)
 export const SITE_DIR = join(REPO_ROOT, 'site')
 
 /** The public hostname the published schemas are served from. */

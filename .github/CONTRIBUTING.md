@@ -66,7 +66,7 @@ $EDITOR specifications/component/v1/schemas/src/component.schema.json
 task bundle
 
 # 3. Add fixtures proving the new behaviour
-mkdir -p conformance/component/v1/structural/010-my-new-rule
+mkdir -p specifications/component/v1/conformance/structural/010-my-new-rule
 
 # 4. Verify
 task check
@@ -82,6 +82,10 @@ A fixture is a `case.yaml` when the rule is decided by reading one document,
 and a `tree/` when it is decided by reading the item the document sits in —
 a slug against its directory, a reference against a file. See
 [conformance/README.md](../conformance/README.md#case-trees).
+
+A fixture lives inside the family version it tests, so a commit that adds or
+corrects one enters that family's release: release-please assigns a commit to a
+release by the paths it changes (see [Commit messages](#commit-messages)).
 
 Adding a diagnostic code or a requirement ID to a `spec.md` obliges you to add a
 case for it.

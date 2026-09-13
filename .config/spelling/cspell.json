@@ -38,8 +38,8 @@
     "published.json",
     // Conformance vectors are chosen for their bytes, including deliberate
     // misspellings and malformed input. Correcting them would destroy the test.
-    "conformance/**/case.yaml",
-    "conformance/**/tree/**"
+    "specifications/*/v*/conformance/**/case.yaml",
+    "specifications/*/v*/conformance/**/tree/**"
   ],
   "ignoreRegExpList": [
     "/\\b[0-9a-f]{7,64}\\b/",

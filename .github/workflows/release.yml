@@ -135,7 +135,7 @@ jobs:
           cp "specifications/${FAMILY}/${MAJOR}/spec.md" "$root/"
           cp LICENSE NOTICE "$root/"
           cp -r "specifications/${FAMILY}/${MAJOR}/examples" "$root/examples"
-          cp -r "conformance/${FAMILY}/${MAJOR}" "$root/conformance"
+          cp -r "specifications/${FAMILY}/${MAJOR}/conformance" "$root/conformance"
           cp conformance/README.md "$root/conformance/README.md"
 
           # Deterministic archive: sorted entries, no owner or timestamp noise,

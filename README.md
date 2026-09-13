@@ -113,9 +113,10 @@ specifications/<family>/v<major>/
   schemas/src/         authored schema modules      (normative input)
   schemas/dist/        generated compound bundle    (normative output, committed)
   examples/            validated example documents
-conformance/<family>/v<major>/
-  cases.json           test-vector index
-  <phase>/<case-id>/   metadata.json, case.yaml, diagnostics.json
+  conformance/
+    cases.json         test-vector index
+    <phase>/<case-id>/ metadata.json, case.yaml, diagnostics.json
+conformance/README.md  the fixture format every corpus follows
 tools/                 non-normative build and validation scripts (Bun + TypeScript)
 docs/adr/              architecture decision records
 docs/traceability.md   generated: every requirement, its clause, and its cases
