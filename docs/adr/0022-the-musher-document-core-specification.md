@@ -59,7 +59,7 @@ a blueprint or listing pipeline. The copies that do exist differ in comments and
 bodies, and twelve parser cases across the three corpora cite `#envelope` while
 pinning a `COMP-YAML` ID declared under `#yaml-profile`.
 
-**The tooling hard-codes the arrangement.** `tools/src/conformance.ts` declares
+**The tooling hard-codes the arrangement.** `tools/src/conformance/conformance.ts` declares
 `BASE_FAMILY = 'component'`. `registryFor` builds a family's registry from its
 own table plus the *whole* of component's. So a listing fixture may declare
 `ERR_UNPINNED_IMAGE`, and a fourth family would inherit every `semantic` and
@@ -230,7 +230,7 @@ fails the check. Listing stops reaching `ERR_UNPINNED_IMAGE`, and blueprint
 still reaches `ERR_UNKNOWN_ENUM_MEMBER` for the reason it should.
 
 A family narrows core where it says so and relaxes core nowhere. Every citation
-of core MUST be a link. `tools/src/prose.ts` turns a bare "§6.1" into a link to
+of core MUST be a link. `tools/src/render/prose.ts` turns a bare "§6.1" into a link to
 the *current* document, so an unlinked "core v1 §6.1" would silently point at
 the family's own §6.1.
 

@@ -23,7 +23,7 @@ version, keyed `specifications/<family>/v1`, and release-please assigns a commit
 to a package by the **paths it changes**. The corpus sits outside every package
 path, at `conformance/<family>/v1`, so a `fix` that corrects a fixture releases
 nothing. Yet the fixture is normative, `release.yml` copies it into the release
-archive, and `tools/src/compat.ts` reads it back out of each tag to decide what
+archive, and `tools/src/publication/compat.ts` reads it back out of each tag to decide what
 that release accepted. A normative change to a fixture produces no release. No
 tag exists, so this has cost nothing yet. It would have on the first.
 
@@ -162,7 +162,7 @@ checked them.
 ### 5. Each fact has one home
 
 - **The repository artifact naming table** moves from `CLAUDE.md` to
-  `docs/conventions.md`. `tools/src/lint.ts` enforces it and every contributor
+  `docs/conventions.md`. `tools/src/schema/lint.ts` enforces it and every contributor
   needs it; an agent brief is not where a contributor looks. Field and value
   naming stays with [ADR 0007](0007-naming-conventions.md).
 - **Generated navigation documents**, `docs/traceability.md` and the ADR index,
