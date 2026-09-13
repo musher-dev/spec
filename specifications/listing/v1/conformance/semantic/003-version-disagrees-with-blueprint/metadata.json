@@ -2,9 +2,9 @@
   "id": "semantic-003-version-disagrees-with-blueprint",
   "phase": "semantic",
   "expected": "fail",
-  "clause": "specifications/listing/v1/spec.md#identity",
+  "clause": "specifications/core/v1/spec.md#item-identity",
   "requirements": [
-    "LIST-ID-002"
+    "CORE-ITEM-002"
   ],
   "summary": "A listing whose version differs from its sibling blueprint's is rejected.",
   "document": "acme-wiki/listing.yaml"

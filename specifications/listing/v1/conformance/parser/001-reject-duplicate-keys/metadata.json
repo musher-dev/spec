@@ -2,9 +2,9 @@
   "id": "parser-001-reject-duplicate-keys",
   "phase": "parser",
   "expected": "fail",
-  "clause": "specifications/listing/v1/spec.md#envelope",
+  "clause": "specifications/core/v1/spec.md#yaml-profile",
   "requirements": [
-    "COMP-YAML-006"
+    "CORE-YAML-006"
   ],
   "summary": "A document repeating a mapping key is rejected before structural validation."
 }

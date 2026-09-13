@@ -57,10 +57,29 @@ metadata: { slug: …, revision: … }
 spec: { components: {…}, parameters: {…} }
 ```
 
-`kind` MUST be `BLUEPRINT`. All envelope rules in
-[component §2](../../component/v1/spec.md#envelope), and the version
-compatibility rules in
-[component §3](../../component/v1/spec.md#compatibility), apply identically.
+A Blueprint Document is a Musher document as the
+[Musher Document Core Specification](../../core/v1/spec.md) defines one, and
+every rule of core v1 applies to it. This family binds the parameters
+[core v1 §1.1](../../core/v1/spec.md#bindings) leaves to a family:
+
+| Core parameter | This family |
+|---|---|
+| `kind` ([`CORE-ENV-002`](../../core/v1/spec.md#CORE-ENV-002)) | `BLUEPRINT` |
+| `metadata` ([`CORE-ENV-003`](../../core/v1/spec.md#CORE-ENV-003)) | [§3](#identity) |
+| Fields accepting `null` ([`CORE-ENV-007`](../../core/v1/spec.md#CORE-ENV-007)) | `size` — [§4.3](#node-compute) |
+| Item document ([core v1 §4.1](../../core/v1/spec.md#item-directory)) | `blueprint.yaml` |
+
+This specification narrows core v1 where it says so and relaxes it nowhere. It
+cites core by its line — "core v1 §N" — and the core edition a release was
+built and tested against is recorded with that release
+([core v1 §9](../../core/v1/spec.md#editions)).
+
+**Normative dependencies**
+
+| Specification | Line |
+|---|---|
+| [core](../../core/v1/spec.md) | v1 |
+| [component](../../component/v1/spec.md) | v1 |
 
 ## <a id="identity"></a>3. Identity
 
@@ -71,12 +90,16 @@ MUST NOT appear on a blueprint document, and a validator MUST reject them with
 `ERR_UNKNOWN_FIELD` like any other unknown property.
 
 Three rules bind the item together. All three are `semantic`, and all three
-are measured against the item root defined below.
+are measured against the item root [§3.1](#item-directory) locates. Two of them
+are stated once for every family in
+[core v1 §4.2](../../core/v1/spec.md#item-identity):
+[`CORE-ITEM-001`](../../core/v1/spec.md#CORE-ITEM-001) binds `metadata.slug` to
+the item directory name, and
+[`CORE-ITEM-002`](../../core/v1/spec.md#CORE-ITEM-002) binds
+`metadata.revision` to the sibling listing's. The third is this family's:
 
 | ID | Rule | Diagnostic |
 |---|---|---|
-| <a id="BP-ID-001"></a>`BP-ID-001` | `metadata.slug` MUST equal the item directory name. | `ERR_SLUG_MISMATCH` |
-| <a id="BP-ID-002"></a>`BP-ID-002` | `metadata.revision` MUST equal the sibling listing's `metadata.revision`. | `ERR_VERSION_MISMATCH` |
 | <a id="BP-ID-003"></a>`BP-ID-003` | Every component document in the item MUST be referenced by some node. | `ERR_UNREFERENCED_COMPONENT` |
 
 **An unreferenced component document is an error, not dead weight.** A
@@ -90,8 +113,8 @@ about is not in it.
 
 ### <a id="item-directory"></a>3.1 The item directory
 
-A blueprint does not travel alone. It and its sibling listing belong to a
-**catalog item**: one directory holding one deployable thing.
+A blueprint and its sibling listing are the item documents of one
+[catalog item](../../core/v1/spec.md#item-directory).
 
 ```
 <slug>/
@@ -101,8 +124,9 @@ A blueprint does not travel alone. It and its sibling listing belong to a
   media/                icon and screenshots
 ```
 
-The directory containing `blueprint.yaml` is the **item root**. It is what
-§3's three rules are measured against, what
+`blueprint.yaml` is this family's item document, so the directory containing it
+is the **item root** [core v1 §4.1](../../core/v1/spec.md#item-directory)
+defines. It is what §3's three rules are measured against, what
 [§4.1](#component-reference) means by containment, and what
 [listing §5](../../listing/v1/spec.md#media) resolves a media path inside.
 
@@ -111,12 +135,10 @@ Component documents MAY sit anywhere under the root — `components/` is a
 convention, and [§4.1](#component-reference) accepts a flat sibling equally.
 `media/` is fixed too, but by the listing family rather than by this one.
 
-**A document with no directory has no item root.** Every rule in this section
-needs one, so an implementation handed a document rather than a directory MUST
-NOT report any of them. It has not been given the means to check, and a
-diagnostic it cannot substantiate is worse than a silence.
-[§4.1](#component-reference) draws the same line for the component reference,
-for the same reason.
+A blueprint handed over with no directory has no item root, so
+[core v1 §4.1](../../core/v1/spec.md#item-directory) forbids reporting any of
+§3's rules for it. [§4.1](#component-reference) draws the same line for the
+component reference, for the same reason.
 
 ## <a id="components"></a>4. Component graph
 
@@ -130,8 +152,9 @@ empty graph deploys nothing while claiming to be the unit of deployment. Both
 halves are `structural`: an absent mapping is `ERR_MISSING_FIELD` and an empty
 one `ERR_INVALID_VALUE`.
 
-A node name MUST match `^[a-z][a-z0-9-]{0,61}[a-z0-9]$`, the same grammar
-`metadata.slug` uses. Uniqueness needs no rule of its own: `spec.components`
+A node name MUST match `^[a-z][a-z0-9-]{0,61}[a-z0-9]$`, the label grammar
+[core v1 §5.1](../../core/v1/spec.md#label-grammar) names, which `metadata.slug`
+uses too. Uniqueness needs no rule of its own: `spec.components`
 is a mapping, so a repeated node name is `ERR_DUPLICATE_KEY` in the `parser`
 phase, before the graph is looked at.
 
@@ -184,7 +207,8 @@ db:
 A reference matching neither form MUST be rejected in the `structural` phase.
 
 **Why the prefix is required.** A bare name is not distinguishable from a
-UUID: the slug grammar `^[a-z][a-z0-9-]{0,61}[a-z0-9]$` matches
+UUID: the label grammar [core v1 §5.1](../../core/v1/spec.md#label-grammar),
+`^[a-z][a-z0-9-]{0,61}[a-z0-9]$`, matches
 `e29b8400-e29b-41d4-a716-446655440000`. Without a prefix no validator could
 decide which resolver a reference wanted, so the prefix is load-bearing rather
 than decorative.
@@ -195,7 +219,7 @@ components in one flat directory.
 
 **Where each form resolves.** A repo-local reference is resolved in the
 `semantic` phase: it reads the filesystem, which
-[component §7](../../component/v1/spec.md#validation-layers) permits, since
+[core v1 §6](../../core/v1/spec.md#validation-layers) permits, since
 that phase MUST NOT require network access. A published reference cannot be
 resolved under that constraint and therefore belongs to the `capability`
 phase, server-side. An offline client MUST NOT report a published reference as
@@ -490,7 +514,7 @@ release of it coincides with. A schema that enumerated the offering would be
 wrong in both directions between releases — naming tiers that cannot yet be
 deployed, and rejecting ones that can. Growing the *grammar* is safe by
 contrast, because an allowlist admitting more is a relaxation and ships in a
-minor release ([component §3](../../component/v1/spec.md#compatibility));
+minor release ([core v1 §3](../../core/v1/spec.md#compatibility));
 narrowing one would be major. That is the mirror of
 [component §5.1](../../component/v1/spec.md#source), where the floating-tag
 blocklist stays out of the schema precisely because growing a *blocklist* is a
@@ -830,9 +854,9 @@ over without a directory.
 
 ## <a id="validation-layers"></a>6. Validation layers
 
-As defined in [component §7](../../component/v1/spec.md#validation-layers), and
+As defined in [core v1 §6](../../core/v1/spec.md#validation-layers), and
 written in the YAML profile
-[component §7.1](../../component/v1/spec.md#yaml-profile) states.
+[core v1 §6.1](../../core/v1/spec.md#yaml-profile) states.
 Blueprint documents exercise the `semantic` phase more heavily than any other
 family — repo-local reference resolution, connection compatibility, and the
 parameter merge all live there.
@@ -843,8 +867,8 @@ therefore validates completely offline, all the way through `semantic`.
 
 ## <a id="diagnostics"></a>7. Diagnostics
 
-The codes in [component §8](../../component/v1/spec.md#diagnostics) apply. This
-family adds:
+The codes in [core v1 §7](../../core/v1/spec.md#diagnostics) apply to every
+document in this family. This family adds:
 
 | Code | Phase | Meaning |
 |---|---|---|
@@ -861,8 +885,6 @@ family adds:
 | `ERR_UNKNOWN_COMPUTE_PROFILE` | `capability` | A node's `size` names a Compute Profile the catalog does not offer. |
 | `ERR_INCOMPATIBLE_TYPE` | `semantic` | A connection joins an output and an input whose `schema.type`s differ. |
 | `ERR_INCOMPATIBLE_RESOURCE_TYPE` | `semantic` | A connection joins an output and an input whose `schema.resourceType`s disagree. |
-| `ERR_SLUG_MISMATCH` | `semantic` | `metadata.slug` disagrees with the item directory name. |
-| `ERR_VERSION_MISMATCH` | `semantic` | `metadata.revision` disagrees with the sibling listing document. |
 | `ERR_UNREFERENCED_COMPONENT` | `semantic` | A component document in the item is referenced by no node. |
 | `ERR_CONFLICTING_INPUT_SCHEMA` | `semantic` | Two nodes declare the same input key with different schemas. |
 | `ERR_UNBOUND_PARAMETER` | `semantic` | An authored parameter's key names no `USER` input of any node. |
@@ -872,12 +894,11 @@ family adds:
 
 ## <a id="conformance"></a>8. Conformance
 
-An implementation conforms when it produces the declared outcome for every
-fixture in [`specifications/blueprint/v1/conformance/`](conformance/).
-
-An implementation MUST declare the **profile** it claims, as
-[component §9](../../component/v1/spec.md#conformance) requires and
-[conformance/README.md](../../../conformance/README.md#profiles) defines. A
+An implementation conforms to this specification when it produces the declared
+outcome for every case in [this family's corpus](conformance/) and in the
+[core corpus](../../core/v1/conformance/) at the core edition the release
+records ([core v1 §8](../../core/v1/spec.md#conformance)). It MUST declare the
+profile it claims, as [core v1 §8](../../core/v1/spec.md#conformance) requires. A
 skipped case is never a passed one.
 
 ## <a id="known-debt"></a>9. Known debt
@@ -919,29 +940,16 @@ rather than described as a decision. See also
 
 ## <a id="security"></a>10. Security considerations
 
-[Component §11](../../component/v1/spec.md#security) applies in full: a blueprint
-is untrusted input, parsed under the same profile and the same bounds. This
-section adds what is specific to a document that resolves *other* documents.
+[Core v1 §11](../../core/v1/spec.md#security) applies in full: a blueprint
+document is untrusted input. This section adds what is specific to blueprint, a
+document that resolves *other* documents.
 
 **Path containment is the central one.** A repo-local `componentRef` reference is a
 path this implementation will open, chosen by the document's author.
 [§4.1](#component-reference) requires it to stay inside the item root, and
-`ERR_REFERENCE_ESCAPE` is that rule. An implementation MUST decide containment on
-the **resolved** location rather than on the string: a reference is an escape if
-what it resolves to lies outside the item root, whether it got there by `../`, by
-an absolute path, or by a symbolic link inside the tree.
-
-Symlinks are the case worth stating plainly. A link committed inside an item can
-point anywhere the process can read, so an implementation MUST resolve links
-before testing containment, and MUST treat a dangling link resolving outside the
-root as an escape — containment is a property of the resolved location, not of
-whether the target happens to exist. The conformance corpus fixtures this
-directly; see [conformance/README.md](../../../conformance/README.md#case-trees).
-
-An implementation MUST NOT follow a reference outside the item root even when the
-resulting file would be readable and would parse. The rule is about what a
-reviewer of the item can see: a graph that reaches outside the directory being
-reviewed deploys something the review did not cover.
+`ERR_REFERENCE_ESCAPE` is that rule. It is decided on the resolved location,
+symbolic links included, as [core v1 §11](../../core/v1/spec.md#security)
+requires of every path inside an item.
 
 **Graph traversal.** [§4.2](#connections) makes the component graph a directed
 graph an implementation walks, and permits that graph to contain a cycle. An

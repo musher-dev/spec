@@ -43,10 +43,28 @@ metadata: { slug: …, revision: … }
 spec: { listingKind: …, displayName: …, … }
 ```
 
-`kind` MUST be `LISTING`. All envelope rules in
-[component §2](../../component/v1/spec.md#envelope), and the version
-compatibility rules in
-[component §3](../../component/v1/spec.md#compatibility), apply identically.
+A Listing Document is a Musher document as the
+[Musher Document Core Specification](../../core/v1/spec.md) defines one, and
+every rule of core v1 applies to it. This family binds the parameters
+[core v1 §1.1](../../core/v1/spec.md#bindings) leaves to a family:
+
+| Core parameter | This family |
+|---|---|
+| `kind` ([`CORE-ENV-002`](../../core/v1/spec.md#CORE-ENV-002)) | `LISTING` |
+| `metadata` ([`CORE-ENV-003`](../../core/v1/spec.md#CORE-ENV-003)) | [§3](#identity) |
+| Fields accepting `null` ([`CORE-ENV-007`](../../core/v1/spec.md#CORE-ENV-007)) | None |
+| Item document ([core v1 §4.1](../../core/v1/spec.md#item-directory)) | `listing.yaml` |
+
+This specification narrows core v1 where it says so and relaxes it nowhere. It
+cites core by its line — "core v1 §N" — and the core edition a release was
+built and tested against is recorded with that release
+([core v1 §9](../../core/v1/spec.md#editions)).
+
+**Normative dependencies**
+
+| Specification | Line |
+|---|---|
+| [core](../../core/v1/spec.md) | v1 |
 
 Do not confuse `kind` with `spec.listingKind`. `kind` identifies the document
 format; `listingKind` identifies what the listing points at (`BLUEPRINT` or
@@ -55,23 +73,13 @@ format; `listingKind` identifies what the listing points at (`BLUEPRINT` or
 ## <a id="identity"></a>3. Identity
 
 `metadata` carries `slug` and `revision` — the same shape a blueprint carries.
-Where the item holds one, the two documents MUST agree.
-
-| ID | Rule | Diagnostic |
-|---|---|---|
-| <a id="LIST-ID-001"></a>`LIST-ID-001` | `metadata.slug` MUST equal the item directory name. | `ERR_SLUG_MISMATCH` |
-| <a id="LIST-ID-002"></a>`LIST-ID-002` | Where the item holds a blueprint, `metadata.revision` MUST equal its `metadata.revision`. | `ERR_VERSION_MISMATCH` |
-
-Both are `semantic`, and both are measured against the item root —
-[blueprint §3.1](../../blueprint/v1/spec.md#item-directory) where the item
-holds a blueprint, [§3.1](#component-item) below where it does not. A listing
-handed over with no directory has no item root, and an implementation in that
-position MUST NOT report either rule.
-
-**The two documents are one item's two halves.** A listing whose revision has
-moved ahead of its blueprint describes something other than what would be
-installed — this release's storefront copy over last release's graph. The rule
-is what keeps "read about this" and "install this" the same thing.
+Both are bound by rules stated once for every family in
+[core v1 §4.2](../../core/v1/spec.md#item-identity):
+[`CORE-ITEM-001`](../../core/v1/spec.md#CORE-ITEM-001) binds the slug to the
+item directory name, and [`CORE-ITEM-002`](../../core/v1/spec.md#CORE-ITEM-002)
+binds the revision to that of every other item document in the item — where the
+item holds a blueprint, to the blueprint's. Both are measured against the item
+root [§3.1](#component-item) locates.
 
 **A `COMPONENT` item's listing revision is bound to nothing, and that is a rule
 rather than the absence of one.** The rule above pins an item's two halves to
@@ -104,11 +112,11 @@ validating today, which makes it a breaking change.
 
 ### <a id="component-item"></a>3.1 The COMPONENT item
 
-[Blueprint §3.1](../../blueprint/v1/spec.md#item-directory) anchors the item
-root on `blueprint.yaml`. An item whose listing is `listingKind: COMPONENT` has
-no such file, and the revision rule is not the only one that needs a root:
-`metadata.slug` above is measured against one, and [§5](#media) resolves every
-media path inside one.
+[Core v1 §4.1](../../core/v1/spec.md#item-directory) anchors the item root on an
+item document rather than on `blueprint.yaml`. An item whose listing is
+`listingKind: COMPONENT` need hold no `blueprint.yaml`, and the revision rule is
+not the only one that needs a root: `metadata.slug` above is measured against
+one, and [§5](#media) resolves every media path inside one.
 
 ```
 <slug>/
@@ -117,10 +125,9 @@ media path inside one.
   media/                icon and screenshots
 ```
 
-**The directory containing `listing.yaml` is the item root.** The two
-definitions agree wherever both apply: an item holding a blueprint holds the
-two documents as siblings, so the directory containing one is the directory
-containing the other.
+**The directory containing `listing.yaml` is the item root.** `listing.yaml` is
+this family's item document. Where the item holds a blueprint as well, the two
+are siblings under that one root.
 
 Two names in that tree are fixed: `listing.yaml`, and `media/` by
 [§5](#media). Component documents MAY sit anywhere under the root —
@@ -132,7 +139,8 @@ sibling is equally valid.
 because a blueprint's graph names the documents it deploys, so a document the
 graph does not name is invisible; there is no graph here to name anything.
 
-The no-directory rule reaches §5 as well as §3. A listing handed over without
+The no-directory rule of [core v1 §4.1](../../core/v1/spec.md#item-directory)
+reaches §5 as well as §3. A listing handed over without
 a directory has no item root, so an implementation in that position MUST NOT
 report `ERR_MEDIA_NOT_FOUND` or `ERR_PATH_ESCAPE` either — both resolve a path
 inside a root it has not been given.
@@ -281,8 +289,7 @@ a second copy in prose is a copy that can disagree — the same reasoning ADR 00
 ## <a id="media"></a>5. Media
 
 `icon` and `screenshots[].file` are media paths, resolved inside the item root
-— [blueprint §3.1](../../blueprint/v1/spec.md#item-directory) where the item
-holds a blueprint, [§3.1](#component-item) where it does not.
+[core v1 §4.1](../../core/v1/spec.md#item-directory) defines.
 
 A media path MUST satisfy all of the following, and is rejected in the
 `structural` phase with `ERR_INVALID_VALUE` when it does not:
@@ -312,8 +319,8 @@ unspellable, so no path can escape by traversal any more. One can still escape
 by symlink — `media/icon.png` pointing outside the item is a legal spelling
 resolving to an illegal target. Containment is a property of the resolved
 location rather than of the string, the same distinction
-[blueprint §4.1](../../blueprint/v1/spec.md#component-reference) draws for a
-component reference.
+[core v1 §11](../../core/v1/spec.md#security) draws for every path inside an
+item.
 
 **Basenames must differ across the whole item**, not merely within a
 directory: `media/desktop/overview.png` and `media/mobile/overview.png`
@@ -393,19 +400,17 @@ cannot test, and saying so is better than a fixture that appears to cover it.
 
 ## <a id="validation-layers"></a>6. Validation layers
 
-As defined in [component §7](../../component/v1/spec.md#validation-layers), and
+As defined in [core v1 §6](../../core/v1/spec.md#validation-layers), and
 written in the YAML profile
-[component §7.1](../../component/v1/spec.md#yaml-profile) states.
+[core v1 §6.1](../../core/v1/spec.md#yaml-profile) states.
 
 ## <a id="diagnostics"></a>7. Diagnostics
 
-The codes in [component §8](../../component/v1/spec.md#diagnostics) apply. This
-family adds:
+The codes in [core v1 §7](../../core/v1/spec.md#diagnostics) apply to every
+document in this family. This family adds:
 
 | Code | Phase | Meaning |
 |---|---|---|
-| `ERR_SLUG_MISMATCH` | `semantic` | `metadata.slug` disagrees with the item directory name. |
-| `ERR_VERSION_MISMATCH` | `semantic` | `metadata.revision` disagrees with the sibling blueprint document. |
 | `ERR_MEDIA_NOT_FOUND` | `semantic` | A referenced media file does not exist. |
 | `ERR_PATH_ESCAPE` | `semantic` | A media path resolves outside the item directory. |
 | `ERR_DUPLICATE_MEDIA_BASENAME` | `semantic` | Two screenshots share a basename. |
@@ -415,12 +420,11 @@ family adds:
 
 ## <a id="conformance"></a>8. Conformance
 
-An implementation conforms when it produces the declared outcome for every
-fixture in [`specifications/listing/v1/conformance/`](conformance/).
-
-An implementation MUST declare the **profile** it claims, as
-[component §9](../../component/v1/spec.md#conformance) requires and
-[conformance/README.md](../../../conformance/README.md#profiles) defines. A
+An implementation conforms to this specification when it produces the declared
+outcome for every case in [this family's corpus](conformance/) and in the
+[core corpus](../../core/v1/conformance/) at the core edition the release
+records ([core v1 §8](../../core/v1/spec.md#conformance)). It MUST declare the
+profile it claims, as [core v1 §8](../../core/v1/spec.md#conformance) requires. A
 skipped case is never a passed one.
 
 ## <a id="known-debt"></a>9. Known debt
@@ -457,9 +461,9 @@ look covered.
 
 ## <a id="security"></a>10. Security considerations
 
-[Component §11](../../component/v1/spec.md#security) applies in full. What is
-specific to a listing is that, alone among the three families, its content is
-**rendered to other people**.
+[Core v1 §11](../../core/v1/spec.md#security) applies in full: a listing
+document is untrusted input. This section adds what is specific to listing:
+alone among the three families, its content is **rendered to other people**.
 
 **The description is a stored-injection surface.** [§4.1](#description-markdown)
 is the trust boundary, and [ADR 0004](../../../docs/adr/0004-listing-description-trust-boundary.md)
@@ -493,8 +497,9 @@ anyone, and it reopens the beacon exactly as an author-supplied remote image
 would. A consumer that cannot resolve one omits it.
 
 **Media paths are paths.** `ERR_PATH_ESCAPE` is the listing's form of the
-containment rule; the symlink and resolved-location requirements in
-[blueprint §10](../../blueprint/v1/spec.md#security) apply identically. An
+containment rule; the symlink and resolved-location requirements
+[core v1 §11](../../core/v1/spec.md#security) sets for every path inside an item
+apply to it. An
 implementation MUST NOT decode or transcode a media file to validate it —
 [§5](#media) turns on existence and containment, and nothing here requires an
 image parser to be pointed at untrusted bytes.
