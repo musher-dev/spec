@@ -56,13 +56,65 @@ interface Subject {
  */
 const BATCH = 20
 
+/** A rejected instance is announced on its own line. */
+const FAIL_LINE = /^fail:\s*(.+)$/
+
+/** What the CLI appends when the instance is one entry of a multi-document file. */
+const MULTI_DOCUMENT_ENTRY = /\s*\(entry #\d+\)$/
+
+/**
+ * Read the instances a `validate` run rejected out of its output.
+ *
+ * This is the whole of what the check depends on about another project's CLI,
+ * so it is written down rather than left implied:
+ *
+ *   - a rejected instance is announced by a line reading `fail: <path>`;
+ *   - `<path>` is printed relative to the working directory from 16.10.0, and
+ *     absolutely before it, so it is resolved against `cwd` either way —
+ *     `resolve` returns an already-absolute path unchanged;
+ *   - a multi-document entry carries a trailing ` (entry #N)`;
+ *   - `validate` stops at the first failing instance unless `--continue` is
+ *     passed, which is why the caller passes it.
+ *
+ * Every name read must be one of the instances the run was asked about, and a
+ * name that is not throws. A rejection this parser fails to recognise becomes
+ * an agreement, which is the one way this check can report success while
+ * comparing nothing: 16.10.0 moved to relative paths, every lookup missed, and
+ * Blaze appeared to accept all 193 subjects at once.
+ */
+export function parseRejections(output: string, instances: string[], cwd: string): Set<string> {
+  const asked = new Set(instances.map((instance) => resolve(cwd, instance)))
+  const rejected = new Set<string>()
+
+  for (const line of output.split('\n')) {
+    const named = FAIL_LINE.exec(line.trim())?.[1]
+    if (named === undefined) continue
+
+    const path = resolve(cwd, named.replace(MULTI_DOCUMENT_ENTRY, ''))
+    if (!asked.has(path)) {
+      throw new Error(
+        `jsonschema validate named "${named}", which is not one of the instances it was asked ` +
+          'about — its output no longer has the shape this parser reads.',
+      )
+    }
+    rejected.add(path)
+  }
+
+  return rejected
+}
+
 /** Ask Blaze about a family's subjects, returning the set it rejected. */
 function blazeRejects(schema: string, instances: string[]): Set<string> {
   const rejected = new Set<string>()
 
   for (let start = 0; start < instances.length; start += BATCH) {
     const chunk = instances.slice(start, start + BATCH)
-    const result = spawnSync(CLI, ['validate', schema, ...chunk], {
+    // `--continue` because `validate` otherwise stops at the first instance of
+    // the batch that fails, and a batch is what makes this check affordable.
+    // `cwd` is pinned so the paths it prints resolve against a known directory
+    // rather than against wherever the task runner happened to start.
+    const result = spawnSync(CLI, ['validate', '--continue', schema, ...chunk], {
+      cwd: REPO_ROOT,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
     })
@@ -72,24 +124,19 @@ function blazeRejects(schema: string, instances: string[]): Set<string> {
       throw new Error(`jsonschema validate exited ${result.status} — ${output.trim()}`)
     }
 
-    let named = 0
-    for (const line of output.split('\n')) {
-      const path = /^fail:\s*(.+)$/.exec(line.trim())?.[1]
-      if (path === undefined) continue
-      rejected.add(path)
-      named += 1
-    }
+    const named = parseRejections(output, chunk, REPO_ROOT)
 
     // A rejection the output does not name would silently become an agreement.
     // If the CLI's output shape ever changes, fail rather than pass everything.
-    if (result.status === 2 && named === 0) {
+    if (result.status === 2 && named.size === 0) {
       throw new Error(`jsonschema validate reported failure but named no file — ${output.trim()}`)
     }
+
+    for (const path of named) rejected.add(path)
   }
 
   return rejected
 }
-
 /**
  * Structural subjects: every example, plus every conformance case whose
  * document can be validated on its own.
@@ -169,7 +216,7 @@ function main(): void {
       if ('errors' in parsed) continue
 
       const ajv = validate(parsed.value) as boolean
-      const blaze = !rejected.has(resolve(subject.path))
+      const blaze = !rejected.has(resolve(REPO_ROOT, subject.path))
       compared += 1
 
       if (ajv !== blaze) {
