@@ -3,7 +3,7 @@
 ## Reporting a vulnerability
 
 Report security issues privately through
-[GitHub Security Advisories](https://github.com/musher-dev/spec/security/advisories/new),
+[GitHub Security Advisories](https://github.com/musher-dev/specifications/security/advisories/new),
 or by email to **<security@musher.dev>**.
 
 Please do not open a public issue for a security report.
@@ -41,17 +41,17 @@ attestation.
 sha256sum --check component-v1.0.0.tar.gz.sha256
 
 # Provenance
-gh attestation verify component-v1.0.0.tar.gz --repo musher-dev/spec
+gh attestation verify component-v1.0.0.tar.gz --repo musher-dev/specifications
 ```
 
 A published schema can be verified without downloading a release. Each
 exact-version URL has a `.sha256` beside it, and
-[`published.json`](https://schemas.musher.dev/published.json) records the
+[`published.json`](https://specifications.musher.dev/published.json) records the
 checksum of every version ever released:
 
 ```sh
-curl -sO https://schemas.musher.dev/component/v1.0.0/component.schema.json
-curl -s https://schemas.musher.dev/component/v1.0.0/component.schema.json.sha256 \
+curl -sO https://specifications.musher.dev/component/v1.0.0/component.schema.json
+curl -s https://specifications.musher.dev/component/v1.0.0/component.schema.json.sha256 \
   | sha256sum --check -
 ```
 

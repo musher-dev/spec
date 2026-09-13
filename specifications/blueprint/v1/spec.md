@@ -2,7 +2,7 @@
 
 **Status:** Draft (pre-stable)
 **Family:** `blueprint`
-**Schema:** `https://schemas.musher.dev/blueprint/v1/blueprint.schema.json`
+**Schema:** `https://specifications.musher.dev/blueprint/v1/blueprint.schema.json`
 
 The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
 "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and

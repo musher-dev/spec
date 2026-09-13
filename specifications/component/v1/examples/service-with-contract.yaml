@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://schemas.musher.dev/component/v1/component.schema.json
+# yaml-language-server: $schema=https://specifications.musher.dev/component/v1/component.schema.json
 #
 # A stateful service exercising the full surface: a private endpoint, literal
 # and generated environment variables, a persistent volume, health probes, and

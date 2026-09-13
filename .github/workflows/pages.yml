@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   deploy:
-    name: Publish schemas.musher.dev
+    name: Publish specifications.musher.dev
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # Job-level, not workflow-level. A workflow-level group would be held by the

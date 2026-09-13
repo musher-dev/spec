@@ -8,9 +8,9 @@
         "**/blueprint.yml"
       ],
       "name": "Musher Blueprint Document",
-      "url": "https://schemas.musher.dev/blueprint/v1/blueprint.schema.json",
+      "url": "https://specifications.musher.dev/blueprint/v1/blueprint.schema.json",
       "versions": {
-        "v1": "https://schemas.musher.dev/blueprint/v1/blueprint.schema.json"
+        "v1": "https://specifications.musher.dev/blueprint/v1/blueprint.schema.json"
       }
     },
     {
@@ -24,9 +24,9 @@
         "**/component-*.yml"
       ],
       "name": "Musher Component Document",
-      "url": "https://schemas.musher.dev/component/v1/component.schema.json",
+      "url": "https://specifications.musher.dev/component/v1/component.schema.json",
       "versions": {
-        "v1": "https://schemas.musher.dev/component/v1/component.schema.json"
+        "v1": "https://specifications.musher.dev/component/v1/component.schema.json"
       }
     },
     {
@@ -36,9 +36,9 @@
         "**/listing.yml"
       ],
       "name": "Musher Listing Document",
-      "url": "https://schemas.musher.dev/listing/v1/listing.schema.json",
+      "url": "https://specifications.musher.dev/listing/v1/listing.schema.json",
       "versions": {
-        "v1": "https://schemas.musher.dev/listing/v1/listing.schema.json"
+        "v1": "https://specifications.musher.dev/listing/v1/listing.schema.json"
       }
     }
   ],

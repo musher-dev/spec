@@ -43,7 +43,7 @@ const SECOND = [
   '- **Status:** Accepted',
   '- **Date:** 2026-08-09',
   '- **Extends:** [ADR 0001](0001-the-first-decision.md) §1, §2',
-  '- **Closes:** [#81](https://github.com/musher-dev/spec/issues/81)',
+  '- **Closes:** [#81](https://github.com/musher-dev/specifications/issues/81)',
   '',
   '## Context',
   '',

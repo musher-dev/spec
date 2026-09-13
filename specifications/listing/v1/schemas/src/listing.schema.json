@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.musher.dev/listing/v1/listing",
+  "$id": "https://specifications.musher.dev/listing/v1/listing",
   "title": "Musher Listing Document",
   "description": "The catalog storefront entry for a blueprint or component.",
   "$comment": "Structural and type validation only — cross-document reference resolution, slug/directory agreement, and platform capability checks are separate validation layers. See spec.md.",

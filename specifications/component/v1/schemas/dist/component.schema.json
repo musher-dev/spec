@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.musher.dev/component/v1/component.schema.json",
+  "$id": "https://specifications.musher.dev/component/v1/component.schema.json",
   "title": "Musher Component Document",
   "description": "A reusable, versioned definition of one workload — its source, runtime shape, health probes, and configuration contract.",
   "$comment": "Structural and type validation only — cross-document reference resolution, slug/directory agreement, and platform capability checks are separate validation layers. See spec.md.",

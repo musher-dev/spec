@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://schemas.musher.dev/blueprint/v1/blueprint.schema.json
+# yaml-language-server: $schema=https://specifications.musher.dev/blueprint/v1/blueprint.schema.json
 #
 # A composition of a thing this platform runs and a thing it does not. `models`
 # deploys an external component (component §5.6), so it has no compute to name

@@ -2,7 +2,7 @@
 
 **Status:** Draft (pre-stable)
 **Family:** `component`
-**Schema:** `https://schemas.musher.dev/component/v1/component.schema.json`
+**Schema:** `https://specifications.musher.dev/component/v1/component.schema.json`
 
 The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
 "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and

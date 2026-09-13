@@ -36,7 +36,7 @@ tasks:
       - bun run src/publication/changes.ts {{.BASE | default "origin/main"}}
 
   site:build:
-    desc: Assemble the publication tree served at schemas.musher.dev
+    desc: Assemble the publication tree served at specifications.musher.dev
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
       - bun run src/publication/site.ts

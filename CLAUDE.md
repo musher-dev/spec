@@ -85,7 +85,7 @@ every identifier.
 | Schema modules | `<concept>.schema.json` | `component.schema.json` |
 | Bundle | `<family>.schema.json` — never a bare `schema.json` | `blueprint.schema.json` |
 | Version directory | `v<MAJOR>` | `v1` |
-| Source `$id` | `https://schemas.musher.dev/<family>/v<MAJOR>/<concept>` — extensionless, no trailing slash. Source modules are never served, so this is an identity, not a fetch URL. | `…/component/v1/component` |
+| Source `$id` | `https://specifications.musher.dev/<family>/v<MAJOR>/<concept>` — extensionless, no trailing slash. Source modules are never served, so this is an identity, not a fetch URL. | `…/component/v1/component` |
 | Bundle `$id` | The real publication URL, set by the bundler. Do not write it by hand. | `…/component/v1/component.schema.json` |
 | `$defs` keys | UpperCamelCase, naming the concept. No `Seed` prefix, no `Request` suffix — those describe a platform pipeline, not a document contract. | `ComponentWorkload` |
 | `title` | Module root only. Below the root, the key already names the field; use `description` to say what it means. | `Musher Component Document` |

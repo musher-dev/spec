@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.musher.dev/blueprint/v1/blueprint.schema.json",
+  "$id": "https://specifications.musher.dev/blueprint/v1/blueprint.schema.json",
   "title": "Musher Blueprint Document",
   "description": "A composition of one or more components into a single deployable application.",
   "$comment": "Structural and type validation only — cross-document reference resolution, slug/directory agreement, and platform capability checks are separate validation layers. See spec.md.",

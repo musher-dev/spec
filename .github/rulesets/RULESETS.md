@@ -14,18 +14,18 @@ notably immutable tags.
 ## Applying
 
 ```sh
-gh api -X POST repos/musher-dev/spec/rulesets \
+gh api -X POST repos/musher-dev/specifications/rulesets \
   --input .github/rulesets/main-branch.json
 
-gh api -X POST repos/musher-dev/spec/rulesets \
+gh api -X POST repos/musher-dev/specifications/rulesets \
   --input .github/rulesets/release-tags.json
 ```
 
 To update an existing ruleset, find its id and `PUT` instead:
 
 ```sh
-gh api repos/musher-dev/spec/rulesets --jq '.[] | "\(.id)\t\(.name)"'
-gh api -X PUT repos/musher-dev/spec/rulesets/<id> \
+gh api repos/musher-dev/specifications/rulesets --jq '.[] | "\(.id)\t\(.name)"'
+gh api -X PUT repos/musher-dev/specifications/rulesets/<id> \
   --input .github/rulesets/main-branch.json
 ```
 
@@ -79,9 +79,9 @@ are only visible against live GitHub state:
 5. **No classic branch protection rule may coexist on `main`.** Classic rules
    and rulesets aggregate most-restrictive, so a leftover rule requiring one
    approval silently restores blanket review. `gh api
-   repos/musher-dev/spec/branches/main/protection` must return `404`.
+   repos/musher-dev/specifications/branches/main/protection` must return `404`.
 6. **No org-level ruleset may impose an approval count on this repository.**
-   Same aggregation. `spec` is deliberately absent from the org `pr-workflow`
+   Same aggregation. `specifications` is deliberately absent from the org `pr-workflow`
    ruleset's include list; do not add it.
 7. **`squash_merge_commit_title` stays `PR_TITLE`.** It is a repository setting,
    not a ruleset field, so nothing in this directory can carry it. Under the
@@ -89,7 +89,7 @@ are only visible against live GitHub state:
    *that commit's* subject rather than the title `Conventional PR title`
    validated — so a subject no CI check ever read reaches `main`. It already
    has: #67 was validated as `build(deps-dev): bump the tooling group …` and
-   landed as `Bump …`. Verify with `gh api repos/musher-dev/spec --jq
+   landed as `Bump …`. Verify with `gh api repos/musher-dev/specifications --jq
    .squash_merge_commit_title`. See
    [ADR 0016](../../docs/adr/0016-dependency-update-policy.md).
 
@@ -105,9 +105,9 @@ The aggregation traps in invariants 5 and 6 are undetectable offline, so a
 change to the `pull_request` rule runs this sequence rather than just an apply:
 
 1. Reconcile any drift first (see below); do not layer a change on top of one.
-2. `gh api repos/musher-dev/spec/branches/main/protection` — a `404` is the
+2. `gh api repos/musher-dev/specifications/branches/main/protection` — a `404` is the
    desired answer.
-3. `gh api repos/musher-dev/spec/rules/branches/main` lists every rule that
+3. `gh api repos/musher-dev/specifications/rules/branches/main` lists every rule that
    actually applies, whatever its source. Confirm no org-sourced `pull_request`
    rule carries a nonzero `required_approving_review_count`.
 4. Apply via the `PUT` recipe above.
@@ -128,7 +128,7 @@ review, or whenever review behaviour surprises you:
 ```sh
 for pair in "20585885:main-branch.json" "20585889:release-tags.json"; do
   id="${pair%%:*}"; file=".github/rulesets/${pair##*:}"
-  diff -u     <(jq -S '{name,target,enforcement,bypass_actors,conditions,rules}' "$file")     <(gh api "repos/musher-dev/spec/rulesets/$id"         --jq '{name,target,enforcement,bypass_actors,conditions,rules}' | jq -S .)     && echo "in step: $file" || echo "DRIFT: $file"
+  diff -u     <(jq -S '{name,target,enforcement,bypass_actors,conditions,rules}' "$file")     <(gh api "repos/musher-dev/specifications/rulesets/$id"         --jq '{name,target,enforcement,bypass_actors,conditions,rules}' | jq -S .)     && echo "in step: $file" || echo "DRIFT: $file"
 done
 ```
 

@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://schemas.musher.dev/blueprint/v1/blueprint.schema.json
+# yaml-language-server: $schema=https://specifications.musher.dev/blueprint/v1/blueprint.schema.json
 #
 # Two components wired together. Connections are consumer-anchored: the `web`
 # node declares what it consumes and from which role, so a component never

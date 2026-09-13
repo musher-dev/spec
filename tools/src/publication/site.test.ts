@@ -256,8 +256,8 @@ describe('assembleSite', () => {
     const site = join(fx.root, 'site')
     assembleSite({ repoRoot: fx.root, siteDir: site })
     expect(servedPaths(site)).not.toContain('/reference/component/v1/spec/index.html')
-    // Not a bare '/spec/': the GitHub source link legitimately carries
-    // `musher-dev/spec/blob/...`. What must be absent is the on-origin page.
+    // Not a bare '/spec/' or 'spec.md': the GitHub source link to the prose may
+    // legitimately remain. What must be absent is the on-origin page.
     expect(readSite(fx, 'reference', 'component', 'v1', 'index.html')).not.toContain(
       'href="/reference/component/v1/spec/"',
     )
@@ -330,8 +330,12 @@ describe('assembleSite', () => {
     const first = JSON.parse(readSite(fx, 'component', 'v1.0.0', 'component.schema.json'))
     const second = JSON.parse(readSite(fx, 'component', 'v1.1.0', 'component.schema.json'))
 
-    expect(first.$id).toBe('https://schemas.musher.dev/component/v1.0.0/component.schema.json')
-    expect(second.$id).toBe('https://schemas.musher.dev/component/v1.1.0/component.schema.json')
+    expect(first.$id).toBe(
+      'https://specifications.musher.dev/component/v1.0.0/component.schema.json',
+    )
+    expect(second.$id).toBe(
+      'https://specifications.musher.dev/component/v1.1.0/component.schema.json',
+    )
     expect(first.$id).not.toBe(second.$id)
   })
 
@@ -354,7 +358,7 @@ describe('assembleSite', () => {
     expect(alias.minProperties).toBe(1)
     expect(alias.description).toBeUndefined()
     // The alias keeps the alias identity — only pinned copies are restamped.
-    expect(alias.$id).toBe('https://schemas.musher.dev/component/v1/component.schema.json')
+    expect(alias.$id).toBe('https://specifications.musher.dev/component/v1/component.schema.json')
   })
 
   test('the alias serves the working tree while a major has no tags', () => {
@@ -430,7 +434,7 @@ describe('assembleSite', () => {
       '1.1.0',
     ])
     expect(inventory.versions[0].url).toBe(
-      'https://schemas.musher.dev/component/v1.0.0/component.schema.json',
+      'https://specifications.musher.dev/component/v1.0.0/component.schema.json',
     )
   })
 

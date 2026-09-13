@@ -22,9 +22,9 @@ Each family is an independently versioned document contract. All three share the
 
 | Family | `kind` | Describes | Schema | Reference |
 |---|---|---|---|---|
-| [`component`](specifications/component/v1/) | `COMPONENT` | One reusable workload definition — source, runtime shape, health, and configuration contract. | [`component.schema.json`](specifications/component/v1/schemas/dist/component.schema.json) | [reference](https://schemas.musher.dev/reference/component/v1/) |
-| [`blueprint`](specifications/blueprint/v1/) | `BLUEPRINT` | A composition of components into a single deployable application. | [`blueprint.schema.json`](specifications/blueprint/v1/schemas/dist/blueprint.schema.json) | [reference](https://schemas.musher.dev/reference/blueprint/v1/) |
-| [`listing`](specifications/listing/v1/) | `LISTING` | The catalog storefront entry for a blueprint or component. | [`listing.schema.json`](specifications/listing/v1/schemas/dist/listing.schema.json) | [reference](https://schemas.musher.dev/reference/listing/v1/) |
+| [`component`](specifications/component/v1/) | `COMPONENT` | One reusable workload definition — source, runtime shape, health, and configuration contract. | [`component.schema.json`](specifications/component/v1/schemas/dist/component.schema.json) | [reference](https://specifications.musher.dev/reference/component/v1/) |
+| [`blueprint`](specifications/blueprint/v1/) | `BLUEPRINT` | A composition of components into a single deployable application. | [`blueprint.schema.json`](specifications/blueprint/v1/schemas/dist/blueprint.schema.json) | [reference](https://specifications.musher.dev/reference/blueprint/v1/) |
+| [`listing`](specifications/listing/v1/) | `LISTING` | The catalog storefront entry for a blueprint or component. | [`listing.schema.json`](specifications/listing/v1/schemas/dist/listing.schema.json) | [reference](https://specifications.musher.dev/reference/listing/v1/) |
 
 ## Using the schemas
 
@@ -33,7 +33,7 @@ Each family is an independently versioned document contract. All three share the
 Add a modeline to the top of the document:
 
 ```yaml
-# yaml-language-server: $schema=https://schemas.musher.dev/component/v1/component.schema.json
+# yaml-language-server: $schema=https://specifications.musher.dev/component/v1/component.schema.json
 specVersion: v1
 kind: COMPONENT
 ```
@@ -43,12 +43,12 @@ Or bind by glob in VS Code `settings.json`:
 ```json
 {
   "yaml.schemas": {
-    "https://schemas.musher.dev/component/v1/component.schema.json": [
+    "https://specifications.musher.dev/component/v1/component.schema.json": [
       "**/components/*.yaml",
       "**/component-*.yaml"
     ],
-    "https://schemas.musher.dev/blueprint/v1/blueprint.schema.json": "**/blueprint.yaml",
-    "https://schemas.musher.dev/listing/v1/listing.schema.json": "**/listing.yaml"
+    "https://specifications.musher.dev/blueprint/v1/blueprint.schema.json": "**/blueprint.yaml",
+    "https://specifications.musher.dev/listing/v1/listing.schema.json": "**/listing.yaml"
   }
 }
 ```
@@ -57,8 +57,8 @@ Or bind by glob in VS Code `settings.json`:
 
 | URL | Mutability | Use for |
 |---|---|---|
-| `https://schemas.musher.dev/component/v1/component.schema.json` | Moves within the v1 family | Editors, humans |
-| `https://schemas.musher.dev/component/v1.2.0/component.schema.json` | Immutable forever | CI, automation, audit |
+| `https://specifications.musher.dev/component/v1/component.schema.json` | Moves within the v1 family | Editors, humans |
+| `https://specifications.musher.dev/component/v1.2.0/component.schema.json` | Immutable forever | CI, automation, audit |
 
 Automation MUST pin an exact version. Major-version aliases exist so editors
 pick up backward-compatible additions without a config change; they are not a
@@ -76,7 +76,7 @@ its first tag the alias serves what is committed on `main`.
 
 ### How they are served
 
-`https://schemas.musher.dev/` is browsable: it lists every family, and each
+`https://specifications.musher.dev/` is browsable: it lists every family, and each
 family's page lists every version it has published with that version's checksum.
 `/reference/<family>/v1/` carries a field-by-field reference generated from that
 family's bundle, beside its `spec.md` rendered as HTML.
@@ -103,7 +103,7 @@ so a published path cannot be served a cache policy nobody wrote down. See
 Every published schema is a self-contained compound document — all `$ref`s
 resolve inside `$defs`. No validator ever needs to make a network request to
 evaluate a document. Download the tagged release tarball from
-[Releases](https://github.com/musher-dev/spec/releases) and vendor it.
+[Releases](https://github.com/musher-dev/specifications/releases) and vendor it.
 
 ## Repository layout
 

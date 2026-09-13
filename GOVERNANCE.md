@@ -147,7 +147,7 @@ release-please PR; merging that PR tags the release and triggers publication.
 3. A `.tar.gz` of the bundle, prose, and conformance suite is built with
    SHA-256 checksums and a SLSA provenance attestation
 4. The archive is attached to a GitHub Release
-5. The schema is published to `https://schemas.musher.dev/<family>/…`, rebuilt
+5. The schema is published to `https://specifications.musher.dev/<family>/…`, rebuilt
    from the tag rather than from `main`, with the cache policy for its path
    generated alongside it
 6. `catalog.json` is regenerated for editor discovery
@@ -176,7 +176,7 @@ model and why the ledger exists.
 This repository publishes **data artifacts only**: JSON Schema documents,
 Markdown prose, and conformance fixture archives.
 
-The generated pages at `https://schemas.musher.dev/` — the index pages and the
+The generated pages at `https://specifications.musher.dev/` — the index pages and the
 `/reference/` tree — are a rendering of those artifacts rather than a fourth
 kind. They are informative, they are regenerated on every deploy, and no release
 archive carries them: a tagged release ships the Markdown, never the HTML. See

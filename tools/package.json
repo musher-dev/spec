@@ -1,5 +1,5 @@
 {
-  "name": "@musher-dev/spec-tools",
+  "name": "@musher-dev/specifications-tools",
   "version": "0.0.0",
   "private": true,
   "description": "Non-normative build and validation scripts for the Musher specification. Not published; not part of the contract.",

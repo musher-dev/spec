@@ -1,5 +1,5 @@
 /**
- * Assemble the publication tree deployed to https://schemas.musher.dev.
+ * Assemble the publication tree deployed to https://specifications.musher.dev.
  *
  * Two URL shapes per family:
  *
@@ -760,7 +760,7 @@ function renderIndex(
       '<h1>Musher schemas</h1>',
       '<p class="lead">Canonical JSON Schema 2020-12 bundles for the Musher document families.',
       'This host serves the schemas; the normative prose, the conformance suite and the',
-      `publication ledger live in ${link(REPO_URL, 'musher-dev/spec')}.</p>`,
+      `publication ledger live in ${link(REPO_URL, 'musher-dev/specifications')}.</p>`,
       '<table>',
       '<thead><tr><th>Family</th><th>Alias</th><th>Latest</th><th>Versions</th>',
       '<th>Prose</th><th>Reference</th></tr></thead>',

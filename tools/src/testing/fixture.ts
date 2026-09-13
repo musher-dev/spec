@@ -85,7 +85,7 @@ export class FixtureRepo {
   bundleDoc(family: string, major: string, extra: { [k: string]: Json } = {}): Json {
     return {
       $schema: 'https://json-schema.org/draft/2020-12/schema',
-      $id: `https://schemas.musher.dev/${family}/${major}/${family}.schema.json`,
+      $id: `https://specifications.musher.dev/${family}/${major}/${family}.schema.json`,
       title: `Musher ${family} Document`,
       type: 'object',
       ...extra,

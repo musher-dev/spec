@@ -1,4 +1,4 @@
-// musher-dev/spec dev container.
+// musher-dev/specifications dev container.
 //
 // Trimmed from the musher-dev/development-container template. This repository
 // bundles and validates JSON — it builds no images, runs no services, and needs
