@@ -8,6 +8,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { discoverFamilies, Failures, relativeToRepo } from '../lib/layout.ts'
+import { familyBundle } from '../schema/bundle.ts'
 import { validateDocument } from '../validation/validator.ts'
 
 function main(): void {
@@ -15,14 +16,14 @@ function main(): void {
   let checked = 0
 
   for (const family of discoverFamilies()) {
-    if (!existsSync(family.bundlePath)) {
+    if (familyBundle(family) === null) {
       const examples = existsSync(family.examplesDir)
         ? readdirSync(family.examplesDir).filter((e) => e.endsWith('.yaml'))
         : []
       if (examples.length > 0) {
         failures.add(
-          `${family.name}/${family.major}: ${examples.length} example(s) present but no bundle ` +
-            'has been built — run `task bundle`',
+          `${family.name}/${family.major}: ${examples.length} example(s) present but no ` +
+            'schema modules are authored to validate them against',
         )
       }
       continue

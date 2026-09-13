@@ -10,11 +10,13 @@ version: '3'
 
 tasks:
   bundle:
-    desc: Compile schemas/src into the published schemas/dist bundles
+    desc: Build every schema bundle and the catalog into dist/, and regenerate traceability
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
+      # Writes dist/<family>/<major>/<family>.schema.json and dist/catalog.json.
+      # Nothing else needs this first: every check and site:build builds the
+      # bundles in memory. It is for reading, vendoring, and editor bindings.
       - bun run src/schema/bundle.ts
-      - bun run src/publication/catalog.ts
       - bun run src/render/traceability.ts
 
   traceability:
@@ -24,19 +26,20 @@ tasks:
       - bun run src/render/traceability.ts
 
   catalog:
-    desc: Regenerate the SchemaStore catalog index
+    desc: Regenerate the SchemaStore catalog index into dist/
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
       - bun run src/publication/catalog.ts
 
   changes:
-    desc: Report what this branch does to the published contract (BASE=origin/main)
+    desc: Report what this branch does to the published contract (BASE=origin/main; -- --diff adds bundle diffs)
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/publication/changes.ts {{.BASE | default "origin/main"}}
+      - bun run src/publication/changes.ts {{.BASE | default "origin/main"}} {{.CLI_ARGS}}
 
   site:build:
     desc: Assemble the publication tree served at specifications.musher.dev
+    # Needs no prior `task bundle`: bundles are built in memory from sources.
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
       - bun run src/publication/site.ts

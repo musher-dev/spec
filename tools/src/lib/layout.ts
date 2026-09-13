@@ -35,8 +35,29 @@ export const RELEASE_PLEASE_MANIFEST_FILE = '.github/release-please/manifest.jso
 export const RELEASE_PLEASE_CONFIG_FILE = '.github/release-please/config.json'
 /** The generated requirement traceability matrix. */
 export const TRACEABILITY_FILE = 'docs/traceability.md'
-/** The generated SchemaStore-compatible catalog. */
-export const CATALOG_FILE = 'catalog.json'
+/**
+ * Where every build output lands: bundles and the catalog. Never tracked —
+ * `task check:generated` fails if git holds anything under it (docs/adr/0023).
+ */
+export const DIST_DIR = 'dist'
+/** The tooling's sources, which a base commit's own bundler is extracted from. */
+export const TOOLS_SOURCE_ROOT = 'tools/src'
+/** The bundler's command line — a downstream contract (see its module comment). */
+export const BUNDLER_ENTRY = `${TOOLS_SOURCE_ROOT}/schema/bundle.ts`
+/** The catalog's file name, which is also the path the site serves it at. */
+export const CATALOG_NAME = 'catalog.json'
+/** The generated SchemaStore-compatible catalog, as `task bundle` writes it. */
+export const CATALOG_FILE = `${DIST_DIR}/${CATALOG_NAME}`
+/**
+ * Git path patterns that match build output, for the check that none is tracked:
+ * `dist/`, the bundles this repository used to commit beside their sources,
+ * and the catalog it used to commit at the root.
+ */
+export const GENERATED_PATH_PATTERNS: readonly string[] = [
+  `${DIST_DIR}/`,
+  `:(glob)${SPECIFICATIONS_ROOT}/**/schemas/dist/**`,
+  `:(top,literal)${CATALOG_NAME}`,
+]
 
 /**
  * The base family: the Musher Document Core Specification (docs/adr/0022).
@@ -62,7 +83,7 @@ export interface FamilyPaths {
   /** `schemas/`, which a core family version must not carry. */
   readonly schemas: string
   readonly src: string
-  readonly dist: string
+  /** The built bundle under `dist/` — build output, outside the family directory and never tracked. */
   readonly bundle: string
   readonly examples: string
   /** The family version's conformance corpus, whether or not it exists. */
@@ -78,8 +99,7 @@ export function familyPaths(name: string, major: string): FamilyPaths {
     spec: `${dir}/spec.md`,
     schemas: `${dir}/schemas`,
     src: `${dir}/schemas/src`,
-    dist: `${dir}/schemas/dist`,
-    bundle: `${dir}/schemas/dist/${name}.schema.json`,
+    bundle: `${DIST_DIR}/${name}/${major}/${name}.schema.json`,
     examples: `${dir}/examples`,
     conformance: `${dir}/conformance`,
     manifestKey: dir,
@@ -270,7 +290,17 @@ export const METASCHEMA = 'https://json-schema.org/draft/2020-12/schema'
 /** This repository, for the links the published pages make back to the prose. */
 export const REPO_URL = 'https://github.com/musher-dev/specifications'
 
+/**
+ * A bundle's publication URL. `segment` is the major (`v1`) for the moving
+ * alias, or `v<X.Y.Z>` for an exact release.
+ */
+export function bundleUrl(name: string, segment: string): string {
+  return `${SCHEMA_ORIGIN}/${name}/${segment}/${name}.schema.json`
+}
+
 export interface Family {
+  /** Absolute path of the repository this family version was discovered in. */
+  readonly repoRoot: string
   /** Family name, e.g. `component`. */
   readonly name: string
   /** Major-version directory, e.g. `v1`. */
@@ -288,11 +318,10 @@ export interface Family {
   /** Absolute path to `schemas/`. */
   readonly schemasDir: string
   readonly srcDir: string
-  readonly distDir: string
   readonly examplesDir: string
   /** Absolute path to the family's normative prose. */
   readonly specPath: string
-  /** Absolute path to the generated bundle. */
+  /** Absolute path to the built bundle under `dist/`, written only by `ensureBundleFile`. */
   readonly bundlePath: string
   /** Canonical publication URL of the bundle within its major-version alias. */
   readonly bundleUrl: string
@@ -344,6 +373,7 @@ export function discoverFamilies(repoRoot: string = REPO_ROOT): Family[] {
       const paths = familyPaths(name, major)
       const srcDir = inRepo(repoRoot, paths.src)
       families.push({
+        repoRoot,
         name,
         major,
         role: familyRole(name),
@@ -351,11 +381,10 @@ export function discoverFamilies(repoRoot: string = REPO_ROOT): Family[] {
         dir: inRepo(repoRoot, paths.dir),
         schemasDir: inRepo(repoRoot, paths.schemas),
         srcDir,
-        distDir: inRepo(repoRoot, paths.dist),
         examplesDir: inRepo(repoRoot, paths.examples),
         specPath: inRepo(repoRoot, paths.spec),
         bundlePath: inRepo(repoRoot, paths.bundle),
-        bundleUrl: `${SCHEMA_ORIGIN}/${name}/${major}/${name}.schema.json`,
+        bundleUrl: bundleUrl(name, major),
         conformanceDir: inRepo(repoRoot, paths.conformance),
       })
     }
@@ -414,8 +443,8 @@ export function isObject(value: Json | undefined): value is { [k: string]: Json 
 
 /**
  * Keywords that lead a schema object, in fixed order. Everything else is
- * emitted alphabetically, with `$defs` last. Stable ordering is what makes the
- * drift check a byte comparison rather than a semantic diff.
+ * emitted alphabetically, with `$defs` last. Stable ordering is what makes a
+ * rebuilt bundle byte-identical to the last one, and a ledger hash meaningful.
  */
 const LEADING_KEYS = ['$schema', '$id', '$anchor', 'title', 'description', '$comment']
 

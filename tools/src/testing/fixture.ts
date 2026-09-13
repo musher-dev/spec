@@ -56,10 +56,15 @@ export class FixtureRepo {
     rmSync(join(this.root, path), { recursive: true, force: true })
   }
 
-  /** Write a family's committed bundle, at the layout the tooling expects. */
-  writeBundle(family: string, major: string, doc: Json): string {
-    const path = familyPaths(family, major).bundle
-    this.writeFile(path, canonicalJson(doc))
+  /**
+   * Write a family's root schema module under `schemas/src`, which is all a
+   * bundle is built from. With `bundleDoc` as the module, the built bundle is
+   * exactly `canonicalJson(bundleDoc(…))`: the bundler sets the same `$schema`
+   * and alias `$id` the document already carries.
+   */
+  writeSources(family: string, major: string, rootModule: Json): string {
+    const path = `${familyPaths(family, major).src}/${family}.schema.json`
+    this.writeFile(path, canonicalJson(rootModule))
     return path
   }
 
@@ -96,7 +101,7 @@ export class FixtureRepo {
     }
   }
 
-  /** A minimal but realistic bundle — alias `$id`, as the bundler emits. */
+  /** A minimal but realistic bundle — alias `$id`, as the bundler emits. Also a valid root module. */
   bundleDoc(family: string, major: string, extra: { [k: string]: Json } = {}): Json {
     return {
       $schema: 'https://json-schema.org/draft/2020-12/schema',

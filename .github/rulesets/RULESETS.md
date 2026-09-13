@@ -40,8 +40,8 @@ Protects the default branch:
   as a sequence of deliberate changes.
 - **Required status checks**: `Lint`, `Schema`, `Site Build`, `Signed off`,
   each pinned to `integration_id: 15368` so only the GitHub Actions app can
-  satisfy them. `Schema` is the one that matters most — it carries the bundle
-  drift gate. `Site Build` carries the publication-ledger gates. `Signed off`
+  satisfy them. `Schema` is the one that matters most — it carries the
+  conformance, compatibility and build-output gates. `Site Build` carries the publication-ledger gates. `Signed off`
   is the DCO check CONTRIBUTING.md requires.
 - **Deletion and force-push blocked.**
 

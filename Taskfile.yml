@@ -62,7 +62,7 @@ tasks:
       - task: check:rulesets
       - task: check:types
       - task: check:schema
-      - task: check:drift
+      - task: check:generated
       - task: check:examples
       - task: check:conformance
       - task: check:standards
@@ -132,4 +132,5 @@ tasks:
     desc: Remove generated output
     cmds:
       - rm -rf {{.SITE_DIR}}
+      - rm -rf dist .cache
       - rm -rf {{.TOOLS_DIR}}/node_modules

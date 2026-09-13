@@ -10,7 +10,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
-import { CORE_FAMILY, familyPaths, LayoutError } from '../lib/layout.ts'
+import { CORE_FAMILY, canonicalJson, familyPaths, LayoutError } from '../lib/layout.ts'
 import { FixtureRepo } from '../testing/fixture.ts'
 import { record } from './ledger.ts'
 import { assembleSite, type HeaderRule, renderHeaders } from './site.ts'
@@ -32,7 +32,7 @@ afterEach(() => {
 
 /** Cut a release the way the pipeline does: manifest, ledger entry, then tag. */
 function cut(fx: FixtureRepo, family: string, major: string, version: string, doc: unknown) {
-  fx.writeBundle(family, major, doc as never)
+  fx.writeSources(family, major, doc as never)
   fx.setManifest({ [familyPaths(family, major).manifestKey]: version })
   record(fx.root)
   fx.commit(`chore: release ${family} ${version}`)
@@ -138,7 +138,7 @@ describe('assembleSite', () => {
     )
 
     fx.writeFile(COMPONENT.spec, DRAFT)
-    fx.writeBundle(
+    fx.writeSources(
       'component',
       'v1',
       fx.bundleDoc('component', 'v1', {
@@ -162,7 +162,7 @@ describe('assembleSite', () => {
   test('an untagged family renders from the working tree', () => {
     const fx = fixture()
     fx.writeFile(COMPONENT.spec, PROSE)
-    fx.writeBundle(
+    fx.writeSources(
       'component',
       'v1',
       fx.bundleDoc('component', 'v1', { properties: { drafted: { type: 'string' } } }),
@@ -229,7 +229,7 @@ describe('assembleSite', () => {
   test('a family with no examples gets no examples page and no link to one', () => {
     const fx = fixture()
     fx.writeFile(COMPONENT.spec, PROSE)
-    fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1'))
+    fx.writeSources('component', 'v1', fx.bundleDoc('component', 'v1'))
     fx.commit('feat(component): a family with no examples')
 
     const site = join(fx.root, 'site')
@@ -242,7 +242,7 @@ describe('assembleSite', () => {
 
   test('a family named after the reference namespace is refused by name', () => {
     const fx = fixture()
-    fx.writeBundle('reference', 'v1', fx.bundleDoc('reference', 'v1'))
+    fx.writeSources('reference', 'v1', fx.bundleDoc('reference', 'v1'))
     fx.commit('feat: a family that would collide')
     expect(() => assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site') })).toThrow(
       /reserved top-level path/,
@@ -251,7 +251,7 @@ describe('assembleSite', () => {
 
   test('a ref carrying no spec.md renders no prose page and offers no link to one', () => {
     const fx = fixture()
-    fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1'))
+    fx.writeSources('component', 'v1', fx.bundleDoc('component', 'v1'))
     fx.commit('feat(component): a bundle with no prose beside it')
 
     const site = join(fx.root, 'site')
@@ -297,7 +297,7 @@ describe('assembleSite', () => {
     const atRelease = readSite(fx, 'component', 'v1.0.0', 'component.schema.json')
 
     // An ordinary, unreleased change lands on the branch.
-    fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1', { description: 'edited' }))
+    fx.writeSources('component', 'v1', fx.bundleDoc('component', 'v1', { description: 'edited' }))
     fx.commit('feat(component): an unreleased change')
 
     assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site') })
@@ -346,7 +346,7 @@ describe('assembleSite', () => {
     release(fx, 'component', 'v1', '1.1.0', fx.bundleDoc('component', 'v1', { minProperties: 1 }))
 
     // An unreleased change must not reach the alias now that tags exist.
-    fx.writeBundle(
+    fx.writeSources(
       'component',
       'v1',
       fx.bundleDoc('component', 'v1', { description: 'unreleased' }),
@@ -362,9 +362,21 @@ describe('assembleSite', () => {
     expect(alias.$id).toBe('https://specifications.musher.dev/component/v1/component.schema.json')
   })
 
+  test('an untagged alias is built from sources, with no bundle file anywhere', () => {
+    const fx = fixture()
+    fx.writeSources('component', 'v1', fx.bundleDoc('component', 'v1', { description: 'built' }))
+    fx.commit('feat(component): sources only')
+
+    assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site') })
+    expect(readSite(fx, 'component', 'v1', 'component.schema.json')).toBe(
+      canonicalJson(fx.bundleDoc('component', 'v1', { description: 'built' })),
+    )
+    expect(() => readFileSync(join(fx.root, COMPONENT.bundle))).toThrow()
+  })
+
   test('the alias serves the working tree while a major has no tags', () => {
     const fx = fixture()
-    fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1', { description: 'pre-tag' }))
+    fx.writeSources('component', 'v1', fx.bundleDoc('component', 'v1', { description: 'pre-tag' }))
     fx.setManifest({ [COMPONENT.manifestKey]: '0.0.0' })
     fx.commit('feat(component): initial')
 
@@ -407,15 +419,14 @@ describe('assembleSite', () => {
     }
   })
 
-  test('a release published under an older layout still resolves', () => {
+  test('a release is recorded against the family version directory it was built from', () => {
     const fx = fixture()
     release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
 
-    // The layout changes: the bundle moves. The ledger remembers where 1.0.0's
-    // bytes lived, so its pinned path is unaffected.
-    const oldPath = COMPONENT.bundle
+    // No bundle is tracked, so the ledger names where the release's sources
+    // lived rather than a bundle path the tag never carried.
     const ledger = JSON.parse(readFileSync(join(fx.root, 'published.json'), 'utf8'))
-    expect(ledger.releases['component/v1.0.0'].path).toBe(oldPath)
+    expect(ledger.releases['component/v1.0.0'].path).toBe(COMPONENT.dir)
 
     assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site') })
     expect(readSite(fx, 'component', 'v1.0.0', 'component.schema.json')).toContain('$id')
@@ -449,7 +460,7 @@ describe('assembleSite', () => {
     const fx = fixture()
     release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
     release(fx, 'component', 'v1', '1.1.0', fx.bundleDoc('component', 'v1', { minProperties: 1 }))
-    fx.writeBundle('listing', 'v1', fx.bundleDoc('listing', 'v1'))
+    fx.writeSources('listing', 'v1', fx.bundleDoc('listing', 'v1'))
     fx.commit('feat(listing): an untagged family')
 
     assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site') })
@@ -524,7 +535,7 @@ describe('assembleSite', () => {
 
   test('no GitHub Pages artifact is published', () => {
     const fx = fixture()
-    fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1'))
+    fx.writeSources('component', 'v1', fx.bundleDoc('component', 'v1'))
     fx.setManifest({ [COMPONENT.manifestKey]: '0.0.0' })
     fx.commit('feat(component): initial')
 
@@ -543,7 +554,7 @@ describe('assembleSite', () => {
   test('the root index names every family and its alias', () => {
     const fx = fixture()
     release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
-    fx.writeBundle('listing', 'v1', fx.bundleDoc('listing', 'v1'))
+    fx.writeSources('listing', 'v1', fx.bundleDoc('listing', 'v1'))
     fx.commit('feat(listing): an untagged family')
 
     assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site') })
@@ -574,7 +585,7 @@ describe('assembleSite', () => {
 
   test('a family index says plainly that an untagged family has released nothing', () => {
     const fx = fixture()
-    fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1'))
+    fx.writeSources('component', 'v1', fx.bundleDoc('component', 'v1'))
     fx.setManifest({ [COMPONENT.manifestKey]: '0.0.0' })
     fx.commit('feat(component): initial')
 
@@ -588,7 +599,7 @@ describe('assembleSite', () => {
 
   test('a not-found page is published', () => {
     const fx = fixture()
-    fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1'))
+    fx.writeSources('component', 'v1', fx.bundleDoc('component', 'v1'))
     fx.setManifest({ [COMPONENT.manifestKey]: '0.0.0' })
     fx.commit('feat(component): initial')
 
@@ -674,7 +685,7 @@ describe('assembleSite', () => {
       COMPONENT.spec,
       '## <a id="scope"></a>1. Scope\n\nSee [core v1 §2](../../core/v1/spec.md#envelope).\n',
     )
-    fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1'))
+    fx.writeSources('component', 'v1', fx.bundleDoc('component', 'v1'))
     fx.commit('feat(core): the base family')
 
     const site = join(fx.root, 'site')

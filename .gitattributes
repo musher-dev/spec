@@ -10,9 +10,6 @@
 *.ts      text eol=lf
 *.sh      text eol=lf
 
-# Generated bundles are reviewed as text but should not inflate diff stats.
-specifications/*/v*/schemas/dist/*.json linguist-generated=true
-
 *.png     binary
 *.jpg     binary
 *.ico     binary

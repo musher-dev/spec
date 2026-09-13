@@ -69,7 +69,7 @@ whole directory exists to prevent, and it is one command to rule out.
 | `LICENSE`, `NOTICE` | Repo root | GitHub detects a licence at the root only, and Apache-2.0 expects NOTICE to travel with the work |
 | `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md` | `.github/` | Community health files, which GitHub resolves from there |
 | `biome.json`, `tsconfig.json` | `tools/` | They belong to the `tools/` package and are resolved by it — a package's own config, not a repo-level one |
-| `catalog.json`, `published.json` | Repo root | Published data artifacts, not tool configuration |
+| `published.json` | Repo root | A published data artifact, not tool configuration. The catalog is build output under `dist/`, never tracked |
 | `mise.toml`, `devcontainer.json` | `.devcontainer/` | They provision the environment rather than checking the code |
 | `dependabot.yml`, `release-please/`, `rulesets/`, `workflows/` | `.github/` | GitHub reads these from fixed locations |
 

@@ -33,6 +33,7 @@ import {
   readJson,
   relativeToRepo,
 } from '../lib/layout.ts'
+import { ensureBundleFile } from '../schema/bundle.ts'
 import { parseDocument } from '../validation/document.ts'
 import { compileFamily } from '../validation/validator.ts'
 
@@ -197,7 +198,9 @@ function main(): void {
   let disagreements = 0
 
   for (const family of discoverFamilies()) {
-    if (!existsSync(family.bundlePath)) continue
+    // Blaze is another program, so it needs the bundle as a file.
+    const bundlePath = ensureBundleFile(family)
+    if (bundlePath === null) continue
     const validate = compileFamily(family)
 
     // Only subjects the Musher parser accepts reach the schema at all, so the
@@ -207,7 +210,7 @@ function main(): void {
     )
     console.log(`  · ${family.name}/${family.major}: asking Blaze about ${subjects.length}…`)
     const rejected = blazeRejects(
-      family.bundlePath,
+      bundlePath,
       subjects.map((subject) => subject.path),
     )
 

@@ -28,7 +28,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync
 import { dirname, join } from 'node:path'
 import { isShallow, readBlobAtRef } from '../lib/git.ts'
 import {
-  CATALOG_FILE,
+  CATALOG_NAME,
   CORE_FAMILY,
   canonicalJson,
   discoverFamilies,
@@ -47,6 +47,7 @@ import {
 import { escapeHtml, link, page } from '../render/html.ts'
 import { type ProseContext, readOutline, renderProse } from '../render/prose.ts'
 import { buildReference, renderReference } from '../render/reference.ts'
+import { familyBundle } from '../schema/bundle.ts'
 import { buildCatalog } from './catalog.ts'
 import {
   discoverReleases,
@@ -483,8 +484,8 @@ export function assembleSite(options: SiteOptions): SiteResult {
   for (const [key, release] of newestByMajor) {
     const [family, major] = key.split('/') as [string, string]
     const loaded = loadRelease(repoRoot, release, ledger)
-    // The tag's own bytes, not the pinned copy: the alias URL is what the
-    // committed bundle's `$id` already names, so these need no restamping.
+    // The alias build, not the pinned copy: a built bundle's `$id` already
+    // names the alias URL, so these need no restamping.
     writeAlias(family, major, loaded.source.toString('utf8'), release.tag, release.tag)
   }
 
@@ -520,17 +521,14 @@ export function assembleSite(options: SiteOptions): SiteResult {
       continue
     }
     if (newestByMajor.has(`${family.name}/${family.major}`)) continue
-    if (!existsSync(family.bundlePath)) {
-      console.log(`  · ${family.name}/${family.major}: no bundle built — skipped`)
+    // Built in memory from the working tree's sources: nothing needs to have
+    // run `task bundle` first, and no tracked bundle exists to read.
+    const bundle = familyBundle(family)
+    if (bundle === null) {
+      console.log(`  · ${family.name}/${family.major}: no schema modules authored — skipped`)
       continue
     }
-    writeAlias(
-      family.name,
-      family.major,
-      readFileSync(family.bundlePath, 'utf8'),
-      'main',
-      'working tree',
-    )
+    writeAlias(family.name, family.major, bundle, 'main', 'working tree')
   }
 
   // ---------------------------------------------------------------------------
@@ -555,11 +553,11 @@ export function assembleSite(options: SiteOptions): SiteResult {
   emit(LEDGER_FILE, serializeLedger(ledger))
   cacheRules.push({ source: `/${LEDGER_FILE}`, headers: [REVALIDATE] })
 
-  // Deliberately tag-independent: `catalog.json` is committed and CI checks it
-  // is current on checkouts that may carry no tags at all.
-  emit(CATALOG_FILE, canonicalJson(buildCatalog(repoRoot)))
-  cacheRules.push({ source: `/${CATALOG_FILE}`, headers: [REVALIDATE] })
-  console.log(`  ✓ /${CATALOG_FILE}`)
+  // Deliberately tag-independent: the catalog names each family's alias URL,
+  // which is the same on a checkout that carries no tags at all.
+  emit(CATALOG_NAME, canonicalJson(buildCatalog(repoRoot)))
+  cacheRules.push({ source: `/${CATALOG_NAME}`, headers: [REVALIDATE] })
+  console.log(`  ✓ /${CATALOG_NAME}`)
 
   // ---------------------------------------------------------------------------
   // The human entry point. Generated rather than committed for the reason

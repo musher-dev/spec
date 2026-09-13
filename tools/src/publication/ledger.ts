@@ -18,7 +18,6 @@ import { join } from 'node:path'
 import { git } from '../lib/git.ts'
 import { Failures, isObject, parseManifestKey, REPO_ROOT, readJson } from '../lib/layout.ts'
 import {
-  defaultBundlePath,
   discoverReleases,
   EMPTY_LEDGER,
   isSchemaless,
@@ -29,6 +28,8 @@ import {
   MANIFEST_FILE,
   parseReleaseTag,
   readLedger,
+  releaseBundle,
+  releaseDir,
   schemalessEntry,
   serializeLedger,
   sha256,
@@ -88,12 +89,14 @@ export function record(repoRoot: string): { added: string[]; changed: boolean } 
       continue
     }
 
-    const path = defaultBundlePath(family, major)
-    const absolute = join(repoRoot, path)
-    if (!existsSync(absolute)) {
-      throw new Error(`${tag}: cannot record — ${path} does not exist`)
+    // INTERIM (docs/adr/0023): the bundle is built in memory from the working
+    // tree, which on a release branch is the tree about to be tagged.
+    const path = releaseDir(family, major)
+    const built = releaseBundle(repoRoot, release, null)
+    if (built === null) {
+      throw new Error(`${tag}: cannot record — ${path} has no schema modules`)
     }
-    const source = readFileSync(absolute)
+    const source = Buffer.from(built, 'utf8')
     releases[tag] = {
       path,
       sourceSha256: sha256(source),

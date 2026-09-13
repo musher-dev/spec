@@ -3,8 +3,8 @@
  * schema.
  *
  * `spec.md` §3 promises that a document validating against `v1.0.0` validates
- * against every later `v1.x.y`. Until now nothing checked it. The drift gate
- * proves the bundle matches its sources and the conformance corpus proves the
+ * against every later `v1.x.y`. Until now nothing checked it. Building the
+ * bundle from its sources keeps it in step with them, and the conformance corpus proves the
  * cases in it still behave — but the corpus is the corpus as it exists *now*,
  * so deleting a fixture and tightening the rule it covered passes both.
  *

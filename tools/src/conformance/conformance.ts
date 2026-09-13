@@ -44,6 +44,7 @@ import {
   relativeToRepo,
 } from '../lib/layout.ts'
 import { enclosingSections, type Outline, REQUIREMENT_ID, readOutline } from '../lib/outline.ts'
+import { familyBundle } from '../schema/bundle.ts'
 import { effectiveValue, pointerSegments } from '../validation/effective.ts'
 import {
   type Diagnostic,
@@ -796,7 +797,7 @@ function checkEffective(
     return false
   }
 
-  const bundle = readJson(family.bundlePath)
+  const bundle = JSON.parse(familyBundle(family) ?? 'null') as Json
   let ok = true
 
   for (const [pointer, expected] of Object.entries(pinned)) {
@@ -915,8 +916,8 @@ function runCase(
   if (family.role === 'core') {
     result = runParserOnly(caseDir)
   } else {
-    if (!existsSync(family.bundlePath)) {
-      failures.add(`${label}: no bundle to validate against — run \`task bundle\``)
+    if (familyBundle(family) === null) {
+      failures.add(`${label}: no schema modules authored to validate against`)
       return 'failed'
     }
     result = runValidation(family, caseDir, metadata)

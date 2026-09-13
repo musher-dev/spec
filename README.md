@@ -22,9 +22,9 @@ Each family is an independently versioned document contract. All three share the
 
 | Family | `kind` | Describes | Schema | Reference |
 |---|---|---|---|---|
-| [`component`](specifications/component/v1/) | `COMPONENT` | One reusable workload definition — source, runtime shape, health, and configuration contract. | [`component.schema.json`](specifications/component/v1/schemas/dist/component.schema.json) | [reference](https://specifications.musher.dev/reference/component/v1/) |
-| [`blueprint`](specifications/blueprint/v1/) | `BLUEPRINT` | A composition of components into a single deployable application. | [`blueprint.schema.json`](specifications/blueprint/v1/schemas/dist/blueprint.schema.json) | [reference](https://specifications.musher.dev/reference/blueprint/v1/) |
-| [`listing`](specifications/listing/v1/) | `LISTING` | The catalog storefront entry for a blueprint or component. | [`listing.schema.json`](specifications/listing/v1/schemas/dist/listing.schema.json) | [reference](https://specifications.musher.dev/reference/listing/v1/) |
+| [`component`](specifications/component/v1/) | `COMPONENT` | One reusable workload definition — source, runtime shape, health, and configuration contract. | [`component.schema.json`](https://specifications.musher.dev/component/v1/component.schema.json) | [reference](https://specifications.musher.dev/reference/component/v1/) |
+| [`blueprint`](specifications/blueprint/v1/) | `BLUEPRINT` | A composition of components into a single deployable application. | [`blueprint.schema.json`](https://specifications.musher.dev/blueprint/v1/blueprint.schema.json) | [reference](https://specifications.musher.dev/reference/blueprint/v1/) |
+| [`listing`](specifications/listing/v1/) | `LISTING` | The catalog storefront entry for a blueprint or component. | [`listing.schema.json`](https://specifications.musher.dev/listing/v1/listing.schema.json) | [reference](https://specifications.musher.dev/reference/listing/v1/) |
 
 ## Using the schemas
 
@@ -111,7 +111,6 @@ evaluate a document. Download the tagged release tarball from
 specifications/<family>/v<major>/
   spec.md              normative prose
   schemas/src/         authored schema modules      (normative input)
-  schemas/dist/        generated compound bundle    (normative output, committed)
   examples/            validated example documents
   conformance/
     cases.json         test-vector index
@@ -121,14 +120,16 @@ tools/                 non-normative build and validation scripts (Bun + TypeScr
 docs/adr/              architecture decision records
 docs/traceability.md   generated: every requirement, its clause, and its cases
 published.json         the checksum of every version ever released
+dist/                  build output: bundles and catalog (`task bundle`; never committed)
 ```
 
 [`docs/traceability.md`](docs/traceability.md) is the map from a requirement
 identifier to the clause stating it and the conformance cases pinning it. It is
 generated, so it cannot drift from either.
 
-`schemas/dist/` is generated. Never edit it by hand — CI regenerates it and
-fails the build if your commit does not match.
+Bundles are build output. `task bundle` compiles `schemas/src/` into `dist/`,
+every check builds them in memory, and nothing under `dist/` is committed —
+`task check:generated` fails the build if it is.
 
 ## Contributing
 
@@ -137,7 +138,7 @@ See [CONTRIBUTING.md](.github/CONTRIBUTING.md) and [GOVERNANCE.md](GOVERNANCE.md
 ```sh
 task setup     # install tooling and git hooks
 task check     # everything CI runs
-task bundle    # regenerate schemas/dist/ after editing schemas/src/
+task bundle    # build dist/ bundles and catalog from schemas/src/
 ```
 
 ## Versioning

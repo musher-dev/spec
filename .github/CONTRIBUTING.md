@@ -20,8 +20,9 @@ ordinary codebase.
 2. **No schema change without conformance fixtures.** Every behavioural change
    must arrive with at least one positive and one negative fixture that would
    fail before the change and pass after it.
-3. **Never hand-edit `schemas/dist/`.** It is generated. Edit
-   `schemas/src/*.schema.json` and run `task bundle`.
+3. **Never commit a bundle.** Bundles are build output. Edit
+   `schemas/src/*.schema.json`; `task bundle` writes the bundles to `dist/`,
+   which is not tracked.
 4. **Validation never becomes stricter within a major version.** If your change
    makes a previously valid document invalid, it is a major release and needs a
    new `v<N>` directory.
@@ -62,7 +63,7 @@ tool's own flag — adding one has a fixed shape, described there.
 # 1. Edit the authored modules
 $EDITOR specifications/component/v1/schemas/src/component.schema.json
 
-# 2. Regenerate the published bundle
+# 2. Build the bundle to read it (optional: every check builds it in memory)
 task bundle
 
 # 3. Add fixtures proving the new behaviour
@@ -114,7 +115,7 @@ consequence even where nothing blocks the merge.
 | `check:config` | The `.config/` layout: every file indexed, reachable, and a declaration (CFG-01..CFG-08) |
 | `check:rulesets` | The two halves of the review gate agree, and no required status check can hang a pull request (RUL-01..RUL-09) |
 | `check:schema` | Every `src/` module is valid JSON Schema 2020-12; `$id`s are unique and canonical; no remote `$ref` |
-| `check:drift` | The committed `dist/` bundle matches a fresh compile of `src/` |
+| `check:generated` | No build output is tracked: nothing under `dist/`, no `schemas/dist/`, no root `catalog.json` |
 | `check:examples` | Every file in `examples/` validates against its family's bundle |
 | `check:conformance` | Every conformance case produces its declared outcome; every declared diagnostic code and requirement ID has a case; every case directory is indexed |
 | `check:standards` | An independent JSON Schema toolchain accepts every module and bundle, and reports no lint finding outside the reviewed exclusions |

@@ -47,11 +47,11 @@ tasks:
     cmds:
       - bun run src/schema/lint.ts
 
-  drift:
-    desc: Fail if a committed bundle does not match a fresh compile
+  generated:
+    desc: Fail if git tracks any build output (dist/, schemas/dist, a root catalog.json)
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/schema/drift.ts
+      - bun run src/policy/generated.ts
 
   examples:
     desc: Validate every example document against its family bundle

@@ -21,7 +21,7 @@ migration note. Validation must never become stricter inside a major version.
 ## Checklist
 
 - [ ] `task check` passes locally
-- [ ] `schemas/dist/` regenerated with `task bundle` and committed (never edited by hand)
+- [ ] Schemas edited under `schemas/src/` only — bundles are build output and are never committed
 - [ ] Conformance fixtures added for every behavioural change, each citing a `clause`
 - [ ] Normative prose updated in the affected `spec.md` — schema `description`s are explanatory, not normative
 - [ ] Commit messages are Conventional and scoped to the area they touch (release-please picks the release from the paths a commit changes, not its scope)

@@ -30,7 +30,7 @@
     "**/node_modules/**",
     "site/**",
     "tools/bun.lock",
-    "**/schemas/dist/**",
+    "dist/**",
     // The dictionary itself, and a licence whose wording is not ours to edit.
     ".config/spelling/**",
     "LICENSE",

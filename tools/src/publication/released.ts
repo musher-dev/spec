@@ -13,16 +13,22 @@
  *   1. Presence. Without it, "the tags were never fetched" and "nothing has
  *      been released" look identical, and the difference is a silent 404 on
  *      every pinned URL. With it, a missing tag is a build failure.
- *   2. Where the bytes lived. `path` is recorded per release, so restructuring
- *      `schemas/dist/` later never breaks the history — the ledger remembers
- *      the layout of each epoch.
+ *   2. Where the release lived. `path` is recorded per release, so a later
+ *      layout change never breaks the history — the ledger remembers the
+ *      layout of each epoch.
  *   3. A reviewable record. The set of things this repository can never take
  *      back appears in a diff, under CODEOWNERS.
+ *
+ * INTERIM (docs/adr/0023). Bundles are no longer tracked, so a release's bytes
+ * are rebuilt from the schema sources at its tag by `schema/bundle.ts`. The
+ * release pipeline replaces this with verified, immutable release assets and a
+ * ledger that records a tree id; until then, nothing here reads a committed
+ * bundle, because there is none.
  *
  * NON-NORMATIVE, like everything under tools/.
  */
 import { createHash } from 'node:crypto'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   git,
@@ -30,10 +36,10 @@ import {
   isShallow,
   listTags,
   listTreeFiles,
-  readBlobAtRef,
   tagCommit,
 } from '../lib/git.ts'
 import {
+  bundleUrl,
   canonicalJson,
   type Failures,
   familyPaths,
@@ -44,8 +50,9 @@ import {
   parseManifestKey,
   RELEASE_PLEASE_MANIFEST_FILE,
   readJson,
-  SCHEMA_ORIGIN,
 } from '../lib/layout.ts'
+import { buildBundle } from '../schema/bundle.ts'
+import { gitReader } from '../schema/sources.ts'
 
 /** Release tags are `<family>/v<MAJOR>.<MINOR>.<PATCH>` and nothing else. */
 const RELEASE_TAG = /^(?<family>[a-z][a-z0-9-]*)\/v(?<version>\d+\.\d+\.\d+)$/
@@ -77,11 +84,11 @@ export interface Release {
  */
 export interface LedgerEntry {
   /**
-   * Repo-relative path the bundle occupied in this release's commit — or, for a
-   * schema-less release, the family version directory.
+   * Repo-relative family version directory the release was built from. Entries
+   * written before bundles left git named the committed bundle instead.
    */
   readonly path: string
-  /** SHA-256 of the bytes stored at that path — what the tag holds. Null when schema-less. */
+  /** SHA-256 of the alias bundle built from the release's sources. Null when schema-less. */
   readonly sourceSha256: string | null
   /** SHA-256 of the bytes served at the pinned URL, after `$id` is stamped. Null when schema-less. */
   readonly publishedSha256: string | null
@@ -124,14 +131,29 @@ export function schemalessEntry(release: Pick<Release, 'family' | 'major'>): Led
   }
 }
 
-/** Where a family's bundle lives by default — the layout in use today. */
-export function defaultBundlePath(family: string, major: string): string {
-  return familyPaths(family, major).bundle
+/** The family version directory a release is recorded against — the layout in use today. */
+export function releaseDir(family: string, major: string): string {
+  return familyPaths(family, major).dir
 }
 
 /** The URL a pinned release is served from, and its own canonical `$id`. */
 export function pinnedUrl(release: Release): string {
-  return `${SCHEMA_ORIGIN}/${release.family}/v${release.version}/${release.family}.schema.json`
+  return bundleUrl(release.family, `v${release.version}`)
+}
+
+/**
+ * A release's alias bundle, built from the schema sources at a ref — its tag,
+ * or `null` for the working tree. Null when no module is authored there.
+ */
+export function releaseBundle(
+  repoRoot: string,
+  release: Release,
+  ref: string | null,
+): string | null {
+  const family = { name: release.family, major: release.major, repoRoot }
+  return ref === null
+    ? buildBundle(family)
+    : buildBundle(family, { reader: gitReader(repoRoot, ref) })
 }
 
 function compareVersions(a: string, b: string): number {
@@ -223,20 +245,10 @@ export function serializeLedger(ledger: Ledger): string {
 }
 
 /**
- * The path a release's bundle occupied.
- *
- * The ledger wins. The default is only for a release the ledger has not yet
- * recorded, which is the pre-merge state of a release pull request.
- */
-export function resolveBundlePath(release: Release, ledger: Ledger): string {
-  return ledger.releases[release.tag]?.path ?? defaultBundlePath(release.family, release.major)
-}
-
-/**
  * Stamp a pinned copy with its own identity.
  *
- * The committed bundle's `$id` is the moving alias, because that is the URL the
- * alias serves. Copying those bytes to a pinned path unchanged would give every
+ * A built bundle's `$id` is the moving alias, because that is the URL the alias
+ * serves. Copying those bytes to a pinned path unchanged would give every
  * release the same canonical identity as the alias and as each other, so a
  * validator that resolves or caches by `$id` could not tell two releases apart
  * — which is the entire point of pinning. One released version, one identity.
@@ -258,21 +270,25 @@ export interface LoadedRelease {
   readonly publishedSha256: string
 }
 
-/** Read a release's bundle out of its tag and derive what gets served. */
+/**
+ * Build a release's bundle from the sources at its tag and derive what gets
+ * served. INTERIM — see the module comment.
+ */
 export function loadRelease(repoRoot: string, release: Release, ledger: Ledger): LoadedRelease {
   if (isSchemaless(release)) {
     throw new Error(
       `${release.tag}: ${release.family} ships no schema, so there is no bundle to load`,
     )
   }
-  const path = resolveBundlePath(release, ledger)
-  const source = readBlobAtRef(repoRoot, release.tag, path)
-  if (source === null) {
+  const path = ledger.releases[release.tag]?.path ?? releaseDir(release.family, release.major)
+  const built = releaseBundle(repoRoot, release, release.tag)
+  if (built === null) {
     throw new Error(
-      `${release.tag}: no bundle at ${path}. If the layout changed after this ` +
-        `release, record the path it used in ${LEDGER_FILE}.`,
+      `${release.tag}: no schema modules at ${familyPaths(release.family, release.major).src}. ` +
+        'If the layout changed after this release, teach tools/src/lib/layout.ts where it lived.',
     )
   }
+  const source = Buffer.from(built, 'utf8')
   const published = stampPinnedId(source, release)
   return {
     release,
@@ -356,11 +372,16 @@ export function verifyPublications(repoRoot: string, failures: Failures): void {
       }
       // INTERIM (see `LedgerEntry`): nothing to hash for a schema-less release.
       if (isSchemaless(pending)) continue
-      const actual = sha256(readFileSync(working))
+      const built = releaseBundle(repoRoot, pending, null)
+      if (built === null) {
+        failures.add(`${LEDGER_FILE}: ${tag} is pending but ${entry.path} has no schema modules`)
+        continue
+      }
+      const actual = sha256(built)
       if (actual !== entry.sourceSha256) {
         failures.add(
-          `${LEDGER_FILE}: ${tag} records sourceSha256 ${entry.sourceSha256} but ` +
-            `${entry.path} hashes to ${actual}. Re-run \`task ledger:record\`.`,
+          `${LEDGER_FILE}: ${tag} records sourceSha256 ${entry.sourceSha256} but the bundle ` +
+            `built from ${entry.path} hashes to ${actual}. Re-run \`task ledger:record\`.`,
         )
       }
       continue
@@ -376,17 +397,22 @@ export function verifyPublications(repoRoot: string, failures: Failures): void {
       continue
     }
 
-    const source = readBlobAtRef(repoRoot, tag, entry.path)
-    if (source === null) {
+    if (listTreeFiles(repoRoot, tag, entry.path).length === 0) {
       failures.add(`${tag}: ${entry.path} does not exist at that tag`)
       continue
     }
+    const built = releaseBundle(repoRoot, release, tag)
+    if (built === null) {
+      failures.add(`${tag}: no schema modules to build at that tag`)
+      continue
+    }
+    const source = Buffer.from(built, 'utf8')
     const actual = sha256(source)
     if (actual !== entry.sourceSha256) {
       failures.add(
-        `${tag}: ${entry.path} hashes to ${actual}, but ${LEDGER_FILE} records ` +
-          `${entry.sourceSha256}. A released version has been altered — the tag was ` +
-          'rewritten, or the ledger was edited.',
+        `${tag}: the bundle built from ${entry.path} hashes to ${actual}, but ${LEDGER_FILE} ` +
+          `records ${entry.sourceSha256}. A released version has been altered — the tag was ` +
+          'rewritten, the ledger was edited, or the bundler changed its output.',
       )
       continue
     }

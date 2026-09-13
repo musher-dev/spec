@@ -31,7 +31,7 @@ tasks:
     desc: Schema and conformance suite as run in CI
     cmds:
       - task: :check:schema
-      - task: :check:drift
+      - task: :check:generated
       - task: :check:examples
       - task: :check:conformance
       - task: :check:standards

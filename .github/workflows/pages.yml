@@ -50,12 +50,12 @@ jobs:
         working-directory: tools
         run: bun install --frozen-lockfile
 
-      # Publish exactly what is committed. The drift gate in ci.yml is what
-      # guarantees the committed bundle matches its sources, so this must not
-      # rebuild — a rebuild here would let an unreviewed bundle reach the
-      # public origin.
-      - name: Verify committed bundles are current
-        run: task check:drift
+      # Bundles are build output (docs/adr/0023): site:build compiles each
+      # untagged alias from the sources on main, which CI has already gated.
+      # This only refuses a tree in which git tracks a copy that could disagree
+      # with those sources.
+      - name: No build output is tracked
+        run: task check:generated
 
       # Every released version must still hash to what published.json recorded.
       # A rewritten tag or an edited ledger stops the deploy here rather than

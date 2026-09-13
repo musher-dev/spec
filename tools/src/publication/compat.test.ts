@@ -31,7 +31,7 @@ afterEach(() => {
 function cut(fx: FixtureRepo, without?: 'examples' | 'conformance'): void {
   fx.writeFamilySkeleton('component', 'v1')
   if (without !== undefined) fx.remove(COMPONENT[without])
-  fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1'))
+  fx.writeSources('component', 'v1', fx.bundleDoc('component', 'v1'))
   fx.setManifest({ [COMPONENT.manifestKey]: '1.0.0' })
   record(fx.root)
   fx.commit('chore: release component 1.0.0')

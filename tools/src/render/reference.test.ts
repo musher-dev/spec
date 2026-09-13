@@ -3,13 +3,13 @@
  *
  * Each case here is a construct that appears in a real bundle, written as the
  * subtree it appears as, so a failure names something a reader can go and look
- * at. The last block runs against the three published bundles: it is the drift
+ * at. The last block runs against the three built bundles: it is the drift
  * guard, and a construct entering the contract that this reader has no case for
  * fails there rather than shipping a page that omits whatever it meant.
  */
 import { describe, expect, test } from 'bun:test'
-import { readFileSync } from 'node:fs'
 import { discoverKinds, type Json } from '../lib/layout.ts'
+import { familyBundle } from '../schema/bundle.ts'
 import { buildReference, type Shape } from './reference.ts'
 
 function model(defs: { [k: string]: Json }, root: { [k: string]: Json } = {}) {
@@ -348,7 +348,7 @@ describe('the published bundles', () => {
   const families = discoverKinds()
 
   for (const family of families) {
-    const bundle = JSON.parse(readFileSync(family.bundlePath, 'utf8')) as Json
+    const bundle = JSON.parse(familyBundle(family) ?? 'null') as Json
 
     test(`${family.name}: builds, with every construct accounted for`, () => {
       const built = buildReference(bundle, family.name, family.major)
@@ -373,7 +373,7 @@ describe('the published bundles', () => {
     const notes = families.flatMap(
       (family) =>
         buildReference(
-          JSON.parse(readFileSync(family.bundlePath, 'utf8')) as Json,
+          JSON.parse(familyBundle(family) ?? 'null') as Json,
           family.name,
           family.major,
         ).notes,

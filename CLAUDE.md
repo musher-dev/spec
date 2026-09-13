@@ -6,9 +6,10 @@ implementation of what is defined here.
 
 ## Non-negotiables
 
-1. **`specifications/*/v*/schemas/dist/` is generated.** Never edit it directly.
-   Edit `schemas/src/*.schema.json`, then run `task bundle`. CI fails the build
-   if the committed bundle does not byte-match a fresh compile.
+1. **Schema bundles are build output, never committed.** Edit
+   `schemas/src/*.schema.json`; `task bundle` writes bundles and the catalog to
+   `dist/`, and every check builds them in memory. `task check:generated` fails
+   if git tracks `dist/`, any `schemas/dist/`, or a root `catalog.json`.
 2. **No remote `$ref`.** Every published bundle must be self-contained; all
    references resolve inside `$defs`. Remote references break offline
    validation, hang IDEs, and create an SSRF vector. `task check:schema`
@@ -54,7 +55,6 @@ implementation of what is defined here.
 specifications/<family>/v<major>/
   spec.md              normative prose — the definitive behavioural rule
   schemas/src/         authored modules (normative input)
-  schemas/dist/        generated compound bundle (normative output, committed)
   examples/            example documents, validated in CI
   conformance/
     cases.json         index of test vectors

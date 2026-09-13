@@ -42,10 +42,6 @@ pre-commit:
       glob: '**/*.md'
       run: task check:md
 
-    - name: drift
-      glob: 'specifications/**/*.schema.json'
-      run: task check:drift
-
     - name: shell
       glob: '*.sh'
       run: task check:shell:files -- {staged_files}

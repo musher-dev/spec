@@ -40,7 +40,7 @@ function problems(base: Ledger, head: Ledger): string[] {
 describe('record', () => {
   test('is idempotent', () => {
     const fx = fixture()
-    fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1'))
+    fx.writeSources('component', 'v1', fx.bundleDoc('component', 'v1'))
     fx.setManifest({ [COMPONENT_KEY]: '1.0.0' })
 
     const first = record(fx.root)
@@ -57,7 +57,7 @@ describe('record', () => {
 
   test('ignores the 0.0.0 bootstrap placeholder', () => {
     const fx = fixture()
-    fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1'))
+    fx.writeSources('component', 'v1', fx.bundleDoc('component', 'v1'))
     fx.setManifest({ [COMPONENT_KEY]: '0.0.0' })
 
     expect(record(fx.root).added).toEqual([])
@@ -65,7 +65,7 @@ describe('record', () => {
 
   test('records the source and published hashes separately', () => {
     const fx = fixture()
-    fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1'))
+    fx.writeSources('component', 'v1', fx.bundleDoc('component', 'v1'))
     fx.setManifest({ [COMPONENT_KEY]: '1.0.0' })
     record(fx.root)
 
@@ -79,7 +79,7 @@ describe('record', () => {
 describe('sync', () => {
   test('backfills a tag that was never recorded', () => {
     const fx = fixture()
-    fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1'))
+    fx.writeSources('component', 'v1', fx.bundleDoc('component', 'v1'))
     fx.setManifest({ [COMPONENT_KEY]: '1.0.0' })
     fx.commit('chore: release without recording')
     fx.tag('component/v1.0.0')

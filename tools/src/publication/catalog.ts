@@ -1,12 +1,14 @@
 /**
- * Regenerate the SchemaStore-compatible catalog.
+ * Regenerate the SchemaStore-compatible catalog, as build output under `dist/`.
+ * The site serves it at `/catalog.json`.
  *
  * The catalog is how a generic editor discovers the right schema for a file
  * without the author writing a modeline. It intentionally points at the
  * major-version alias, not an immutable version: editors should pick up
  * backward-compatible additions without a config change.
  */
-import { writeFileSync } from 'node:fs'
+import { mkdirSync, writeFileSync } from 'node:fs'
+import { dirname } from 'node:path'
 import {
   CATALOG_FILE,
   canonicalJson,
@@ -83,6 +85,7 @@ export function buildCatalog(repoRoot: string = REPO_ROOT): Json {
 
 function main(): void {
   const catalog = buildCatalog()
+  mkdirSync(dirname(CATALOG_PATH), { recursive: true })
   writeFileSync(CATALOG_PATH, canonicalJson(catalog), 'utf8')
   const count = ((catalog as { schemas: Json[] }).schemas ?? []).length
   console.log(`  ✓ ${CATALOG_FILE} (${count} schema(s))`)

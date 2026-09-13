@@ -98,11 +98,18 @@ jobs:
         working-directory: tools
         run: bun install --frozen-lockfile
 
-      # check:drift is the load-bearing one. Bundles are committed so reviewers
-      # can read generated output in a diff; this is what stops that output from
-      # becoming a second, divergent source of truth.
-      - name: Schema, drift, examples, conformance
+      # Every check here builds the bundles in memory from schemas/src; none is
+      # committed (docs/adr/0023). check:generated fails if git tracks any build
+      # output, which is what stops a committed copy from becoming a second,
+      # divergent source of truth.
+      - name: Schema, examples, conformance
         run: task ci:test
+
+      # Build output for reviewers: dist/ holds every bundle and the catalog,
+      # uploaded below, so the bytes a pull request would publish can be read
+      # without a checkout.
+      - name: Build bundles
+        run: task bundle
 
       - name: Traceability matrix is current
         run: |
@@ -113,21 +120,14 @@ jobs:
             exit 1
           fi
 
-      - name: Catalog is current
-        run: |
-          task catalog
-          if ! git diff --quiet -- catalog.json; then
-            echo "::error file=catalog.json::catalog.json is stale. Run 'task catalog' and commit the result." >&2
-            git --no-pager diff -- catalog.json
-            exit 1
-          fi
-
       # Reporting only, and deliberately not a gate: check:compat above is the
       # gate. This says what the pull request does to the contract in the terms
       # a reviewer of a specification cares about — which fields are required,
       # enum members, bounds, defaults, diagnostics — which a JSON diff of a
-      # 900-line bundle does not. Written to the step summary rather than posted as a comment,
-      # so the job needs no write permission on the pull request.
+      # 900-line bundle does not. `--diff` appends the unified diff of each built
+      # bundle, base against head, for the reviewer who wants the bytes too.
+      # Written to the step summary rather than posted as a comment, so the job
+      # needs no write permission on the pull request.
       - name: Contract change report
         if: github.event_name == 'pull_request'
         # base_ref reaches the shell through the environment, never through
@@ -136,7 +136,14 @@ jobs:
         env:
           BASE_REF: ${{ github.base_ref }}
         run: |
-          task changes BASE="origin/$BASE_REF" >> "$GITHUB_STEP_SUMMARY"
+          task changes BASE="origin/$BASE_REF" -- --diff >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload built bundles
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
 
   # ---------------------------------------------------------------------------
   # Site — prove the publication tree assembles before a release depends on it
@@ -176,8 +183,9 @@ jobs:
           BASE_REF: ${{ github.event.pull_request.base.sha }}
         run: task check:ledger
 
+      # No `task bundle` first: the site builds every untagged alias in memory,
+      # and this step is what proves a clean checkout needs nothing more.
       - name: Assemble publication tree
         run: |
-          task bundle
           task site:build
           find site -type f | sort

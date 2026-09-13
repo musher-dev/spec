@@ -30,6 +30,7 @@ import {
   relativeToRepo,
   sourceModules,
 } from '../lib/layout.ts'
+import { ensureBundleFile } from './bundle.ts'
 
 const CLI = join(REPO_ROOT, 'tools', 'node_modules', '.bin', 'jsonschema')
 
@@ -95,7 +96,9 @@ function main(): void {
 
   for (const family of discoverFamilies()) {
     const paths = [...sourceModules(family)]
-    if (existsSync(family.bundlePath)) paths.push(family.bundlePath)
+    // The CLI reads files, so the bundle is written to dist/ first.
+    const bundlePath = ensureBundleFile(family)
+    if (bundlePath !== null) paths.push(bundlePath)
 
     for (const path of paths) {
       const { status, output } = run(['metaschema', path])
@@ -124,13 +127,14 @@ function main(): void {
   // claim a reviewer can argue with. What is no longer available is neither
   // adopting nor rejecting it.
   for (const family of discoverFamilies()) {
-    if (!existsSync(family.bundlePath)) continue
-    const { output } = run(['lint', family.bundlePath])
+    const bundlePath = ensureBundleFile(family)
+    if (bundlePath === null) continue
+    const { output } = run(['lint', bundlePath])
     for (const line of output.split('\n')) {
       const rule = /\(([a-z_]+)\)\s*$/.exec(line)?.[1]
       if (rule === undefined || EXCLUDED_RULES.has(rule)) continue
       failures.add(
-        `${relativeToRepo(family.bundlePath)}: ${line.trim()}\n` +
+        `${relativeToRepo(bundlePath)}: ${line.trim()}\n` +
           `      Fix it, or add "${rule}" to EXCLUDED_RULES in tools/src/schema/standards.ts ` +
           'with a reason a reviewer can disagree with.',
       )

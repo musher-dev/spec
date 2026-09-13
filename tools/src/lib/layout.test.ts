@@ -95,8 +95,7 @@ describe('familyPaths', () => {
       spec: 'specifications/component/v1/spec.md',
       schemas: 'specifications/component/v1/schemas',
       src: 'specifications/component/v1/schemas/src',
-      dist: 'specifications/component/v1/schemas/dist',
-      bundle: 'specifications/component/v1/schemas/dist/component.schema.json',
+      bundle: 'dist/component/v1/component.schema.json',
       examples: 'specifications/component/v1/examples',
       conformance: 'specifications/component/v1/conformance',
       manifestKey: 'specifications/component/v1',
@@ -127,8 +126,7 @@ describe('discoverFamilies', () => {
   test('names core the base family, lists it first, and reads schema presence from the tree', () => {
     repo = new FixtureRepo()
     repo.writeFamilySkeleton('listing', 'v1')
-    repo.writeBundle('listing', 'v1', repo.bundleDoc('listing', 'v1'))
-    repo.writeFile(`${familyPaths('listing', 'v1').src}/listing.schema.json`, '{}\n')
+    repo.writeSources('listing', 'v1', repo.bundleDoc('listing', 'v1'))
     repo.writeFamilySkeleton('blueprint', 'v1')
     repo.writeCoreSkeleton('v1')
 

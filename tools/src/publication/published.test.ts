@@ -42,7 +42,7 @@ function problems(root: string): string[] {
 }
 
 function release(fx: FixtureRepo, version: string, doc: unknown) {
-  fx.writeBundle('component', 'v1', doc as never)
+  fx.writeSources('component', 'v1', doc as never)
   fx.setManifest({ [COMPONENT_KEY]: version })
   record(fx.root)
   fx.commit(`chore: release component ${version}`)
@@ -58,7 +58,7 @@ describe('verifyPublications', () => {
 
   test('a tag with no ledger entry fails', () => {
     const fx = fixture()
-    fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1'))
+    fx.writeSources('component', 'v1', fx.bundleDoc('component', 'v1'))
     fx.setManifest({ [COMPONENT_KEY]: '1.0.0' })
     fx.commit('chore: release without recording')
     fx.tag('component/v1.0.0')
@@ -84,7 +84,7 @@ describe('verifyPublications', () => {
 
   test('a pending release — entry, no tag, manifest agrees — passes', () => {
     const fx = fixture()
-    fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1'))
+    fx.writeSources('component', 'v1', fx.bundleDoc('component', 'v1'))
     fx.setManifest({ [COMPONENT_KEY]: '1.0.0' })
     record(fx.root)
     fx.commit('chore(main): release component 1.0.0')
@@ -95,7 +95,7 @@ describe('verifyPublications', () => {
 
   test('a pending entry whose manifest disagrees fails', () => {
     const fx = fixture()
-    fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1'))
+    fx.writeSources('component', 'v1', fx.bundleDoc('component', 'v1'))
     fx.setManifest({ [COMPONENT_KEY]: '1.0.0' })
     record(fx.root)
     fx.setManifest({ [COMPONENT_KEY]: '1.2.0' })
@@ -108,10 +108,10 @@ describe('verifyPublications', () => {
 
   test('a pending entry whose working-tree bytes changed fails', () => {
     const fx = fixture()
-    fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1'))
+    fx.writeSources('component', 'v1', fx.bundleDoc('component', 'v1'))
     fx.setManifest({ [COMPONENT_KEY]: '1.0.0' })
     record(fx.root)
-    fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1', { description: 'changed' }))
+    fx.writeSources('component', 'v1', fx.bundleDoc('component', 'v1', { description: 'changed' }))
     fx.commit('feat(component): edited after recording')
 
     const found = problems(fx.root)

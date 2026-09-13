@@ -11,7 +11,6 @@
   "scripts": {
     "lint": "bun run src/schema/lint.ts",
     "bundle": "bun run src/schema/bundle.ts",
-    "drift": "bun run src/schema/drift.ts",
     "examples": "bun run src/conformance/examples.ts",
     "conformance": "bun run src/conformance/conformance.ts",
     "catalog": "bun run src/publication/catalog.ts",

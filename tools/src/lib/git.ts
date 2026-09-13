@@ -79,6 +79,28 @@ export function listTreeFiles(repoRoot: string, ref: string, path: string): stri
 }
 
 /**
+ * The names of the files directly inside `dir` as of a ref — not recursive, no
+ * subdirectories. Empty when the ref or the directory does not exist.
+ *
+ * `-z` so a name git would otherwise quote comes back verbatim.
+ */
+export function listTreeChildren(repoRoot: string, ref: string, dir: string): string[] {
+  const { status, stdout } = run(repoRoot, ['ls-tree', '-z', '--full-tree', ref, '--', `${dir}/`])
+  if (status !== 0) return []
+  const names: string[] = []
+  for (const record of stdout.toString('utf8').split('\0')) {
+    // `<mode> SP <type> SP <object> TAB <path>`
+    const tab = record.indexOf('\t')
+    if (tab === -1) continue
+    const [, type] = record.slice(0, tab).split(' ')
+    const path = record.slice(tab + 1)
+    if (type !== 'blob' || !path.startsWith(`${dir}/`)) continue
+    names.push(path.slice(dir.length + 1))
+  }
+  return names
+}
+
+/**
  * A file's bytes as of a ref, or null when the ref does not carry that path.
  *
  * Returned as a Buffer and never decoded here. The published checksum has to be
