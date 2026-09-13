@@ -17,6 +17,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { git } from '../lib/git.ts'
 import {
+  CORE_FAMILY,
   canonicalJson,
   familyPaths,
   type Json,
@@ -78,6 +79,20 @@ export class FixtureRepo {
     ]
     for (const [part, file, contents] of parts) {
       if (!existsSync(join(this.root, part))) this.writeFile(file, contents)
+    }
+  }
+
+  /**
+   * Give the base family every part the layout says it carries — prose and a
+   * conformance index — and nothing else: no `schemas/`, no `examples/`. Core
+   * ships neither (docs/adr/0022), so a fixture that wrote them would be testing
+   * a tree the lint rejects.
+   */
+  writeCoreSkeleton(major = 'v1', prose = '## <a id="scope"></a>1. Core scope\n'): void {
+    const paths = familyPaths(CORE_FAMILY, major)
+    if (!existsSync(join(this.root, paths.spec))) this.writeFile(paths.spec, prose)
+    if (!existsSync(join(this.root, paths.conformance))) {
+      this.writeFile(`${paths.conformance}/cases.json`, canonicalJson({ cases: [] }))
     }
   }
 

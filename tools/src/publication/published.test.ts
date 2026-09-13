@@ -8,12 +8,13 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { Failures, familyPaths } from '../lib/layout.ts'
+import { CORE_FAMILY, Failures, familyPaths } from '../lib/layout.ts'
 import { FixtureRepo } from '../testing/fixture.ts'
 import { record } from './ledger.ts'
 import { verifyPublications } from './released.ts'
 
 const COMPONENT_KEY = familyPaths('component', 'v1').manifestKey
+const CORE = familyPaths(CORE_FAMILY, 'v1')
 
 let repo: FixtureRepo | null = null
 
@@ -121,5 +122,54 @@ describe('verifyPublications', () => {
   test('an empty repository verifies as clean', () => {
     const fx = fixture()
     expect(problems(fx.root)).toEqual([])
+  })
+
+  describe('verifyPublications for a schema-less release (interim, until ledger v2)', () => {
+    test('a recorded and tagged core release verifies without a bundle', () => {
+      const fx = fixture()
+      fx.writeCoreSkeleton('v1')
+      fx.setManifest({ [CORE.manifestKey]: '1.0.0' })
+      record(fx.root)
+      fx.commit('chore: release core 1.0.0')
+      fx.tag('core/v1.0.0')
+      expect(problems(fx.root)).toEqual([])
+    })
+
+    test('a pending core release verifies against the manifest and the working tree', () => {
+      const fx = fixture()
+      fx.writeCoreSkeleton('v1')
+      fx.setManifest({ [CORE.manifestKey]: '1.0.0' })
+      record(fx.root)
+      fx.commit('chore(main): release core 1.0.0')
+      expect(problems(fx.root)).toEqual([])
+
+      fx.setManifest({ [CORE.manifestKey]: '1.1.0' })
+      fx.commit('chore: manifest moved')
+      expect(problems(fx.root)[0]).toContain('only valid while its release is pending')
+    })
+
+    test('a core entry naming a path its tag does not carry fails', () => {
+      const fx = fixture()
+      fx.writeCoreSkeleton('v1')
+      fx.setLedger({
+        version: 1,
+        releases: {
+          'core/v1.0.0': { path: `${CORE.dir}-moved`, sourceSha256: null, publishedSha256: null },
+        },
+      })
+      fx.commit('chore: release core 1.0.0 with a wrong path')
+      fx.tag('core/v1.0.0')
+      const found = problems(fx.root)
+      expect(found).toHaveLength(1)
+      expect(found[0]).toContain('does not exist at that tag')
+    })
+
+    test('an untagged, unrecorded core tag is still a failure', () => {
+      const fx = fixture()
+      fx.writeCoreSkeleton('v1')
+      fx.commit('feat(core): tagged outside the flow')
+      fx.tag('core/v1.0.0')
+      expect(problems(fx.root)[0]).toContain('is tagged but absent from published.json')
+    })
   })
 })

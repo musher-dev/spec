@@ -5,6 +5,7 @@
   "conditions": {
     "ref_name": {
       "include": [
+        "refs/tags/core/**",
         "refs/tags/component/**",
         "refs/tags/blueprint/**",
         "refs/tags/listing/**"

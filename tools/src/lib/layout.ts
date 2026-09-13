@@ -45,11 +45,29 @@ export const CATALOG_FILE = 'catalog.json'
  */
 export const BASE_FAMILY = 'component'
 
+/**
+ * The base family: the Musher Document Core Specification (docs/adr/0022).
+ *
+ * It defines no `kind` and ships no schema — only prose and a parser-phase
+ * corpus. Every other family is a *kind* family, which binds core's parameters
+ * in its own §2 and publishes a bundle.
+ */
+export const CORE_FAMILY = 'core'
+
+/** Whether a family is the schema-less base or a document kind built on it. */
+export type FamilyRole = 'core' | 'kind'
+
+export function familyRole(name: string): FamilyRole {
+  return name === CORE_FAMILY ? 'core' : 'kind'
+}
+
 /** Every repository path belonging to one family version, repo-relative. */
 export interface FamilyPaths {
   /** `specifications/<name>/<major>`. */
   readonly dir: string
   readonly spec: string
+  /** `schemas/`, which a core family version must not carry. */
+  readonly schemas: string
   readonly src: string
   readonly dist: string
   readonly bundle: string
@@ -65,6 +83,7 @@ export function familyPaths(name: string, major: string): FamilyPaths {
   return {
     dir,
     spec: `${dir}/spec.md`,
+    schemas: `${dir}/schemas`,
     src: `${dir}/schemas/src`,
     dist: `${dir}/schemas/dist`,
     bundle: `${dir}/schemas/dist/${name}.schema.json`,
@@ -110,19 +129,32 @@ export function conformanceLink(
 }
 
 /** The parts of a family version a released ref is expected to carry. */
-export type FamilyPart = 'spec' | 'examples' | 'conformance'
+export type FamilyPart = 'spec' | 'schema' | 'examples' | 'conformance'
 
 /**
- * Family versions that legitimately lack a part, keyed `<name>/<major>`.
+ * Parts a family *role* never carries. Core ships no schema and no examples
+ * (docs/adr/0022): its subjects are parser-phase fixtures, not documents of a
+ * kind, so there is nothing a bundle could validate or an example illustrate.
+ */
+const ABSENT_BY_ROLE: { readonly [role in FamilyRole]: readonly FamilyPart[] } = {
+  core: ['schema', 'examples'],
+  kind: [],
+}
+
+/**
+ * Family versions that legitimately lack a part beyond their role, keyed
+ * `<name>/<major>`.
  *
- * Empty: every family version today carries its prose, its examples, and its
- * corpus. A part not listed here is required at every released ref, so a tool
- * reading a moved or missing path fails instead of finding nothing and passing.
+ * Empty: every kind family version today carries its prose, its schema, its
+ * examples, and its corpus. A part not listed here is required at every released
+ * ref, so a tool reading a moved or missing path fails instead of finding
+ * nothing and passing.
  */
 const ABSENT_PARTS: { readonly [familyVersion: string]: readonly FamilyPart[] } = {}
 
 /** Whether the layout says this family version carries `part`. */
 export function hasPart(name: string, major: string, part: FamilyPart): boolean {
+  if (ABSENT_BY_ROLE[familyRole(name)].includes(part)) return false
   return !(ABSENT_PARTS[`${name}/${major}`] ?? []).includes(part)
 }
 
@@ -250,8 +282,18 @@ export interface Family {
   readonly name: string
   /** Major-version directory, e.g. `v1`. */
   readonly major: string
+  /** `core` for the schema-less base family, `kind` for every other. */
+  readonly role: FamilyRole
+  /**
+   * Whether `schemas/src` exists in the working tree. False for core, and for a
+   * kind family whose schema has not been authored yet; every schema tool skips
+   * such a family rather than reporting it.
+   */
+  readonly hasSchema: boolean
   /** Absolute path to `specifications/<name>/<major>`. */
   readonly dir: string
+  /** Absolute path to `schemas/`. */
+  readonly schemasDir: string
   readonly srcDir: string
   readonly distDir: string
   readonly examplesDir: string
@@ -279,7 +321,11 @@ function listDirs(parent: string): string[] {
 }
 
 /**
- * Discover every `specifications/<family>/v<major>` tree.
+ * Discover every `specifications/<family>/v<major>` tree, core first.
+ *
+ * Core leads because every kind family is built on it: a report read top to
+ * bottom states the shared rules before the ones that narrow them. The rest
+ * follow in name order, then major order.
  *
  * Returns an empty array when no family tree has been authored yet. A
  * `specifications/` that has children but yields no family is not that state:
@@ -303,11 +349,15 @@ export function discoverFamilies(repoRoot: string = REPO_ROOT): Family[] {
         )
       }
       const paths = familyPaths(name, major)
+      const srcDir = inRepo(repoRoot, paths.src)
       families.push({
         name,
         major,
+        role: familyRole(name),
+        hasSchema: existsSync(srcDir),
         dir: inRepo(repoRoot, paths.dir),
-        srcDir: inRepo(repoRoot, paths.src),
+        schemasDir: inRepo(repoRoot, paths.schemas),
+        srcDir,
         distDir: inRepo(repoRoot, paths.dist),
         examplesDir: inRepo(repoRoot, paths.examples),
         specPath: inRepo(repoRoot, paths.spec),
@@ -323,7 +373,19 @@ export function discoverFamilies(repoRoot: string = REPO_ROOT): Family[] {
         `Expected ${SPECIFICATIONS_ROOT}/<family>/v<MAJOR>/.`,
     )
   }
-  return families
+  // Stable: `names` and each major list are already sorted.
+  return [
+    ...families.filter((family) => family.role === 'core'),
+    ...families.filter((family) => family.role === 'kind'),
+  ]
+}
+
+/**
+ * Every kind family version — each one a document format with a schema. What
+ * the catalog, the field reference, and the compatibility replay iterate.
+ */
+export function discoverKinds(repoRoot: string = REPO_ROOT): Family[] {
+  return discoverFamilies(repoRoot).filter((family) => family.role === 'kind')
 }
 
 /** Absolute paths of every `*.schema.json` module authored for a family. */

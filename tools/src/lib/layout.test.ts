@@ -11,13 +11,18 @@ import { tmpdir } from 'node:os'
 import { join, relative, sep } from 'node:path'
 import { FixtureRepo } from '../testing/fixture.ts'
 import {
+  CORE_FAMILY,
   conformanceLink,
   discoverFamilies,
+  discoverKinds,
   familyPaths,
+  hasPart,
   LayoutError,
   parseManifestKey,
   parseSpecPath,
   REPO_ROOT,
+  releasedPartFiles,
+  releasedSpec,
   requireAtRef,
   requireFileAtRef,
   requireTreeAtRef,
@@ -88,6 +93,7 @@ describe('familyPaths', () => {
     expect(familyPaths('component', 'v1')).toEqual({
       dir: 'specifications/component/v1',
       spec: 'specifications/component/v1/spec.md',
+      schemas: 'specifications/component/v1/schemas',
       src: 'specifications/component/v1/schemas/src',
       dist: 'specifications/component/v1/schemas/dist',
       bundle: 'specifications/component/v1/schemas/dist/component.schema.json',
@@ -118,10 +124,65 @@ describe('discoverFamilies', () => {
     expect(discoverFamilies(scratch)).toEqual([])
   })
 
+  test('names core the base family, lists it first, and reads schema presence from the tree', () => {
+    repo = new FixtureRepo()
+    repo.writeFamilySkeleton('listing', 'v1')
+    repo.writeBundle('listing', 'v1', repo.bundleDoc('listing', 'v1'))
+    repo.writeFile(`${familyPaths('listing', 'v1').src}/listing.schema.json`, '{}\n')
+    repo.writeFamilySkeleton('blueprint', 'v1')
+    repo.writeCoreSkeleton('v1')
+
+    const families = discoverFamilies(repo.root)
+    expect(families.map((f) => `${f.name}:${f.role}:${f.hasSchema}`)).toEqual([
+      'core:core:false',
+      'blueprint:kind:false',
+      'listing:kind:true',
+    ])
+    expect(discoverKinds(repo.root).map((f) => f.name)).toEqual(['blueprint', 'listing'])
+  })
+
   test('throws when specifications/ has children but no family version', () => {
     scratch = mkdtempSync(join(tmpdir(), 'musher-layout-'))
     mkdirSync(join(scratch, 'specifications', 'component'), { recursive: true })
     expect(() => discoverFamilies(scratch as string)).toThrow(LayoutError)
+  })
+})
+
+describe('hasPart', () => {
+  test('core carries prose and a corpus, and never a schema or examples', () => {
+    expect(hasPart(CORE_FAMILY, 'v1', 'spec')).toBe(true)
+    expect(hasPart(CORE_FAMILY, 'v1', 'conformance')).toBe(true)
+    expect(hasPart(CORE_FAMILY, 'v1', 'schema')).toBe(false)
+    expect(hasPart(CORE_FAMILY, 'v2', 'examples')).toBe(false)
+  })
+
+  test('a kind family carries every part', () => {
+    for (const part of ['spec', 'schema', 'examples', 'conformance'] as const) {
+      expect(hasPart('component', 'v1', part)).toBe(true)
+    }
+  })
+})
+
+describe('released core parts', () => {
+  test('a core tag with no examples/ reads as none, while its prose and corpus are required', () => {
+    const fx = new FixtureRepo()
+    repo = fx
+    fx.writeCoreSkeleton('v1')
+    fx.commit('feat(core): the base family')
+    fx.tag('core/v1.0.0')
+
+    expect(releasedPartFiles(fx.root, 'core/v1.0.0', CORE_FAMILY, 'v1', 'examples')).toEqual([])
+    expect(releasedSpec(fx.root, 'core/v1.0.0', CORE_FAMILY, 'v1')?.toString()).toContain('Core')
+    expect(releasedPartFiles(fx.root, 'core/v1.0.0', CORE_FAMILY, 'v1', 'conformance')).toEqual([
+      `${familyPaths(CORE_FAMILY, 'v1').conformance}/cases.json`,
+    ])
+
+    fx.remove(familyPaths(CORE_FAMILY, 'v1').conformance)
+    fx.commit('test: a core tag that lost its corpus')
+    fx.tag('core/v1.0.1')
+    expect(() =>
+      releasedPartFiles(fx.root, 'core/v1.0.1', CORE_FAMILY, 'v1', 'conformance'),
+    ).toThrow(LayoutError)
   })
 })
 

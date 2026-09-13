@@ -35,7 +35,8 @@ jobs:
 
   # ---------------------------------------------------------------------------
   # For each family released in this run, build and attach the distribution
-  # archive: the bundle, the normative prose, and the conformance corpus.
+  # archive: the bundle, the normative prose, and the conformance corpus. Core
+  # has no bundle and no examples, so its archive carries prose and corpus only.
   #
   # Data artifacts only — no binaries, no generated language bindings. See
   # GOVERNANCE.md → Binary policy.
@@ -127,14 +128,18 @@ jobs:
           root="${staging}/${FAMILY}-${MAJOR}"
           mkdir -p "$root"
 
-          pinned="site/${FAMILY}/v${VERSION}/${FAMILY}.schema.json"
-          test -f "$pinned" || { echo "::error::${pinned} was not assembled" >&2; exit 1; }
-          cp "$pinned" "$root/${FAMILY}.schema.json"
-          cp "${pinned}.sha256" "$root/${FAMILY}.schema.json.sha256"
+          # Core ships no schema and no examples (ADR 0022). Interim: the
+          # publication-model rewrite replaces this step.
+          if [ "$FAMILY" != "core" ]; then
+            pinned="site/${FAMILY}/v${VERSION}/${FAMILY}.schema.json"
+            test -f "$pinned" || { echo "::error::${pinned} was not assembled" >&2; exit 1; }
+            cp "$pinned" "$root/${FAMILY}.schema.json"
+            cp "${pinned}.sha256" "$root/${FAMILY}.schema.json.sha256"
+            cp -r "specifications/${FAMILY}/${MAJOR}/examples" "$root/examples"
+          fi
 
           cp "specifications/${FAMILY}/${MAJOR}/spec.md" "$root/"
           cp LICENSE NOTICE "$root/"
-          cp -r "specifications/${FAMILY}/${MAJOR}/examples" "$root/examples"
           cp -r "specifications/${FAMILY}/${MAJOR}/conformance" "$root/conformance"
           cp conformance/README.md "$root/conformance/README.md"
 

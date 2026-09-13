@@ -117,6 +117,9 @@ function main(): void {
   let written = 0
 
   for (const family of families) {
+    // Core has no `schemas/src` by design, and a kind family that has not
+    // authored one has nothing to say either; `lint.ts` owns the first case.
+    if (!family.hasSchema) continue
     const bundle = buildBundle(family)
     if (bundle === null) {
       console.log(`  · ${family.name}/${family.major}: no modules authored yet`)

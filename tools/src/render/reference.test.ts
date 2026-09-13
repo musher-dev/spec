@@ -9,7 +9,7 @@
  */
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
-import { discoverFamilies, type Json } from '../lib/layout.ts'
+import { discoverKinds, type Json } from '../lib/layout.ts'
 import { buildReference, type Shape } from './reference.ts'
 
 function model(defs: { [k: string]: Json }, root: { [k: string]: Json } = {}) {
@@ -344,7 +344,8 @@ describe('determinism', () => {
 })
 
 describe('the published bundles', () => {
-  const families = discoverFamilies()
+  // Kinds only: core publishes no bundle to render.
+  const families = discoverKinds()
 
   for (const family of families) {
     const bundle = JSON.parse(readFileSync(family.bundlePath, 'utf8')) as Json

@@ -29,9 +29,11 @@ import { dirname, join } from 'node:path'
 import { isShallow, readBlobAtRef } from '../lib/git.ts'
 import {
   CATALOG_FILE,
+  CORE_FAMILY,
   canonicalJson,
   discoverFamilies,
   familyPaths,
+  hasPart,
   type Json,
   parseSpecPath,
   REPO_ROOT,
@@ -144,18 +146,23 @@ const RESERVED_PATH = 'reference'
  * so a released family's page describes its release. That bug is invisible
  * today — with no tags, a working-tree reference would pass every check and
  * start lying on the first release.
+ *
+ * A family that ships no schema — core — is a prose-only target: `bundle` and
+ * `schemaPath` are null, and it renders a specification page and nothing else.
  */
 interface ReferenceTarget {
   readonly family: string
   readonly major: string
   /** `v1` for the moving alias, `v1.2.0` for an exact release. */
   readonly version: string
-  readonly bundle: string
+  /** Null for a schema-less family. */
+  readonly bundle: string | null
   readonly spec: string | null
   /** The family's validated example documents, at the same ref. */
   readonly examples: readonly ExampleDoc[]
   readonly ref: string
-  readonly schemaPath: string
+  /** Null for a schema-less family: it has no schema URL to link. */
+  readonly schemaPath: string | null
 }
 
 interface ExampleDoc {
@@ -168,6 +175,23 @@ interface PublishedVersion {
   readonly tag: string
   readonly url: string
   readonly sha256: string
+}
+
+/**
+ * A schema-less family's major line: the ref its `/reference/<family>/<major>/spec/`
+ * page reads, with no schema URL beside it.
+ */
+interface ProseLine {
+  readonly family: string
+  readonly major: string
+  /** The newest tag in the major, or `main` while the major has no tag. */
+  readonly ref: string
+}
+
+/** A schema-less family's release: a tag and nothing served under it but prose. */
+interface ProseRelease {
+  readonly version: string
+  readonly tag: string
 }
 
 /** A major-version alias, and the ref whose prose it currently corresponds to. */
@@ -309,6 +333,13 @@ export function assembleSite(options: SiteOptions): SiteResult {
   const references: ReferenceTarget[] = []
   let pinned = 0
 
+  // A schema-less family (core) publishes prose only: no pinned path, no alias,
+  // no inventory, and therefore no `_headers` rule. Its releases are tracked
+  // apart from the schema families' so none of that can reach it by accident.
+  const newestProseByMajor = new Map<string, Release>()
+  const proseReleasesByFamily = new Map<string, ProseRelease[]>()
+  const proseLines: ProseLine[] = []
+
   /**
    * `spec.md` as it stood at a ref. On `main`, null where the working tree
    * carries none. Every other ref is a released tag, where a missing file means
@@ -359,6 +390,26 @@ export function assembleSite(options: SiteOptions): SiteResult {
   }
 
   for (const release of releases) {
+    if (!hasPart(release.family, release.major, 'schema')) {
+      references.push({
+        family: release.family,
+        major: release.major,
+        version: `v${release.version}`,
+        bundle: null,
+        spec: specAt(release.family, release.major, release.tag),
+        examples: [],
+        ref: release.tag,
+        schemaPath: null,
+      })
+      newestProseByMajor.set(`${release.family}/${release.major}`, release)
+      proseReleasesByFamily.set(release.family, [
+        ...(proseReleasesByFamily.get(release.family) ?? []),
+        { version: release.version, tag: release.tag },
+      ])
+      console.log(`  ✓ /${RESERVED_PATH}/${release.family}/v${release.version}/spec/ (prose only)`)
+      continue
+    }
+
     const loaded = loadRelease(repoRoot, release, ledger)
     const fileName = `${release.family}.schema.json`
     const dir = `${release.family}/v${release.version}`
@@ -437,7 +488,37 @@ export function assembleSite(options: SiteOptions): SiteResult {
     writeAlias(family, major, loaded.source.toString('utf8'), release.tag, release.tag)
   }
 
+  const writeProseLine = (family: string, major: string, ref: string, origin: string): void => {
+    const spec = specAt(family, major, ref)
+    if (spec === null) {
+      console.log(`  · ${family}/${major}: no spec.md — skipped`)
+      return
+    }
+    proseLines.push({ family, major, ref })
+    references.push({
+      family,
+      major,
+      version: major,
+      bundle: null,
+      spec,
+      examples: [],
+      ref,
+      schemaPath: null,
+    })
+    console.log(`  ✓ /${RESERVED_PATH}/${family}/${major}/spec/ (prose only → ${origin})`)
+  }
+
+  for (const [key, release] of newestProseByMajor) {
+    const [family, major] = key.split('/') as [string, string]
+    writeProseLine(family, major, release.tag, release.tag)
+  }
+
   for (const family of discoverFamilies(repoRoot)) {
+    if (!hasPart(family.name, family.major, 'schema')) {
+      if (newestProseByMajor.has(`${family.name}/${family.major}`)) continue
+      writeProseLine(family.name, family.major, 'main', 'working tree')
+      continue
+    }
     if (newestByMajor.has(`${family.name}/${family.major}`)) continue
     if (!existsSync(family.bundlePath)) {
       console.log(`  · ${family.name}/${family.major}: no bundle built — skipped`)
@@ -487,14 +568,36 @@ export function assembleSite(options: SiteOptions): SiteResult {
   // carries the field-level detail, and nothing either emits is normative.
   // See docs/adr/0017.
   // ---------------------------------------------------------------------------
+  const proseFamilies = new Set([
+    ...proseLines.map((line) => line.family),
+    ...proseReleasesByFamily.keys(),
+  ])
   const families = [
-    ...new Set([...aliases.map((a) => a.family), ...versionsByFamily.keys()]),
-  ].sort()
+    ...new Set([...aliases.map((a) => a.family), ...versionsByFamily.keys(), ...proseFamilies]),
+  ]
+    .sort()
+    // Core first, as everywhere else: it is what every other row is built on.
+    .sort((a, b) => Number(b === CORE_FAMILY) - Number(a === CORE_FAMILY))
   let pages = 0
 
-  emit('index.html', renderIndex(families, aliases, versionsByFamily))
+  emit(
+    'index.html',
+    renderIndex(families, aliases, versionsByFamily, proseLines, proseReleasesByFamily),
+  )
   pages += 1
   for (const family of families) {
+    if (proseFamilies.has(family)) {
+      emit(
+        `${family}/index.html`,
+        renderProseFamilyIndex(
+          family,
+          proseLines.filter((line) => line.family === family),
+          proseReleasesByFamily.get(family) ?? [],
+        ),
+      )
+      pages += 1
+      continue
+    }
     emit(
       `${family}/index.html`,
       renderFamilyIndex(
@@ -530,6 +633,25 @@ export function assembleSite(options: SiteOptions): SiteResult {
             resolveLink: linkResolver(target, rendered),
           }
 
+    if (target.bundle === null || target.schemaPath === null) {
+      // Prose only: no field reference, no examples, no schema to link.
+      if (target.spec === null || context === null) continue
+      emit(
+        `${base}/spec/index.html`,
+        page(
+          `${target.family} ${target.version} specification`,
+          [
+            `<p class="muted">${link(`/${RESERVED_PATH}/`, 'Reference')} / ${escapeHtml(target.family)} ` +
+              `/ ${escapeHtml(target.version)}</p>`,
+            renderProse(target.spec, context, `${target.family}/${target.major}/spec.md`),
+            `<footer>${link(proseUrl(target.family, target.major, target.ref), 'Source')}</footer>`,
+          ].join('\n'),
+        ),
+      )
+      continue
+    }
+    const schemaPath = target.schemaPath
+
     if (target.spec !== null) {
       emit(
         `${base}/spec/index.html`,
@@ -540,7 +662,7 @@ export function assembleSite(options: SiteOptions): SiteResult {
               `/ ${escapeHtml(target.version)}</p>`,
             renderProse(target.spec, context, `${target.family}/${target.major}/spec.md`),
             `<footer>${link(`/${base}/`, 'Field reference')} · ` +
-              `${link(target.schemaPath, 'JSON Schema')} · ` +
+              `${link(schemaPath, 'JSON Schema')} · ` +
               `${link(proseUrl(target.family, target.major, target.ref), 'Source')}</footer>`,
           ].join('\n'),
         ),
@@ -549,7 +671,7 @@ export function assembleSite(options: SiteOptions): SiteResult {
 
     const examplesPath = target.examples.length === 0 ? null : `/${base}/examples/`
     if (examplesPath !== null) {
-      emit(`${base}/examples/index.html`, renderExamples(target, base))
+      emit(`${base}/examples/index.html`, renderExamples(target, base, schemaPath))
     }
 
     const model = buildReference(JSON.parse(target.bundle) as Json, target.family, target.version)
@@ -558,7 +680,7 @@ export function assembleSite(options: SiteOptions): SiteResult {
       page(
         `${model.title} — ${target.version}`,
         renderReference(model, {
-          schemaPath: target.schemaPath,
+          schemaPath,
           prosePath,
           examplesPath,
           sourceUrl: proseUrl(target.family, target.major, target.ref),
@@ -669,7 +791,7 @@ function posixResolve(from: string, href: string): string | null {
  * the bundle on the same commit, so what a reader copies is what CI proved
  * valid. Reformatting them here would publish something nothing had checked.
  */
-function renderExamples(target: ReferenceTarget, base: string): string {
+function renderExamples(target: ReferenceTarget, base: string, schemaPath: string): string {
   const blocks = target.examples.map((example) =>
     [
       `<h2 id="${escapeHtml(example.name)}">${escapeHtml(example.name)}</h2>`,
@@ -689,10 +811,9 @@ function renderExamples(target: ReferenceTarget, base: string): string {
         .map((e) => `<a href="#${encodeURIComponent(e.name)}">${escapeHtml(e.name)}</a>`)
         .join('')}</nav>`,
       ...blocks,
-      `<footer>${[
-        link(`/${base}/`, 'Field reference'),
-        link(target.schemaPath, 'JSON Schema'),
-      ].join(' · ')}</footer>`,
+      `<footer>${[link(`/${base}/`, 'Field reference'), link(schemaPath, 'JSON Schema')].join(
+        ' · ',
+      )}</footer>`,
     ].join('\n'),
   )
 }
@@ -700,14 +821,21 @@ function renderExamples(target: ReferenceTarget, base: string): string {
 /** The reference's own index: every family and version rendered. */
 function renderReferenceIndex(rendered: readonly ReferenceTarget[]): string {
   const rows = rendered
-    .map(
-      (target) =>
-        `<tr><td>${link(`/${RESERVED_PATH}/${target.family}/${target.version}/`, target.family)}</td>` +
+    .map((target) => {
+      // A prose-only target has no field reference page to name it; its row
+      // points at the specification instead.
+      const home =
+        target.schemaPath === null
+          ? `/${RESERVED_PATH}/${target.family}/${target.version}/spec/`
+          : `/${RESERVED_PATH}/${target.family}/${target.version}/`
+      return (
+        `<tr><td>${link(home, target.family)}</td>` +
         `<td><code>${escapeHtml(target.version)}</code></td>` +
         `<td>${target.spec === null ? '<span class="muted">—</span>' : link(`/${RESERVED_PATH}/${target.family}/${target.version}/spec/`, 'specification')}</td>` +
         `<td>${target.examples.length === 0 ? '<span class="muted">—</span>' : link(`/${RESERVED_PATH}/${target.family}/${target.version}/examples/`, `${target.examples.length}`)}</td>` +
-        `<td>${link(target.schemaPath, 'schema')}</td></tr>`,
-    )
+        `<td>${target.schemaPath === null ? '<span class="muted">—</span>' : link(target.schemaPath, 'schema')}</td></tr>`
+      )
+    })
     .join('')
 
   return page(
@@ -737,8 +865,28 @@ function renderIndex(
   families: readonly string[],
   aliases: readonly Alias[],
   versionsByFamily: ReadonlyMap<string, readonly PublishedVersion[]>,
+  proseLines: readonly ProseLine[],
+  proseReleasesByFamily: ReadonlyMap<string, readonly ProseRelease[]>,
 ): string {
+  const muted = '<span class="muted">—</span>'
   const rows = families.map((family) => {
+    const lines = proseLines.filter((line) => line.family === family)
+    const proseReleases = proseReleasesByFamily.get(family)
+    if (lines.length > 0 || proseReleases !== undefined) {
+      // A schema-less family: no alias, no versions.json, prose only.
+      const line = newestLine(lines)
+      const latest = proseReleases?.[proseReleases.length - 1]
+      return [
+        '<tr>',
+        `<td>${link(`/${family}/`, family)}</td>`,
+        `<td>${muted}</td>`,
+        `<td>${latest === undefined ? '<span class="muted">unreleased</span>' : escapeHtml(latest.version)}</td>`,
+        `<td>${muted}</td>`,
+        `<td>${line === undefined ? muted : link(proseUrl(family, line.major, line.ref), 'spec.md')}</td>`,
+        `<td>${line === undefined ? muted : link(`/${RESERVED_PATH}/${family}/${line.major}/spec/`, 'specification')}</td>`,
+        '</tr>',
+      ].join('')
+    }
     const alias = aliases.find((a) => a.family === family)
     const versions = versionsByFamily.get(family) ?? []
     const latest = versions[versions.length - 1]
@@ -867,6 +1015,86 @@ function renderFamilyIndex(
         ...(versions.length === 0 ? [] : [link(`/${family}/versions.json`, 'versions.json')]),
         link('/published.json', 'published.json'),
       ].join(' · ')}</footer>`,
+    ].join('\n'),
+  )
+}
+
+/** The line with the highest major, which is the one a reader should start from. */
+function newestLine(lines: readonly ProseLine[]): ProseLine | undefined {
+  return [...lines].sort((a, b) => Number(a.major.slice(1)) - Number(b.major.slice(1))).pop()
+}
+
+/**
+ * The family index for a family that ships no schema.
+ *
+ * It mirrors `renderFamilyIndex` without the parts that describe schema URLs:
+ * no alias, no exact-version paths, no checksums, no `versions.json`. What a
+ * release of such a family publishes is its prose at the tag, so that is what
+ * each row links.
+ */
+function renderProseFamilyIndex(
+  family: string,
+  lines: readonly ProseLine[],
+  releases: readonly ProseRelease[],
+): string {
+  const lineRows = lines.map((line) =>
+    [
+      '<tr>',
+      `<td>${link(`/${RESERVED_PATH}/${family}/${line.major}/spec/`, line.major)}</td>`,
+      `<td>${line.ref === 'main' ? '<span class="muted">unreleased — tracks main</span>' : `<code>${escapeHtml(line.ref)}</code>`}</td>`,
+      `<td>${link(proseUrl(family, line.major, line.ref), 'spec.md')}</td>`,
+      '</tr>',
+    ].join(''),
+  )
+
+  const releaseRows = [...releases]
+    .reverse()
+    .map((release) =>
+      [
+        '<tr>',
+        `<td>${link(`/${RESERVED_PATH}/${family}/v${release.version}/spec/`, release.version)}</td>`,
+        `<td><code>${escapeHtml(release.tag)}</code></td>`,
+        '</tr>',
+      ].join(''),
+    )
+
+  const newest = newestLine(lines)
+
+  return page(
+    `${family} specification`,
+    [
+      `<p>${link('/', 'Musher schemas')}</p>`,
+      `<h1>${escapeHtml(family)}</h1>`,
+      '<p class="lead">This specification publishes no schema. Its rules are prose and a',
+      'conformance corpus, and every document family built on it expresses them in its own',
+      'schema.</p>',
+      ...(newest === undefined
+        ? []
+        : [
+            `<p>${link(`/${RESERVED_PATH}/${family}/${newest.major}/spec/`, 'Read the specification')}</p>`,
+          ]),
+      '<h2>Lines</h2>',
+      ...(lineRows.length === 0
+        ? [
+            '<p class="muted">This family is no longer authored here. Its released editions',
+            'remain listed below.</p>',
+          ]
+        : [
+            '<table>',
+            '<thead><tr><th>Line</th><th>Serving</th><th>Prose</th></tr></thead>',
+            `<tbody>${lineRows.join('')}</tbody>`,
+            '</table>',
+          ]),
+      '<h2>Released editions</h2>',
+      ...(releaseRows.length === 0
+        ? ['<p class="muted">Nothing has been released.</p>']
+        : [
+            '<table>',
+            '<thead><tr><th>Version</th><th>Tag</th></tr></thead>',
+            `<tbody>${releaseRows.join('')}</tbody>`,
+            '</table>',
+          ]),
+      `<footer>${link('/published.json', 'published.json')}</footer>`,
     ].join('\n'),
   )
 }

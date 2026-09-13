@@ -17,6 +17,7 @@ import {
   conformanceLink,
   discoverFamilies,
   type Family,
+  familyPaths,
   inRepo,
   isObject,
   type Json,
@@ -73,7 +74,7 @@ function requirementsIn(family: Family): Requirement[] {
         family: family.name,
         section,
         sectionTitle,
-        specPath: relativeToRepo(family.specPath),
+        specPath: familyPaths(family.name, family.major).spec,
       })
     }
   }
@@ -81,9 +82,9 @@ function requirementsIn(family: Family): Requirement[] {
 }
 
 /** Requirement ID to the cases citing it, across every family's corpus. */
-function citations(): Map<string, Citation[]> {
+function citations(repoRoot: string): Map<string, Citation[]> {
   const cited = new Map<string, Citation[]>()
-  for (const family of discoverFamilies()) {
+  for (const family of discoverFamilies(repoRoot)) {
     const indexPath = join(family.conformanceDir, 'cases.json')
     if (!existsSync(indexPath)) continue
     const index = readJson(indexPath)
@@ -103,8 +104,13 @@ function citations(): Map<string, Citation[]> {
   return cited
 }
 
-export function buildMatrix(): string {
-  const cited = citations()
+/**
+ * The matrix, one section per family version. `discoverFamilies` puts core
+ * first, so the requirements every family shares are read before the ones a
+ * family adds.
+ */
+export function buildMatrix(repoRoot: string = REPO_ROOT): string {
+  const cited = citations(repoRoot)
   const lines: string[] = [
     '# Requirement traceability',
     '',
@@ -122,7 +128,7 @@ export function buildMatrix(): string {
   let total = 0
   let pinned = 0
 
-  for (const family of discoverFamilies()) {
+  for (const family of discoverFamilies(repoRoot)) {
     const requirements = requirementsIn(family)
     if (requirements.length === 0) continue
 

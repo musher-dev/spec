@@ -5,12 +5,13 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { Failures, familyPaths } from '../lib/layout.ts'
+import { CORE_FAMILY, Failures, familyPaths } from '../lib/layout.ts'
 import { FixtureRepo } from '../testing/fixture.ts'
 import { assertAppendOnly, record, sync } from './ledger.ts'
 import { EMPTY_LEDGER, type Ledger, readLedger } from './released.ts'
 
 const COMPONENT_KEY = familyPaths('component', 'v1').manifestKey
+const CORE = familyPaths(CORE_FAMILY, 'v1')
 
 let repo: FixtureRepo | null = null
 
@@ -110,5 +111,62 @@ describe('assertAppendOnly', () => {
       releases: { 'component/v1.0.0': { ...entry, sourceSha256: 'c'.repeat(64) } },
     }
     expect(problems(base, head)[0]).toContain('is immutable')
+  })
+
+  describe('a schema-less release (interim, until ledger v2)', () => {
+    test('record writes the family version directory and null hashes, without a bundle', () => {
+      const fx = fixture()
+      fx.writeCoreSkeleton('v1')
+      fx.setManifest({ [CORE.manifestKey]: '1.0.0' })
+
+      expect(record(fx.root).added).toEqual(['core/v1.0.0'])
+      expect(readLedger(fx.root).releases['core/v1.0.0']).toEqual({
+        path: CORE.dir,
+        sourceSha256: null,
+        publishedSha256: null,
+      })
+      const text = readFileSync(join(fx.root, 'published.json'), 'utf8')
+      expect(text).toContain('"sourceSha256": null')
+      // Idempotent, like every other entry.
+      expect(record(fx.root).changed).toBe(false)
+    })
+
+    test('record refuses a core release whose family version does not exist', () => {
+      const fx = fixture()
+      fx.setManifest({ [CORE.manifestKey]: '1.0.0' })
+      expect(() => record(fx.root)).toThrow(/cannot record/)
+    })
+
+    test('sync backfills a core tag without loading a bundle', () => {
+      const fx = fixture()
+      fx.writeCoreSkeleton('v1')
+      fx.commit('feat(core): unrecorded')
+      fx.tag('core/v1.0.0')
+      expect(sync(fx.root).added).toEqual(['core/v1.0.0'])
+      expect(readLedger(fx.root).releases['core/v1.0.0']?.sourceSha256).toBeNull()
+    })
+
+    test('neither entry form can stand in for the other', () => {
+      const fx = fixture()
+      const hashed = {
+        path: CORE.dir,
+        sourceSha256: 'a'.repeat(64),
+        publishedSha256: 'b'.repeat(64),
+      }
+      fx.setLedger({ version: 1, releases: { 'core/v1.0.0': hashed } })
+      expect(() => readLedger(fx.root)).toThrow(/ships no schema/)
+
+      const withoutHashes = { path: COMPONENT_KEY, sourceSha256: null, publishedSha256: null }
+      fx.setLedger({ version: 1, releases: { 'component/v1.0.0': withoutHashes } })
+      expect(() => readLedger(fx.root)).toThrow(/must carry/)
+    })
+
+    test('a recorded core entry is as immutable as any other', () => {
+      const entry = { path: CORE.dir, sourceSha256: null, publishedSha256: null }
+      const base: Ledger = { version: 1, releases: { 'core/v1.0.0': entry } }
+      const moved: Ledger = { version: 1, releases: { 'core/v1.0.0': { ...entry, path: 'x' } } }
+      expect(problems(base, base)).toEqual([])
+      expect(problems(base, moved)[0]).toContain('is immutable')
+    })
   })
 })

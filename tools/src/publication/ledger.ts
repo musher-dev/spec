@@ -21,6 +21,7 @@ import {
   defaultBundlePath,
   discoverReleases,
   EMPTY_LEDGER,
+  isSchemaless,
   LEDGER_FILE,
   type Ledger,
   type LedgerEntry,
@@ -28,6 +29,7 @@ import {
   MANIFEST_FILE,
   parseReleaseTag,
   readLedger,
+  schemalessEntry,
   serializeLedger,
   sha256,
   stampPinnedId,
@@ -74,6 +76,18 @@ export function record(repoRoot: string): { added: string[]; changed: boolean } 
     const release = parseReleaseTag(tag)
     if (release === null) continue
 
+    if (isSchemaless(release)) {
+      // INTERIM until ledger v2: core has no bundle, so it records where its
+      // family version lives and no hashes. See `LedgerEntry` in released.ts.
+      const entry = schemalessEntry(release)
+      if (!existsSync(join(repoRoot, entry.path))) {
+        throw new Error(`${tag}: cannot record — ${entry.path} does not exist`)
+      }
+      releases[tag] = entry
+      added.push(tag)
+      continue
+    }
+
     const path = defaultBundlePath(family, major)
     const absolute = join(repoRoot, path)
     if (!existsSync(absolute)) {
@@ -100,6 +114,11 @@ export function sync(repoRoot: string): { added: string[]; changed: boolean } {
 
   for (const release of discoverReleases(repoRoot)) {
     if (releases[release.tag] !== undefined) continue
+    if (isSchemaless(release)) {
+      releases[release.tag] = schemalessEntry(release)
+      added.push(release.tag)
+      continue
+    }
     const loaded = loadRelease(repoRoot, release, ledger)
     releases[release.tag] = {
       path: loaded.path,

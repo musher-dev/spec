@@ -7,9 +7,9 @@
  * that a missing corpus is a failure instead.
  */
 import { afterEach, describe, expect, test } from 'bun:test'
-import { discoverFamilies, Failures, familyPaths, LayoutError } from '../lib/layout.ts'
+import { CORE_FAMILY, discoverFamilies, Failures, familyPaths, LayoutError } from '../lib/layout.ts'
 import { FixtureRepo } from '../testing/fixture.ts'
-import { replayRelease } from './compat.ts'
+import { replayAll, replayRelease } from './compat.ts'
 import { record } from './ledger.ts'
 import { discoverReleases } from './released.ts'
 
@@ -73,4 +73,32 @@ describe('replayRelease', () => {
       expect((error as Error).message).toContain(COMPONENT[part])
     })
   }
+
+  describe('replayAll', () => {
+    test('skips a core release, which accepted no document a schema decided', () => {
+      const fx = fixture()
+      fx.writeCoreSkeleton('v1')
+      fx.setManifest({ [familyPaths(CORE_FAMILY, 'v1').manifestKey]: '1.0.0' })
+      record(fx.root)
+      fx.commit('chore: release core 1.0.0')
+      fx.tag('core/v1.0.0')
+
+      const failures = new Failures()
+      expect(replayAll(fx.root, failures)).toEqual({ replayed: 0, checked: 0 })
+      expect(failures.count).toBe(0)
+    })
+
+    test('still replays a kind release beside a core one', () => {
+      const fx = fixture()
+      fx.writeCoreSkeleton('v1')
+      fx.commit('feat(core): the base family')
+      fx.tag('core/v1.0.0')
+      cut(fx)
+
+      // `cut` recorded only component; core needs no ledger to be skipped here.
+      const failures = new Failures()
+      expect(replayAll(fx.root, failures)).toEqual({ replayed: 1, checked: 1 })
+      expect(failures.count).toBe(0)
+    })
+  })
 })

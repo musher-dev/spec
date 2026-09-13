@@ -144,8 +144,8 @@ from the repository is a ruleset nobody reviews.
 
 Makes releases immutable:
 
-- Applies to `refs/tags/component/**`, `refs/tags/blueprint/**`, and
-  `refs/tags/listing/**`.
+- Applies to `refs/tags/core/**`, `refs/tags/component/**`,
+  `refs/tags/blueprint/**`, and `refs/tags/listing/**`.
 - **Blocks tag deletion, tag update, and any non-fast-forward move.** A
   published schema version can never be silently altered — a flaw is corrected
   by superseding it with a new patch, never by moving a tag.

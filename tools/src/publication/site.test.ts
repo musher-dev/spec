@@ -10,12 +10,13 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
-import { familyPaths, LayoutError } from '../lib/layout.ts'
+import { CORE_FAMILY, familyPaths, LayoutError } from '../lib/layout.ts'
 import { FixtureRepo } from '../testing/fixture.ts'
 import { record } from './ledger.ts'
 import { assembleSite, type HeaderRule, renderHeaders } from './site.ts'
 
 const COMPONENT = familyPaths('component', 'v1')
+const CORE = familyPaths(CORE_FAMILY, 'v1')
 
 let repo: FixtureRepo | null = null
 
@@ -594,5 +595,102 @@ describe('assembleSite', () => {
     assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site') })
 
     expect(readSite(fx, '404.html')).toContain('Not found')
+  })
+
+  // ---------------------------------------------------------------------------
+  // A family that ships no schema (core, docs/adr/0022).
+  // ---------------------------------------------------------------------------
+
+  /** Cut a core release: prose and corpus only, recorded in the interim ledger form. */
+  function releaseCore(fx: FixtureRepo, version: string, prose: string): void {
+    fx.writeFile(CORE.spec, prose)
+    fx.writeCoreSkeleton('v1')
+    fx.setManifest({ [CORE.manifestKey]: version })
+    record(fx.root)
+    fx.commit(`chore: release core ${version}`)
+    fx.tag(`core/v${version}`)
+  }
+
+  test('a schema-less family publishes prose pages only, from its tag, with no header rule', () => {
+    const fx = fixture()
+    release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
+    releaseCore(fx, '1.0.0', '## <a id="scope"></a>1. Core released prose\n')
+    fx.writeFile(CORE.spec, '## <a id="scope"></a>1. Core draft prose\n')
+    fx.commit('docs(core): an unreleased edit')
+
+    const site = join(fx.root, 'site')
+    const result = assembleSite({ repoRoot: fx.root, siteDir: site })
+    const served = servedPaths(site)
+
+    // Prose for the line and for the release, and a family index.
+    for (const path of [
+      '/reference/core/v1/spec/index.html',
+      '/reference/core/v1.0.0/spec/index.html',
+      '/core/index.html',
+    ]) {
+      expect(served).toContain(path)
+    }
+    // No field reference, no examples, no alias, no pinned path, no inventory.
+    const coreServed = served.filter(
+      (p) => p.startsWith('/core/') || p.startsWith('/reference/core/'),
+    )
+    expect(coreServed.sort()).toEqual([
+      '/core/index.html',
+      '/reference/core/v1.0.0/spec/index.html',
+      '/reference/core/v1/spec/index.html',
+    ])
+    expect(result.pinned).toBe(1)
+    expect(result.aliases).toBe(1)
+
+    // The line serves its newest tag, not main.
+    const line = readSite(fx, 'reference', 'core', 'v1', 'spec', 'index.html')
+    expect(line).toContain('Core released prose')
+    expect(line).not.toContain('Core draft prose')
+    expect(line).not.toContain('JSON Schema')
+    expect(line).not.toContain('Field reference')
+
+    // The cache contract never mentions core, and no core path draws Cache-Control.
+    const headers = readSite(fx, '_headers')
+    expect(headers).not.toContain('core')
+    const rules = parseHeaders(headers)
+    for (const path of coreServed) {
+      expect(resolve(rules, path).get('Cache-Control')).toBeUndefined()
+    }
+
+    const index = readSite(fx, 'index.html')
+    expect(index).toContain('href="/core/"')
+    expect(index).toContain('href="/reference/core/v1/spec/"')
+    expect(index).not.toContain('/core/v1/core.schema.json')
+    const familyIndex = readSite(fx, 'core', 'index.html')
+    expect(familyIndex).toContain('href="/reference/core/v1.0.0/spec/"')
+    expect(familyIndex).not.toContain('versions.json')
+    expect(readSite(fx, 'reference', 'index.html')).toContain('href="/reference/core/v1/spec/"')
+  })
+
+  test('an untagged schema-less family renders its prose from the working tree', () => {
+    const fx = fixture()
+    fx.writeCoreSkeleton('v1', '## <a id="envelope"></a>2. Core envelope draft\n')
+    fx.writeFile(
+      COMPONENT.spec,
+      '## <a id="scope"></a>1. Scope\n\nSee [core v1 §2](../../core/v1/spec.md#envelope).\n',
+    )
+    fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1'))
+    fx.commit('feat(core): the base family')
+
+    const site = join(fx.root, 'site')
+    assembleSite({ repoRoot: fx.root, siteDir: site })
+
+    expect(readSite(fx, 'reference', 'core', 'v1', 'spec', 'index.html')).toContain(
+      'Core envelope draft',
+    )
+    expect(readSite(fx, 'core', 'index.html')).toContain('Nothing has been released')
+    expect(servedPaths(site)).not.toContain('/reference/core/v1/index.html')
+    // A kind family citing core stays on this origin.
+    expect(readSite(fx, 'reference', 'component', 'v1', 'spec', 'index.html')).toContain(
+      'href="/reference/core/v1/spec/#envelope"',
+    )
+    // Core leads the root index.
+    const index = readSite(fx, 'index.html')
+    expect(index.indexOf('href="/core/"')).toBeLessThan(index.indexOf('href="/component/"'))
   })
 })

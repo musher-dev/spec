@@ -29,6 +29,7 @@ import {
   isEmptyRepository,
   isShallow,
   listTags,
+  listTreeFiles,
   readBlobAtRef,
   tagCommit,
 } from '../lib/git.ts'
@@ -36,6 +37,7 @@ import {
   canonicalJson,
   type Failures,
   familyPaths,
+  hasPart,
   isObject,
   type Json,
   LEDGER_FILE,
@@ -61,13 +63,28 @@ export interface Release {
   readonly version: string
 }
 
+/**
+ * One recorded release.
+ *
+ * INTERIM, until the ledger v2 phase replaces this shape. A release of a family
+ * that ships no schema — core (docs/adr/0022) — has no bundle to hash, so its
+ * entry records `path` as the family version directory and both hashes as
+ * `null`. Nothing else changes: a kind family's entry is byte-identical to what
+ * it was, and `readLedger` accepts `null` hashes only for a schema-less family
+ * and requires them there, so neither form can stand in for the other. Ledger
+ * v2 records a git tree id for every release and `bundleSha256: null` for core,
+ * which supersedes this.
+ */
 export interface LedgerEntry {
-  /** Repo-relative path the bundle occupied in this release's commit. */
+  /**
+   * Repo-relative path the bundle occupied in this release's commit — or, for a
+   * schema-less release, the family version directory.
+   */
   readonly path: string
-  /** SHA-256 of the bytes stored at that path — what the tag holds. */
-  readonly sourceSha256: string
-  /** SHA-256 of the bytes served at the pinned URL, after `$id` is stamped. */
-  readonly publishedSha256: string
+  /** SHA-256 of the bytes stored at that path — what the tag holds. Null when schema-less. */
+  readonly sourceSha256: string | null
+  /** SHA-256 of the bytes served at the pinned URL, after `$id` is stamped. Null when schema-less. */
+  readonly publishedSha256: string | null
 }
 
 export interface Ledger {
@@ -88,6 +105,23 @@ export function parseReleaseTag(tag: string): Release | null {
   const version = match?.groups?.version
   if (family === undefined || version === undefined) return null
   return { tag, family, major: `v${version.split('.')[0]}`, version }
+}
+
+/** Whether a release belongs to a family that ships no schema, which only core does. */
+export function isSchemaless(release: Pick<Release, 'family' | 'major'>): boolean {
+  return !hasPart(release.family, release.major, 'schema')
+}
+
+/**
+ * The ledger entry for a schema-less release: the family version directory, and
+ * no hashes. INTERIM — see `LedgerEntry`.
+ */
+export function schemalessEntry(release: Pick<Release, 'family' | 'major'>): LedgerEntry {
+  return {
+    path: familyPaths(release.family, release.major).dir,
+    sourceSha256: null,
+    publishedSha256: null,
+  }
 }
 
 /** Where a family's bundle lives by default — the layout in use today. */
@@ -139,6 +173,23 @@ export function readLedger(repoRoot: string): Ledger {
   }
   const releases: { [tag: string]: LedgerEntry } = {}
   for (const [tag, value] of Object.entries(doc.releases)) {
+    const parsed = parseReleaseTag(tag)
+    if (parsed !== null && isSchemaless(parsed)) {
+      // INTERIM (see `LedgerEntry`): a schema-less release hashes nothing.
+      if (
+        !isObject(value) ||
+        typeof value.path !== 'string' ||
+        value.sourceSha256 !== null ||
+        value.publishedSha256 !== null
+      ) {
+        throw new Error(
+          `${LEDGER_FILE}: releases/${tag} ships no schema, so it must carry "path" and ` +
+            'null "sourceSha256" and "publishedSha256"',
+        )
+      }
+      releases[tag] = { path: value.path, sourceSha256: null, publishedSha256: null }
+      continue
+    }
     if (
       !isObject(value) ||
       typeof value.path !== 'string' ||
@@ -209,6 +260,11 @@ export interface LoadedRelease {
 
 /** Read a release's bundle out of its tag and derive what gets served. */
 export function loadRelease(repoRoot: string, release: Release, ledger: Ledger): LoadedRelease {
+  if (isSchemaless(release)) {
+    throw new Error(
+      `${release.tag}: ${release.family} ships no schema, so there is no bundle to load`,
+    )
+  }
   const path = resolveBundlePath(release, ledger)
   const source = readBlobAtRef(repoRoot, release.tag, path)
   if (source === null) {
@@ -298,12 +354,24 @@ export function verifyPublications(repoRoot: string, failures: Failures): void {
         failures.add(`${LEDGER_FILE}: ${tag} records ${entry.path}, which does not exist`)
         continue
       }
+      // INTERIM (see `LedgerEntry`): nothing to hash for a schema-less release.
+      if (isSchemaless(pending)) continue
       const actual = sha256(readFileSync(working))
       if (actual !== entry.sourceSha256) {
         failures.add(
           `${LEDGER_FILE}: ${tag} records sourceSha256 ${entry.sourceSha256} but ` +
             `${entry.path} hashes to ${actual}. Re-run \`task ledger:record\`.`,
         )
+      }
+      continue
+    }
+
+    if (isSchemaless(release)) {
+      // INTERIM (see `LedgerEntry`): the tag must still carry the family
+      // version it released. There are no bytes to compare until ledger v2
+      // records a tree id.
+      if (listTreeFiles(repoRoot, tag, entry.path).length === 0) {
+        failures.add(`${tag}: ${entry.path} does not exist at that tag`)
       }
       continue
     }

@@ -264,11 +264,63 @@ function section(title: string, changes: Change[]): string[] {
   return lines
 }
 
-function reportFamily(family: Family, base: string): { lines: string[]; narrowing: number } {
+/**
+ * A family with no schema — core — has only prose to compare: its diagnostics
+ * and its requirement IDs. It is headed as affecting every family, because
+ * every kind family applies core in full, so a change here is a change to each
+ * of them even though no bundle moves.
+ */
+function reportProseOnly(
+  family: Family,
+  base: string,
+  repoRoot: string,
+): { lines: string[]; narrowing: number } {
+  const heading = `### ${family.name}/${family.major} — affects every family`
+  const beforeSpec = readBlobAtRef(repoRoot, base, familyPaths(family.name, family.major).spec)
+  if (beforeSpec === null) {
+    return { lines: [heading, '', '_New family — nothing to compare._', ''], narrowing: 0 }
+  }
+
+  const specBefore = beforeSpec.toString('utf8')
+  const specAfter = existsSync(family.specPath) ? readFileSync(family.specPath, 'utf8') : ''
+  const codeChanges = diffNamed(
+    new Set(codesIn(specBefore).keys()),
+    new Set(codesIn(specAfter).keys()),
+    'diagnostic',
+  )
+  const requirementChanges = diffNamed(
+    requirementsIn(specBefore),
+    requirementsIn(specAfter),
+    'requirement',
+  )
+
+  const all = [...codeChanges, ...requirementChanges]
+  if (all.length === 0) return { lines: [], narrowing: 0 }
+
+  const lines = [
+    heading,
+    '',
+    '_Core ships no schema. Every kind family applies it in full, so each change below ' +
+      'reaches every document of every family._',
+    '',
+  ]
+  lines.push(...section('Diagnostics', codeChanges))
+  lines.push(...section('Requirements', requirementChanges))
+
+  return { lines, narrowing: all.filter((c) => c.narrowing).length }
+}
+
+export function reportFamily(
+  family: Family,
+  base: string,
+  repoRoot: string = REPO_ROOT,
+): { lines: string[]; narrowing: number } {
+  if (family.role === 'core') return reportProseOnly(family, base, repoRoot)
+
   const { bundle: bundleRel, spec: specRel } = familyPaths(family.name, family.major)
 
-  const beforeBundle = readBlobAtRef(REPO_ROOT, base, bundleRel)
-  const beforeSpec = readBlobAtRef(REPO_ROOT, base, specRel)
+  const beforeBundle = readBlobAtRef(repoRoot, base, bundleRel)
+  const beforeSpec = readBlobAtRef(repoRoot, base, specRel)
   if (beforeBundle === null) {
     return {
       lines: [`### ${family.name}/${family.major}`, '', '_New family — nothing to compare._', ''],

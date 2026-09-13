@@ -10,7 +10,7 @@ import { writeFileSync } from 'node:fs'
 import {
   CATALOG_FILE,
   canonicalJson,
-  discoverFamilies,
+  discoverKinds,
   inRepo,
   type Json,
   REPO_ROOT,
@@ -55,7 +55,9 @@ const TITLE: Record<string, string> = {
 export function buildCatalog(repoRoot: string = REPO_ROOT): Json {
   const schemas: Json[] = []
 
-  for (const family of discoverFamilies(repoRoot)) {
+  // Kind families only: core has no schema for an editor to bind, and no file
+  // is a core document — every document is of some kind.
+  for (const family of discoverKinds(repoRoot)) {
     const fileMatch = FILE_MATCH[family.name]
     if (fileMatch === undefined) {
       throw new Error(

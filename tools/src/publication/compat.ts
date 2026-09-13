@@ -24,6 +24,7 @@ import {
   discoverFamilies,
   Failures,
   type Family,
+  hasPart,
   isObject,
   type Json,
   REPO_ROOT,
@@ -135,15 +136,24 @@ export function replayRelease(
   return subjects.length
 }
 
-function main(): void {
-  const failures = new Failures()
-  const releases = discoverReleases(REPO_ROOT)
-  const families = new Map(discoverFamilies().map((f) => [`${f.name}/${f.major}`, f]))
+/**
+ * Replay every release against the working tree's schemas.
+ *
+ * A release of a family with no schema — core — is skipped: it accepted no
+ * document a bundle decided, so there is nothing structural to replay. Its
+ * parser-phase corpus is exercised by every kind family's own conformance run.
+ */
+export function replayAll(
+  repoRoot: string,
+  failures: Failures,
+): { replayed: number; checked: number } {
+  const families = new Map(discoverFamilies(repoRoot).map((f) => [`${f.name}/${f.major}`, f]))
 
   let replayed = 0
   let checked = 0
 
-  for (const release of releases) {
+  for (const release of discoverReleases(repoRoot)) {
+    if (!hasPart(release.family, release.major, 'schema')) continue
     const family = families.get(`${release.family}/${release.major}`)
     if (family === undefined) {
       // A retired family still has published versions, but no current schema to
@@ -151,11 +161,18 @@ function main(): void {
       console.log(`  · ${release.tag}: no ${release.family}/${release.major} in the working tree`)
       continue
     }
-    const count = replayRelease(REPO_ROOT, family, release, failures)
+    const count = replayRelease(repoRoot, family, release, failures)
     console.log(`  ✓ ${release.tag}: ${count} document(s) replayed`)
     replayed += count
     checked += 1
   }
+
+  return { replayed, checked }
+}
+
+function main(): void {
+  const failures = new Failures()
+  const { replayed, checked } = replayAll(REPO_ROOT, failures)
 
   failures.report(
     checked === 0

@@ -4,14 +4,18 @@
  * Runs before bundling, so a malformed module is reported as a module problem
  * rather than as a confusing bundler crash.
  */
+import { existsSync } from 'node:fs'
 import Ajv2020 from 'ajv/dist/2020.js'
+import { type FamilyBindings, readBindings } from '../lib/bindings.ts'
 import {
   discoverFamilies,
   Failures,
+  type Family,
   familyPaths,
   isObject,
   type Json,
   METASCHEMA,
+  REPO_ROOT,
   readJson,
   relativeToRepo,
   SCHEMA_ORIGIN,
@@ -23,13 +27,28 @@ const DEFS_NAME = /^[A-Z][A-Za-z0-9]*$/
 const MODULE_NAME = /^[a-z][a-z0-9-]*\.schema\.json$/
 const SEEDED_AFFIX = /^Seed|Request$/
 
-function main(): void {
-  const failures = new Failures()
-  const families = discoverFamilies()
+/**
+ * Lint every family's authored modules into `failures`.
+ *
+ * A family with no `schemas/src` is skipped without a word: core has none by
+ * design, and a kind family that has not authored one yet has nothing to lint.
+ * Core carrying a `schemas/` at all is the one failure such a family can raise.
+ */
+export function lintFamilies(
+  repoRoot: string,
+  failures: Failures,
+): { moduleCount: number; familyCount: number } {
+  const families = discoverFamilies(repoRoot)
   const seenIds = new Map<string, string>()
   let moduleCount = 0
 
   for (const family of families) {
+    if (family.role === 'core') {
+      checkCoreHasNoSchema(family, failures)
+      continue
+    }
+    if (!family.hasSchema) continue
+
     const modules = sourceModules(family)
     if (modules.length === 0) {
       console.log(`  · ${family.name}/${family.major}: no modules authored yet`)
@@ -99,16 +118,116 @@ function main(): void {
       checkNoUnfinishedText(doc, rel, failures)
       checkMetaValid(doc, rel, failures)
       checkAnnotationsValidate(doc, rel, failures)
+      if (fileName === `${family.name}.schema.json`) {
+        checkEnvelope(doc, rel, family, readBindings(family), failures)
+      }
     }
   }
 
-  if (moduleCount === 0) {
+  return { moduleCount, familyCount: families.length }
+}
+
+function main(): void {
+  const failures = new Failures()
+  const { moduleCount, familyCount } = lintFamilies(REPO_ROOT, failures)
+  if (moduleCount === 0 && failures.count === 0) {
     console.log('No schema modules authored yet — nothing to lint.')
     return
   }
-  failures.report(
-    `Linted ${moduleCount} schema module(s) across ${families.length} family tree(s).`,
+  failures.report(`Linted ${moduleCount} schema module(s) across ${familyCount} family tree(s).`)
+}
+
+/**
+ * Core ships no schema (docs/adr/0022).
+ *
+ * A core schema would either enumerate every `kind` — gating each new family on
+ * a core release — or leave the envelope open, which the closed-object rule
+ * forbids and which would duplicate every family bundle. Each kind family's
+ * root expresses the envelope instead, and `checkEnvelope` holds them to it.
+ */
+export function checkCoreHasNoSchema(family: Family, failures: Failures): void {
+  if (!existsSync(family.schemasDir)) return
+  failures.add(
+    `${familyPaths(family.name, family.major).schemas}: core ships no schema — ADR 0022. ` +
+      "The envelope is expressed by each kind family's root schema.",
   )
+}
+
+const ENVELOPE_PROPERTIES = ['specVersion', 'kind', 'metadata', 'spec'] as const
+
+/**
+ * A kind family's root schema is the envelope core v1 §2 defines, and nothing
+ * more: exactly `specVersion`, `kind`, `metadata` and `spec`, all required, the
+ * object closed, `specVersion` admitting the family's own major and no other,
+ * and `kind` a constant.
+ *
+ * `specVersion` is a single-value `enum` today, and `enum_to_const` in
+ * standards.ts explains why it must stay one: the validator maps `enum` and
+ * `const` to different codes. A `const` is accepted here as the same statement,
+ * so this check describes the envelope rather than re-deciding that choice.
+ *
+ * When the family's §2 binds its parameters, `kind.const` must equal the bound
+ * `kind`. When it does not yet — every family today — only that comparison is
+ * skipped.
+ */
+export function checkEnvelope(
+  doc: { [k: string]: Json },
+  rel: string,
+  family: { readonly name: string; readonly major: string },
+  bindings: FamilyBindings | null,
+  failures: Failures,
+): void {
+  const where = `${rel}: the envelope`
+  const expected = [...ENVELOPE_PROPERTIES].sort()
+
+  const properties = isObject(doc.properties) ? doc.properties : {}
+  const declared = Object.keys(properties).sort()
+  if (JSON.stringify(declared) !== JSON.stringify(expected)) {
+    failures.add(
+      `${where} must declare exactly ${ENVELOPE_PROPERTIES.join(', ')} at the root, ` +
+        `got ${declared.length === 0 ? 'none' : declared.join(', ')}`,
+    )
+  }
+
+  const required = Array.isArray(doc.required)
+    ? doc.required.filter((r): r is string => typeof r === 'string').sort()
+    : []
+  if (JSON.stringify(required) !== JSON.stringify(expected)) {
+    failures.add(
+      `${where} must require exactly ${ENVELOPE_PROPERTIES.join(', ')}, ` +
+        `got ${required.length === 0 ? 'none' : required.join(', ')}`,
+    )
+  }
+
+  if (doc.additionalProperties !== false) {
+    failures.add(`${where} must set "additionalProperties": false at the root`)
+  }
+
+  const specVersion = properties.specVersion
+  const versions = !isObject(specVersion)
+    ? null
+    : Array.isArray(specVersion.enum)
+      ? specVersion.enum
+      : 'const' in specVersion
+        ? [specVersion.const as Json]
+        : null
+  if (versions === null || versions.length !== 1 || versions[0] !== family.major) {
+    failures.add(
+      `${where}: specVersion must admit exactly "${family.major}" — the family's major — ` +
+        `as a one-value enum or a const, got ${JSON.stringify(versions)}`,
+    )
+  }
+
+  const kind = properties.kind
+  const constant = isObject(kind) && typeof kind.const === 'string' ? kind.const : null
+  if (constant === null) {
+    failures.add(`${where}: kind must be a string const`)
+  } else if (bindings !== null && constant !== bindings.kind) {
+    failures.add(
+      `${where}: kind is "${constant}", but ${family.name}/${family.major} spec.md §2 ` +
+        `binds "${bindings.kind}"`,
+    )
+  }
 }
 
 function checkDialect(doc: { [k: string]: Json }, rel: string, failures: Failures): void {
