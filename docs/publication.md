@@ -292,20 +292,34 @@ starting with core, is tagged:
 2. **Disable GitHub Pages** on the repository. The origin is Cloudflare Pages,
    and a stale Pages site must not answer for the same content.
 3. **Create the release GitHub App.** Grant it Contents read and write, Pull
-   requests read and write, and Metadata read. Install it on this repository,
-   store its id as the repository variable `RELEASE_APP_ID` and its private key
-   as the repository secret `RELEASE_APP_PRIVATE_KEY`. The `signoff` identity in
-   `.github/release-please/config.json` must match the App's commit author, or
-   `Signed off` fails on every release pull request.
-4. **Serve `specifications.musher.dev` from Cloudflare Pages.** Attach the
+   requests read and write, and Administration read, which the release job uses
+   to confirm immutable releases are enabled before it publishes. GitHub adds
+   Metadata read to every App. Install it on this repository, then record its id
+   as the repository variable `RELEASE_APP_ID` and its private key as the
+   repository secret `RELEASE_APP_PRIVATE_KEY`.
+4. **Set the release sign-off.** The `signoff` in
+   `.github/release-please/config.json` holds a placeholder:
+
+   ```
+   RELEASE_APP_SLUG[bot] <RELEASE_APP_BOT_USER_ID+RELEASE_APP_SLUG[bot]@users.noreply.github.com>
+   ```
+
+   Replace both `RELEASE_APP_SLUG` occurrences with the App's slug, and
+   `RELEASE_APP_BOT_USER_ID` with its bot user id, which
+   `gh api users/<slug>[bot] --jq .id` prints. Before release-please runs, the
+   release job compares the value on the default branch with the App's commit
+   author, and it refuses to continue until they match, because every release
+   pull request would otherwise fail `Signed off`.
+5. **Serve `specifications.musher.dev` from Cloudflare Pages.** Attach the
    custom domain to the Pages project `task site:deploy` names. Store a token
    scoped to that one project as `CLOUDFLARE_API_TOKEN`, and the account as
    `CLOUDFLARE_ACCOUNT_ID`.
-5. **Redirect the old host.** `schemas.musher.dev` answers with a `301` to
+6. **Redirect the old host.** `schemas.musher.dev` is being retired. Once the
+   redirect is in place, it answers with a `301` to the same path on
    `specifications.musher.dev`. No published `$id` names the old host, so
    nothing here depends on the redirect lasting.
-6. **Apply the updated `release-tags` ruleset**, which covers
+7. **Apply the updated `release-tags` ruleset**, which covers
    `refs/tags/core/**`, with `gh api -X PUT` as
    [RULESETS.md](../.github/rulesets/RULESETS.md) shows.
-7. **Rehearse** the whole flow in a scratch repository, then release core
+8. **Rehearse** the whole flow in a scratch repository, then release core
    before any kind family.

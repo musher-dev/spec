@@ -129,6 +129,13 @@ tasks:
     cmds:
       - bun run src/policy/commits.ts
 
+  docs:
+    desc: Fail if docs/traceability.md or the ADR index differs from a fresh generation
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      # Regenerates both in memory and writes nothing; `task docs` is the fix.
+      - bun run src/policy/docs.ts
+
   links:
     desc: Resolve every internal Markdown link and anchor
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'

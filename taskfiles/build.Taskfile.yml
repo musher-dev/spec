@@ -10,20 +10,22 @@ version: '3'
 
 tasks:
   bundle:
-    desc: Build every schema bundle and the catalog into dist/, and regenerate traceability
+    desc: Build every schema bundle and the catalog into dist/, and regenerate the generated docs
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
       # Writes dist/<family>/<major>/<family>.schema.json and dist/catalog.json.
       # Nothing else needs this first: every check and site:build builds the
       # bundles in memory. It is for reading, vendoring, and editor bindings.
       - bun run src/schema/bundle.ts
-      - bun run src/render/traceability.ts
+      - task: docs
 
-  traceability:
-    desc: Regenerate the requirement traceability matrix
+  docs:
+    desc: Regenerate docs/traceability.md and the ADR index in docs/adr/README.md
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
+      # Both are committed, and `task check:docs` fails when either is stale.
       - bun run src/render/traceability.ts
+      - bun run src/render/adr-index.ts
 
   catalog:
     desc: Regenerate the SchemaStore catalog index into dist/

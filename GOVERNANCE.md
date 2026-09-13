@@ -57,7 +57,7 @@ Structural changes need an accepted ADR first. That covers:
   [core specification](specifications/core/v1/spec.md), moving one out of it, or
   changing what a family takes from it
 
-ADRs live in [`docs/adr/`](docs/adr/), are numbered sequentially, and are
+ADRs live in [`docs/adr/`](docs/adr/README.md), are numbered sequentially, and are
 immutable once accepted — supersede, never rewrite. The one edit an accepted ADR
 admits is retargeting a relative link whose target moved, and
 [ADR 0021 §4](docs/adr/0021-repository-organized-around-the-family-version.md)

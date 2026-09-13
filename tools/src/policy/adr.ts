@@ -19,29 +19,30 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { git, listTreeFiles, readBlobAtRef } from '../lib/git.ts'
-import { Failures, REPO_ROOT } from '../lib/layout.ts'
+import { ADR_DIR, ADR_INDEX_FILE, Failures, REPO_ROOT } from '../lib/layout.ts'
 
-const ADR_DIR = 'docs/adr'
+/** The index `render/adr-index.ts` generates, which is not itself an ADR. */
+const INDEX_NAME = ADR_INDEX_FILE.slice(ADR_DIR.length + 1)
 
 /** `0021-repository-organized-around-the-family-version.md`. */
-const FILENAME = /^\d{4}-[a-z0-9]+(-[a-z0-9]+)*\.md$/
+export const FILENAME = /^\d{4}-[a-z0-9]+(-[a-z0-9]+)*\.md$/
 /** `# ADR 0021: Title`. */
-const TITLE = /^# ADR (\d{4}): \S/
-const STATUS = /^- \*\*Status:\*\* (Accepted|Proposed|Superseded\b.*)$/
-const DATE = /^- \*\*Date:\*\* \d{4}-\d{2}-\d{2}$/
+export const TITLE = /^# ADR (\d{4}): \S/
+export const STATUS = /^- \*\*Status:\*\* (Accepted|Proposed|Superseded\b.*)$/
+export const DATE = /^- \*\*Date:\*\* \d{4}-\d{2}-\d{2}$/
 /** The relation bullets whose links must land on another ADR. */
-const RELATION = /^- \*\*(Supersedes|Refines|Extends|Relies on|Closes):\*\*/
+export const RELATION = /^- \*\*(Supersedes|Refines|Extends|Relies on|Closes):\*\*/
 /** `[text](target)`, with the target captured. */
-const LINK = /\[[^\]]*\]\(([^)\s]*)\)/g
+export const LINK = /\[[^\]]*\]\(([^)\s]*)\)/g
 /** A section citation, `§3`. */
-const SECTION = /§(\d+)/g
+export const SECTION = /§(\d+)/g
 /** A numbered heading: `### 3. Title` or `### 3 Title`. */
 const NUMBERED_HEADING = /^#{2,6}\s+(\d+)(?:\.|\s)/gm
 /** A scheme-qualified URL — not a path in this repository. */
 const ABSOLUTE = /^[a-z][a-z0-9+.-]*:/i
 
 /** An ADR's header: every line after the H1 and before the first `## `. */
-function headerLines(text: string): string[] {
+export function headerLines(text: string): string[] {
   const lines = text.split('\n').slice(1)
   const end = lines.findIndex((line) => line.startsWith('## '))
   return end === -1 ? lines : lines.slice(0, end)
@@ -99,7 +100,7 @@ function shapeViolations(repoRoot: string): string[] {
   if (!existsSync(dir)) return [`ADR-01: ${ADR_DIR}/ does not exist.`]
 
   const names = readdirSync(dir)
-    .filter((name) => name !== 'README.md')
+    .filter((name) => name !== INDEX_NAME)
     .sort()
   const records = new Map<string, string>()
   for (const name of names) {

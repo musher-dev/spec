@@ -63,6 +63,8 @@ jobs:
           sudo install -m 0755 actionlint /usr/local/bin/actionlint
 
       # BASE_REF is empty on a push, where check:adr falls back to origin/main.
+      # The suite includes check:docs, which fails when docs/traceability.md or
+      # the ADR index is stale.
       - name: Run lint suite
         env:
           BASE_REF: ${{ github.event.pull_request.base.sha }}
@@ -101,29 +103,17 @@ jobs:
       # Every check here builds the bundles in memory from schemas/src; none is
       # committed (docs/adr/0023). check:generated fails if git tracks any build
       # output, which is what stops a committed copy from becoming a second,
-      # divergent source of truth.
+      # divergent source of truth. The suite includes check:editions: every kind
+      # family names the core edition it implements, and core is not changed in
+      # a releasable way behind a family's back (docs/adr/0023 §5).
       - name: Schema, examples, conformance
         run: task ci:test
-
-      # Every kind family names the core edition it implements, and core is not
-      # changed in a releasable way behind a family's back (docs/adr/0023 §5).
-      - name: Core editions
-        run: task check:editions
 
       # Build output for reviewers: dist/ holds every bundle and the catalog,
       # uploaded below, so the bytes a pull request would publish can be read
       # without a checkout.
       - name: Build bundles
         run: task bundle
-
-      - name: Traceability matrix is current
-        run: |
-          task traceability
-          if ! git diff --quiet -- docs/traceability.md; then
-            echo "::error file=docs/traceability.md::stale. Run 'task traceability' and commit." >&2
-            git --no-pager diff -- docs/traceability.md
-            exit 1
-          fi
 
       # Reporting only, and deliberately not a gate: check:compat above is the
       # gate. This says what the pull request does to the contract in the terms

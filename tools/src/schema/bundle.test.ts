@@ -28,7 +28,7 @@ function sources(): { fx: FixtureRepo; family: { name: string; major: string; re
   repo = fx
   fx.writeSources('component', 'v1', {
     $schema: 'https://json-schema.org/draft/2020-12/schema',
-    $id: 'https://schemas.musher.dev/component/v1/component',
+    $id: 'https://specifications.musher.dev/component/v1/component',
     title: 'Musher Component Document',
     type: 'object',
     properties: { spec: { $ref: '#/$defs/ComponentWorkload' }, name: { $ref: '#/$defs/Name' } },
@@ -38,7 +38,7 @@ function sources(): { fx: FixtureRepo; family: { name: string; major: string; re
     `${COMPONENT.src}/component-workload.schema.json`,
     `${JSON.stringify({
       $schema: 'https://json-schema.org/draft/2020-12/schema',
-      $id: 'https://schemas.musher.dev/component/v1/component-workload',
+      $id: 'https://specifications.musher.dev/component/v1/component-workload',
       type: 'object',
       properties: { port: { $ref: '#/$defs/Port' } },
       $defs: { Port: { type: 'integer', minimum: 1 } },

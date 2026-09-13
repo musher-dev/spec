@@ -104,8 +104,10 @@ generated is part of [Publication](publication.md).
 
 ## <a id="moved-host"></a>Moved host
 
-These schemas were first served from `schemas.musher.dev`, which now redirects
-to `specifications.musher.dev`. Every `$id` names the new host, and nothing was
-ever released under the old one, so no exact release URL moved. Update any
-modeline or binding that still names the old host: not every validator follows
-a redirect.
+These schemas were first served from `schemas.musher.dev`. That host is being
+retired: once the redirect is in place, it answers with a `301` to the same path
+on `specifications.musher.dev`. Every `$id` names the new host, and nothing was
+ever released under the old one, so no exact release URL moves. Point
+automation, and every modeline and binding, at `specifications.musher.dev` now
+rather than relying on the redirect: it is not live yet, and not every validator
+follows one.

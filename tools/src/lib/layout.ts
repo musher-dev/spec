@@ -35,6 +35,10 @@ export const RELEASE_PLEASE_MANIFEST_FILE = '.github/release-please/manifest.jso
 export const RELEASE_PLEASE_CONFIG_FILE = '.github/release-please/config.json'
 /** The generated requirement traceability matrix. */
 export const TRACEABILITY_FILE = 'docs/traceability.md'
+/** The architecture decision records, one `NNNN-title.md` each. */
+export const ADR_DIR = 'docs/adr'
+/** The ADR index: a hand-written introduction around a generated table. */
+export const ADR_INDEX_FILE = `${ADR_DIR}/README.md`
 /**
  * Where every build output lands: bundles and the catalog. Never tracked —
  * `task check:generated` fails if git holds anything under it (docs/adr/0023).

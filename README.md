@@ -35,7 +35,7 @@ generated documentation are not; the exact rule is
 | know whether a version is released | [Draft or released](docs/publication.md#draft-or-released) |
 | know what counts as a breaking change | [Compatibility review](GOVERNANCE.md#compatibility-review) |
 | change a specification | [Contributing](.github/CONTRIBUTING.md) |
-| understand why something was decided | [Architecture decision records](docs/adr/) |
+| understand why something was decided | [Architecture decision records](docs/adr/README.md) |
 | report a vulnerability | [Security policy](.github/SECURITY.md) |
 | see every guide, by audience | [Documentation index](docs/README.md) |
 

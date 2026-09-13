@@ -26,6 +26,8 @@ every guide by who it is for.
 - [Contributing](../.github/CONTRIBUTING.md): environment, making a change,
   commit messages, and sign-off.
 - [Repository conventions](conventions.md): how repository artifacts are named.
+- [Tools](../tools/README.md): what each `task check` step enforces, the script
+  behind it, and how the tooling is organized.
 - [ADR 0007](adr/0007-naming-conventions.md): how fields and values are named.
 - [Compatibility review](../GOVERNANCE.md#compatibility-review): what counts as
   a breaking change.
@@ -44,6 +46,6 @@ every guide by who it is for.
 
 ## Decisions
 
-- [Architecture decision records](adr/): why the repository and the
-  specifications are the way they are. An accepted ADR is not edited; it is
-  superseded.
+- [Architecture decision records](adr/README.md): why the repository and the
+  specifications are the way they are, indexed with what supersedes or refines
+  each one. An accepted ADR is not edited; it is superseded.
