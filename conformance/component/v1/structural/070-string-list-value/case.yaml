@@ -1,0 +1,49 @@
+# The member that exists so an install form can ask for several of a named set.
+# `enum` is required and non-empty, and it constrains each member of the array
+# rather than the array — which is why `default` is `'["logs"]'` and not `logs`:
+# the string form is the array, so a default is that array's text. `enumLabels`
+# needs no new rule, because it was already keyed by the member.
+#
+# The output is here because §6.3 defines one block for an input and an output
+# alike, and a member proved only on the input half is a member proved halfway.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  revision: 1
+spec:
+  workload:
+    type: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+    endpoints:
+      web:
+        containerPort: 8080
+        protocol: HTTP
+        visibility: PRIVATE
+  contract:
+    inputs:
+      telemetry:
+        schema:
+          type: STRING_LIST
+          enum:
+            - logs
+            - metrics
+            - traces
+          default: '["logs"]'
+        required: false
+        ui:
+          label: Telemetry to export
+          enumLabels:
+            logs: Logs
+            metrics: Metrics
+    outputs:
+      exported:
+        schema:
+          type: STRING_LIST
+          enum:
+            - logs
+            - metrics
+            - traces
+        valueFrom: DECLARED
+        value: '["logs","metrics"]'

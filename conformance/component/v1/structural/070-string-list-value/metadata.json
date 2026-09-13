@@ -1,0 +1,11 @@
+{
+  "id": "structural-070-string-list-value",
+  "phase": "structural",
+  "expected": "pass",
+  "clause": "specifications/component/v1/spec.md#value-schema",
+  "requirements": [
+    "COMP-VAL-001",
+    "COMP-VAL-006"
+  ],
+  "summary": "A STRING_LIST value names its members in enum and carries its default as array text."
+}

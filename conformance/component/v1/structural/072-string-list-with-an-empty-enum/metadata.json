@@ -1,0 +1,10 @@
+{
+  "id": "structural-072-string-list-with-an-empty-enum",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#value-schema",
+  "requirements": [
+    "COMP-VAL-006"
+  ],
+  "summary": "A STRING_LIST whose enum is written empty is rejected."
+}

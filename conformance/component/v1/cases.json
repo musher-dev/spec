@@ -413,6 +413,31 @@
       "path": "structural/069-input-named-on-a-declared-output"
     },
     {
+      "id": "structural-070-string-list-value",
+      "phase": "structural",
+      "path": "structural/070-string-list-value"
+    },
+    {
+      "id": "structural-071-string-list-without-an-enum",
+      "phase": "structural",
+      "path": "structural/071-string-list-without-an-enum"
+    },
+    {
+      "id": "structural-072-string-list-with-an-empty-enum",
+      "phase": "structural",
+      "path": "structural/072-string-list-with-an-empty-enum"
+    },
+    {
+      "id": "structural-073-string-list-with-a-pattern",
+      "phase": "structural",
+      "path": "structural/073-string-list-with-a-pattern"
+    },
+    {
+      "id": "structural-074-string-list-with-a-format",
+      "phase": "structural",
+      "path": "structural/074-string-list-with-a-format"
+    },
+    {
       "id": "semantic-001-floating-tag-image-reference",
       "phase": "semantic",
       "path": "semantic/001-floating-tag-image-reference"

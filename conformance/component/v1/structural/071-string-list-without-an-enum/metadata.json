@@ -1,0 +1,10 @@
+{
+  "id": "structural-071-string-list-without-an-enum",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#value-schema",
+  "requirements": [
+    "COMP-VAL-006"
+  ],
+  "summary": "A STRING_LIST naming no members is rejected."
+}

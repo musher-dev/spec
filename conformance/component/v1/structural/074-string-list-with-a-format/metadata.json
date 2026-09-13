@@ -1,0 +1,10 @@
+{
+  "id": "structural-074-string-list-with-a-format",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#value-schema",
+  "requirements": [
+    "COMP-VAL-003"
+  ],
+  "summary": "A format on a STRING_LIST value is rejected by the rule that already forbids it off STRING."
+}

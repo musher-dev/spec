@@ -1,0 +1,33 @@
+# COMP-VAL-002's argument arriving through the member that is a list rather than
+# the member that is a document. The string form is a JSON array, so the pattern
+# below decides membership on the array's spelling: it accepts `["logs"]` and
+# rejects `[ "logs" ]`, which is the same value. What the author wants
+# constrained is each member, and `enum` — required here — is the field that
+# constrains each member.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  revision: 1
+spec:
+  workload:
+    type: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+    endpoints:
+      web:
+        containerPort: 8080
+        protocol: HTTP
+        visibility: PRIVATE
+  contract:
+    inputs:
+      telemetry:
+        schema:
+          type: STRING_LIST
+          enum:
+            - logs
+            - metrics
+          pattern: '^\[.*\]$'
+        ui:
+          label: Telemetry to export
+    outputs: {}

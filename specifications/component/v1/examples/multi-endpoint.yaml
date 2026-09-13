@@ -8,6 +8,10 @@
 # PUBLIC_URL takes it. `wire` is a PUBLIC TCP endpoint published at a host:port
 # edge address, which compels no readiness probe and which PUBLIC_ADDRESS —
 # never PUBLIC_URL — is the source for.
+#
+# `telemetry` is a STRING_LIST: its string form is a JSON array of members of
+# `enum`, so its default is that array's text, and §6.4's derivation offers the
+# three members at once rather than one of them.
 specVersion: v1
 kind: COMPONENT
 metadata:
@@ -63,4 +67,21 @@ spec:
           label: Wire protocol address
         target:
           envVarKey: WIRE_ADDRESS
+      telemetry:
+        schema:
+          type: STRING_LIST
+          enum:
+            - logs
+            - metrics
+            - traces
+          default: '["logs","metrics"]'
+        required: false
+        ui:
+          label: Telemetry to export
+          enumLabels:
+            logs: Logs
+            metrics: Metrics
+            traces: Traces
+        target:
+          envVarKey: TELEMETRY_EXPORTERS
     outputs: {}
