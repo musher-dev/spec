@@ -31,13 +31,13 @@ tasks:
     desc: Verify the .config/ layout (CFG-01..CFG-08)
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/config.ts
+      - bun run src/policy/config.ts
 
   rulesets:
     desc: Verify the review gate holds together (RUL-01..RUL-09)
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/rulesets.ts
+      - bun run src/policy/rulesets.ts
 
   # --- The normative gates ---------------------------------------------------
 
@@ -45,37 +45,37 @@ tasks:
     desc: Meta-validate schema modules, $id uniqueness, and $ref locality
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/lint.ts
+      - bun run src/schema/lint.ts
 
   drift:
     desc: Fail if a committed bundle does not match a fresh compile
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/drift.ts
+      - bun run src/schema/drift.ts
 
   examples:
     desc: Validate every example document against its family bundle
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/examples.ts
+      - bun run src/conformance/examples.ts
 
   conformance:
     desc: Execute the conformance corpus
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/conformance.ts
+      - bun run src/conformance/conformance.ts
 
   standards:
     desc: Meta-validate schemas with an independent JSON Schema toolchain
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/standards.ts
+      - bun run src/schema/standards.ts
 
   parity:
     desc: Require Ajv and Blaze to agree on every structural verdict
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/parity.ts
+      - bun run src/conformance/parity.ts
 
   test:
     desc: Run the tooling test suite
@@ -89,19 +89,19 @@ tasks:
     desc: Verify every released version against the publication ledger
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/published.ts
+      - bun run src/publication/published.ts
 
   ledger:
     desc: Fail if published.json changed anything already recorded
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/ledger.ts check
+      - bun run src/publication/ledger.ts check
 
   compat:
     desc: Replay every released version's accepted documents against the candidate schema
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/compat.ts
+      - bun run src/publication/compat.ts
 
   # --- Prose, workflows, and shell -------------------------------------------
 
@@ -109,13 +109,13 @@ tasks:
     desc: Hold the Conventional Commits vocabulary in step across all five of its copies
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/commits.ts
+      - bun run src/policy/commits.ts
 
   links:
     desc: Resolve every internal Markdown link and anchor
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/links.ts
+      - bun run src/policy/links.ts
 
   md:
     desc: Lint Markdown against .config/markdown/markdownlint.jsonc

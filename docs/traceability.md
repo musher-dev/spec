@@ -6,7 +6,7 @@ Every requirement this specification gives a stable identifier, the clause
 that states it, and the conformance cases that pin it.
 
 A requirement with no case is not necessarily untested — some are excused in
-`tools/src/conformance.ts`'s `UNPINNED` list, each with a written reason. What
+`tools/src/conformance/conformance.ts`'s `UNPINNED` list, each with a written reason. What
 this table makes visible is which rules the corpus actually holds down.
 
 ## blueprint/v1

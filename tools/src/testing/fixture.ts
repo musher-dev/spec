@@ -15,8 +15,8 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { git } from '../git.ts'
-import { canonicalJson, type Json } from '../spec.ts'
+import { git } from '../lib/git.ts'
+import { canonicalJson, type Json } from '../lib/layout.ts'
 
 const IDENTITY = [
   '-c',

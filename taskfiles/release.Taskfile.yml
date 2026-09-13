@@ -14,10 +14,10 @@ tasks:
     desc: Record the pending release from the release-please manifest
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/ledger.ts record
+      - bun run src/publication/ledger.ts record
 
   sync:
     desc: Backfill ledger entries for tags that exist but were never recorded
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/ledger.ts sync
+      - bun run src/publication/ledger.ts sync

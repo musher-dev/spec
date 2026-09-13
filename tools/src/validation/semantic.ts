@@ -1,0 +1,1340 @@
+/**
+ * The `semantic` phase: rules JSON Schema cannot express.
+ *
+ * NON-NORMATIVE, like everything under tools/. The definitive rule for each
+ * check below is the `spec.md` clause named in its comment; this file is one
+ * adapter's reading of it, and where the two disagree the prose wins.
+ *
+ * The rules divide by what they need, and the division is the prose's, not this
+ * runner's. An **in-document** rule is decided by reading the document. An
+ * **item-scoped** rule is measured against the item root
+ * ([blueprint §3.1](../../specifications/blueprint/v1/spec.md#item-directory)),
+ * and a caller that supplies no item root MUST NOT have those rules reported:
+ * "a diagnostic it cannot substantiate is worse than a silence."
+ */
+import {
+  existsSync,
+  lstatSync,
+  readdirSync,
+  readFileSync,
+  readlinkSync,
+  realpathSync,
+} from 'node:fs'
+import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
+import { type Node, Parser } from 'commonmark'
+import { type Family, isObject, type Json } from '../lib/layout.ts'
+import { type Diagnostic, parseDocument } from './document.ts'
+
+export type { Diagnostic }
+
+export interface SemanticContext {
+  /**
+   * Absolute path to the item root. Absent when the document did not arrive
+   * with a directory — a payload submitted over an API, or an `examples/`
+   * document. Item-scoped rules are silent without it.
+   */
+  readonly itemRoot?: string
+  /**
+   * Absolute path to the document under test. Repo-local component references
+   * resolve relative to its directory (blueprint §4.1). Defaults to the item
+   * root's conventional `blueprint.yaml` when omitted.
+   */
+  readonly documentPath?: string
+}
+
+/** Escape one JSON Pointer reference token (RFC 6901 §3). */
+function token(value: string): string {
+  return value.replace(/~/g, '~0').replace(/\//g, '~1')
+}
+
+function child(value: Json | undefined, key: string): Json | undefined {
+  return isObject(value) ? value[key] : undefined
+}
+
+function asString(value: Json | undefined): string | undefined {
+  return typeof value === 'string' ? value : undefined
+}
+
+/** Mapping keys in document order, or an empty list when the node is not one. */
+function keysOf(value: Json | undefined): string[] {
+  return isObject(value) ? Object.keys(value) : []
+}
+
+// ===========================================================================
+// component
+// ===========================================================================
+
+/**
+ * Component §5.1. Curated, and it will grow — which is exactly why it is here
+ * and not in a `pattern`. Growing a pattern makes a previously valid document
+ * invalid; growing this list is a minor release.
+ */
+const FLOATING_TAGS = new Set([
+  'latest',
+  'main',
+  'main-stable',
+  'master',
+  'stable',
+  'edge',
+  'nightly',
+  'dev',
+  'rolling',
+])
+
+/**
+ * Component §5.2 — the protocols whose `PUBLIC` form publishes a URL. A `TCP` or
+ * `UDP` endpoint publishes a `host:port` address instead, and every reference
+ * reads one form or the other: §5.4's probes and §6.1's PUBLIC_URL and
+ * PUBLIC_HOSTNAME need this set, PUBLIC_ADDRESS and PUBLIC_PORT need its
+ * complement.
+ */
+const HTTP_FAMILY = new Set(['HTTP', 'HTTPS', 'WS', 'GRPC'])
+
+/**
+ * The tag of an image reference, or `undefined` when it carries none.
+ *
+ * The tag colon is the one after the final slash. Without that rule
+ * `localhost:5000/nginx` reads as an image named `localhost` tagged
+ * `5000/nginx`, and a reference behind a ported registry is misjudged.
+ */
+function imageTag(ref: string): string | undefined {
+  const afterSlash = ref.slice(ref.lastIndexOf('/') + 1)
+  const colon = afterSlash.indexOf(':')
+  return colon === -1 ? undefined : afterSlash.slice(colon + 1)
+}
+
+/**
+ * Component `COMP-UI-005` — every `ui.enumLabels` key MUST be a member of the
+ * sibling `schema.enum`.
+ *
+ * Shared, because a blueprint parameter carries the `ui` block component §6.4
+ * defines and answers to the same rule. `fields` is the mapping holding them —
+ * `spec.contract.inputs` on a component, `spec.parameters` on a blueprint — and
+ * `base` is the pointer that mapping sits at.
+ *
+ * `semantic` rather than `structural` because it relates a mapping's keys to a
+ * sibling array's items, which no JSON Schema keyword expresses. The reverse
+ * direction is deliberately not an error: a member with no label is offered as
+ * it is spelled, which is what every document written before the field existed
+ * already does.
+ */
+function checkEnumLabels(fields: Json | undefined, base: string, out: Diagnostic[]): void {
+  for (const field of keysOf(fields).sort()) {
+    const declaration = child(fields, field)
+    const labels = child(child(declaration, 'ui'), 'enumLabels')
+    if (labels === undefined || labels === null) continue
+
+    const members = child(child(declaration, 'schema'), 'enum')
+    const known = new Set(
+      Array.isArray(members) ? members.filter((m) => typeof m === 'string') : [],
+    )
+
+    // Sorted so two implementations anchor the same diagnostic first when a
+    // document mislabels more than one member; a mapping supplies no order.
+    for (const member of keysOf(labels).sort()) {
+      if (known.has(member)) continue
+      out.push({
+        code: 'ERR_UNKNOWN_ENUM_MEMBER',
+        path: `${base}/${token(field)}/ui/enumLabels/${token(member)}`,
+        message: `"${member}" is not a member of the enum declared beside it`,
+      })
+    }
+  }
+}
+
+/** Component §5.1 — a reference MUST NOT carry a floating tag. */
+function checkImageRef(document: Json, out: Diagnostic[]): void {
+  const source = child(child(child(document, 'spec'), 'workload'), 'source')
+  const ref = asString(child(source, 'ref'))
+  if (ref === undefined || child(source, 'type') !== 'IMAGE') return
+
+  // A digest is what resolves, so it satisfies the rule whatever tag it carries.
+  if (ref.includes('@sha256:')) return
+
+  const tag = imageTag(ref)
+  if (tag !== undefined && FLOATING_TAGS.has(tag.toLowerCase())) {
+    out.push({
+      code: 'ERR_UNPINNED_IMAGE',
+      path: '/spec/workload/source/ref',
+      message: `tag "${tag}" floats; pin a digest or an immutable tag`,
+    })
+  }
+}
+
+/**
+ * Component §5.2 — the endpoint a null reference selects. The sole endpoint
+ * where the workload declares exactly one, failing that its sole PUBLIC one,
+ * failing that nothing.
+ *
+ * §5.2 chose "nothing" over a sort-order tiebreak deliberately: a tiebreak
+ * lets a new endpoint named `api` silently re-point a probe that already works.
+ */
+function primaryEndpoint(endpoints: Json | undefined): string | undefined {
+  const names = keysOf(endpoints)
+  if (names.length === 1) return names[0]
+
+  const publicNames = names.filter(
+    (name) => child(child(endpoints, name), 'visibility') === 'PUBLIC',
+  )
+  return publicNames.length === 1 ? publicNames[0] : undefined
+}
+
+/**
+ * Which of §5.2's two address forms a reference reads. A probe and the two
+ * URL-derived platform-default sources need `http`; the two edge-address
+ * sources need `l4`.
+ */
+type AddressForm = 'http' | 'l4'
+
+/** §6.1 — the address form each platform-default source reads. */
+const SOURCE_ADDRESS_FORM: Record<string, AddressForm> = {
+  PUBLIC_URL: 'http',
+  PUBLIC_HOSTNAME: 'http',
+  PUBLIC_ADDRESS: 'l4',
+  PUBLIC_PORT: 'l4',
+}
+
+/**
+ * One place a document names an endpoint: a probe's `endpoint` (§5.4) or a
+ * platform default's (§6.1). `mustBePublic` is what separates them — every
+ * platform-default source derives an externally reachable address.
+ */
+interface EndpointReference {
+  /** The raw value, so an explicit null and an absent key are one case. */
+  readonly value: Json | undefined
+  readonly path: string
+  readonly subject: string
+  readonly mustBePublic: boolean
+  /**
+   * The address form this reference reads, or undefined where the document
+   * named a source the schema does not define — the structural phase has
+   * already rejected that, and guessing a form here would report a second
+   * diagnostic about it.
+   */
+  readonly addressForm: AddressForm | undefined
+}
+
+/**
+ * Component §5.2, §5.4 and §6.1. JSON Schema can express none of this: the
+ * endpoint names are mapping keys elsewhere in the document, and no keyword
+ * constrains a value against a sibling's keys.
+ */
+function checkEndpointReference(
+  reference: EndpointReference,
+  endpoints: Json | undefined,
+  out: Diagnostic[],
+): void {
+  const named = asString(reference.value)
+
+  // Absent or null both select the primary, which §5.2 may elect to be nothing.
+  // Every rule below is measured against whichever endpoint the reference
+  // resolves to, named or elected — §5.2 makes the primary what null *selects*,
+  // so a rule about the endpoint a reference names reaches it equally.
+  const selected = named ?? primaryEndpoint(endpoints)
+  if (selected === undefined) {
+    out.push({
+      code: 'ERR_AMBIGUOUS_ENDPOINT',
+      path: reference.path,
+      message: `${reference.subject} names no endpoint, and the workload elects no primary`,
+    })
+    return
+  }
+
+  const declared = child(endpoints, selected)
+  if (declared === undefined) {
+    out.push({
+      code: 'ERR_UNKNOWN_ENDPOINT',
+      path: reference.path,
+      message: `${reference.subject} targets endpoint "${selected}", which the workload does not declare`,
+    })
+    return
+  }
+
+  // §5.4 and §6.1 — a reference reads one of §5.2's two address forms, and the
+  // endpoint has to publish that one. A probe polls an HTTP path; PUBLIC_URL
+  // and PUBLIC_HOSTNAME take a URL; PUBLIC_ADDRESS and PUBLIC_PORT take the
+  // edge address only a TCP or UDP endpoint is allocated.
+  const protocol = asString(child(declared, 'protocol'))
+  if (protocol !== undefined && reference.addressForm !== undefined) {
+    const isHttp = HTTP_FAMILY.has(protocol)
+    if (reference.addressForm === 'http' && !isHttp) {
+      out.push({
+        code: 'ERR_ENDPOINT_NOT_HTTP',
+        path: reference.path,
+        message: `${reference.subject} resolves to endpoint "${selected}", which serves ${protocol}`,
+      })
+      return
+    }
+    if (reference.addressForm === 'l4' && isHttp) {
+      out.push({
+        code: 'ERR_ENDPOINT_NOT_L4',
+        path: reference.path,
+        message: `${reference.subject} resolves to endpoint "${selected}", which serves ${protocol} and is allocated no edge port`,
+      })
+      return
+    }
+  }
+
+  if (reference.mustBePublic && child(declared, 'visibility') !== 'PUBLIC') {
+    out.push({
+      code: 'ERR_ENDPOINT_NOT_PUBLIC',
+      path: reference.path,
+      message: `${reference.subject} derives a public address from endpoint "${selected}", which is PRIVATE`,
+    })
+  }
+}
+
+/** Every endpoint a component document names, in document order. */
+function endpointReferences(document: Json): EndpointReference[] {
+  const spec = child(document, 'spec')
+  const health = child(child(spec, 'workload'), 'health')
+  const inputs = child(child(spec, 'contract'), 'inputs')
+  const references: EndpointReference[] = []
+
+  for (const probe of keysOf(health)) {
+    references.push({
+      value: child(child(health, probe), 'endpoint'),
+      path: `/spec/workload/health/${token(probe)}/endpoint`,
+      subject: `${probe} probe`,
+      mustBePublic: false,
+      addressForm: 'http',
+    })
+  }
+
+  for (const input of keysOf(inputs)) {
+    const platformDefault = child(child(inputs, input), 'platformDefault')
+    if (!isObject(platformDefault)) continue
+    const source = asString(child(platformDefault, 'source'))
+    references.push({
+      value: child(platformDefault, 'endpoint'),
+      path: `/spec/contract/inputs/${token(input)}/platformDefault/endpoint`,
+      subject: `platform default on input "${input}"`,
+      mustBePublic: true,
+      addressForm: source === undefined ? undefined : SOURCE_ADDRESS_FORM[source],
+    })
+  }
+
+  return references
+}
+
+function checkEndpointReferences(document: Json, out: Diagnostic[]): void {
+  const endpoints = child(child(child(document, 'spec'), 'workload'), 'endpoints')
+  for (const reference of endpointReferences(document)) {
+    checkEndpointReference(reference, endpoints, out)
+  }
+}
+
+/**
+ * Component §6.2 — an `INPUT` output reads one of its own component's inputs,
+ * and may not read one a wire fills.
+ *
+ * The invariant §6.2 states is resolvability before any edge is bound. A `USER`
+ * input resolves at form submission, which is earlier than a `DERIVED` output
+ * resolves; only a `CONNECTION` input resolves after an edge, so only that one
+ * is excluded. Two codes rather than one, on §6.1's precedent for an endpoint
+ * reference: naming nothing and naming the wrong kind read differently to an
+ * author.
+ */
+function checkOutputInputReferences(document: Json, out: Diagnostic[]): void {
+  const contract = child(child(document, 'spec'), 'contract')
+  const inputs = child(contract, 'inputs')
+  const outputs = child(contract, 'outputs')
+
+  for (const name of keysOf(outputs)) {
+    const output = child(outputs, name)
+    if (asString(child(output, 'valueFrom')) !== 'INPUT') continue
+
+    const reference = asString(child(output, 'input'))
+    if (reference === undefined) continue // COMP-OUT-001, structural
+    const pointer = `/spec/contract/outputs/${token(name)}/input`
+
+    const input = child(inputs, reference)
+    if (input === undefined) {
+      out.push({
+        code: 'ERR_UNKNOWN_INPUT_REFERENCE',
+        path: pointer,
+        message: `output "${name}" reads input "${reference}", which this component does not declare`,
+      })
+      continue
+    }
+
+    if (child(input, 'suppliedBy') === 'CONNECTION') {
+      out.push({
+        code: 'ERR_INPUT_NOT_REFERENCEABLE',
+        path: pointer,
+        message: `output "${name}" reads input "${reference}", which a connection fills`,
+      })
+    }
+  }
+}
+
+/**
+ * Component §5.3 — every environment-variable key is declared exactly once,
+ * across both the places that declare one.
+ *
+ * `envVars` is a sequence rather than a mapping, so §5's "a repeated key is
+ * ERR_DUPLICATE_KEY in the parser phase" does not reach it: two entries of a
+ * sequence repeat nothing at the YAML level. An input's `target.envVarKey`
+ * binds into the same namespace, so it competes with them.
+ */
+function checkEnvVarKeys(document: Json, out: Diagnostic[]): void {
+  const spec = child(document, 'spec')
+  const envVars = child(child(spec, 'workload'), 'envVars')
+  const inputs = child(child(spec, 'contract'), 'inputs')
+
+  // First declaration wins the key, so the later one is what an author changes.
+  const declared = new Map<string, string>()
+
+  if (Array.isArray(envVars)) {
+    for (const [position, entry] of envVars.entries()) {
+      const key = asString(child(entry, 'key'))
+      if (key === undefined) continue
+      const earlier = declared.get(key)
+      if (earlier === undefined) {
+        declared.set(key, `envVars entry ${position}`)
+        continue
+      }
+      out.push({
+        code: 'ERR_DUPLICATE_ENV_KEY',
+        path: `/spec/workload/envVars/${position}/key`,
+        message: `environment variable "${key}" is already declared by ${earlier}`,
+      })
+    }
+  }
+
+  // Lexicographic input-name order, because §5.3 anchors the collision at the
+  // later of two inputs and a mapping supplies no order of its own.
+  for (const input of keysOf(inputs).sort()) {
+    const key = asString(child(child(child(inputs, input), 'target'), 'envVarKey'))
+    if (key === undefined) continue
+    const earlier = declared.get(key)
+    if (earlier === undefined) {
+      declared.set(key, `input "${input}"`)
+      continue
+    }
+    out.push({
+      code: 'ERR_CONFLICTING_ENV_KEY',
+      path: `/spec/contract/inputs/${token(input)}/target/envVarKey`,
+      message: `environment variable "${key}" is already claimed by ${earlier}`,
+    })
+  }
+}
+
+// ===========================================================================
+// blueprint
+// ===========================================================================
+
+const LOCAL_REFERENCE = /^\.\.?\//
+
+/** Blueprint §4.2 — `fromRole` MUST name a node in this blueprint. */
+function checkConnectionRoles(document: Json, out: Diagnostic[]): void {
+  const components = child(child(document, 'spec'), 'components')
+  const nodes = new Set(keysOf(components))
+  for (const node of nodes) {
+    const connections = child(child(components, node), 'connections')
+    for (const key of keysOf(connections)) {
+      const from = asString(child(child(connections, key), 'fromRole'))
+      if (from !== undefined && !nodes.has(from)) {
+        out.push({
+          code: 'ERR_UNKNOWN_ROLE',
+          path: `/spec/components/${token(node)}/connections/${token(key)}/fromRole`,
+          message: `fromRole "${from}" names no node in this blueprint`,
+        })
+      }
+    }
+  }
+}
+
+// ===========================================================================
+// listing
+// ===========================================================================
+
+/**
+ * Listing §5 — two screenshots MUST NOT share a basename, across the whole item
+ * rather than within a directory. Published assets are addressed by basename,
+ * so `media/desktop/overview.png` and `media/mobile/overview.png` are one file.
+ */
+function checkScreenshotBasenames(document: Json, out: Diagnostic[]): void {
+  const screenshots = child(child(document, 'spec'), 'screenshots')
+  if (!Array.isArray(screenshots)) return
+
+  const seen = new Map<string, number>()
+  for (const [position, screenshot] of screenshots.entries()) {
+    const file = asString(child(screenshot, 'file'))
+    if (file === undefined) continue
+    const name = basename(file).toLowerCase()
+    const earlier = seen.get(name)
+    if (earlier === undefined) {
+      seen.set(name, position)
+      continue
+    }
+    // Reported at the later of the two: the first declaration is the one that
+    // stands, so the second is the one an author has to change.
+    out.push({
+      code: 'ERR_DUPLICATE_MEDIA_BASENAME',
+      path: `/spec/screenshots/${position}/file`,
+      message: `basename "${basename(file)}" is already used by screenshot ${earlier}`,
+    })
+  }
+}
+
+/**
+ * Listing §5's media path grammar, as the schema carries it. Restated here
+ * because §4.1 holds a description image to the same shape, and a description
+ * is a Markdown blob no `pattern` can reach into.
+ */
+const MEDIA_PATH =
+  /^media\/(?:[A-Za-z0-9][A-Za-z0-9._-]*\/)*[A-Za-z0-9][A-Za-z0-9._-]*\.(?:[Pp][Nn][Gg]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp])$/
+
+/** Listing §4.1 — the schemes a description link destination may use. */
+const PERMITTED_SCHEMES = new Set(['https:', 'http:', 'mailto:'])
+
+/**
+ * `spec.description` parsed as CommonMark 0.31.2, or `undefined` when the
+ * listing declares none. Parsed once and walked by every §4.1 rule: three
+ * separate walks over the same blob would be three chances to disagree about
+ * what the document says.
+ */
+function descriptionAst(document: Json): Node | undefined {
+  const description = asString(child(child(document, 'spec'), 'description'))
+  if (description === undefined) return undefined
+  return new Parser().parse(description)
+}
+
+/** Every node in an AST, in document order. */
+function* walk(ast: Node): Generator<Node> {
+  const walker = ast.walker()
+  let step = walker.next()
+  while (step !== null) {
+    if (step.entering) yield step.node
+    step = walker.next()
+  }
+}
+
+/**
+ * Listing §4.1 — a link destination must carry a permitted scheme or be a
+ * fragment. A destination CommonMark could not resolve to a URL at all is not
+ * a scheme this set contains, so it fails with the rest.
+ */
+function schemeIsPermitted(destination: string): boolean {
+  if (destination.startsWith('#')) return true
+  try {
+    return PERMITTED_SCHEMES.has(new URL(destination).protocol)
+  } catch {
+    // Not absolute. A storefront has no base URL to resolve it against, so a
+    // relative link resolves against the storefront's own path — a broken link
+    // rather than a hostile one, but not a link this profile permits either.
+    return false
+  }
+}
+
+/**
+ * Listing §4.1 — the three rules the description profile carries. Every
+ * diagnostic anchors at `/spec/description`: the field is one scalar, so there
+ * is no finer pointer to give, and the offending destination rides in the
+ * message instead. Message text is not normative (conformance/README.md).
+ */
+function checkDescriptionMarkdown(document: Json, out: Diagnostic[]): void {
+  const ast = descriptionAst(document)
+  if (ast === undefined) return
+
+  for (const node of walk(ast)) {
+    // A code span and a fenced code block are their own constructs in
+    // CommonMark's grammar, never `html_block` or `html_inline` — which is why
+    // a listing may document `<script>` inside a fence and stay conforming.
+    if (node.type === 'html_block' || node.type === 'html_inline') {
+      out.push({
+        code: 'ERR_RAW_HTML',
+        path: '/spec/description',
+        message: `description contains raw HTML: ${summarise(node.literal ?? '')}`,
+      })
+      continue
+    }
+    const destination = node.destination ?? ''
+    if (node.type === 'link' && !schemeIsPermitted(destination)) {
+      out.push({
+        code: 'ERR_DISALLOWED_SCHEME',
+        path: '/spec/description',
+        message: `link destination "${summarise(destination)}" is not https, http, mailto, or a fragment`,
+      })
+    }
+    if (node.type === 'image' && !MEDIA_PATH.test(destination)) {
+      out.push({
+        code: 'ERR_IMAGE_NOT_LOCAL',
+        path: '/spec/description',
+        message: `image destination "${summarise(destination)}" is not a media path under media/`,
+      })
+    }
+  }
+}
+
+/** A diagnostic message quotes the offender; it does not reproduce it. */
+function summarise(value: string): string {
+  const flat = value.replace(/\s+/g, ' ').trim()
+  return flat.length > 60 ? `${flat.slice(0, 60)}…` : flat
+}
+
+// ===========================================================================
+// item-scoped rules
+// ===========================================================================
+
+/** Every media path a listing declares, paired with its JSON Pointer. */
+function mediaPaths(document: Json): { path: string; pointer: string }[] {
+  const spec = child(document, 'spec')
+  const found: { path: string; pointer: string }[] = []
+
+  const icon = asString(child(spec, 'icon'))
+  if (icon !== undefined) found.push({ path: icon, pointer: '/spec/icon' })
+
+  const screenshots = child(spec, 'screenshots')
+  if (Array.isArray(screenshots)) {
+    for (const [position, screenshot] of screenshots.entries()) {
+      const file = asString(child(screenshot, 'file'))
+      if (file !== undefined) {
+        found.push({ path: file, pointer: `/spec/screenshots/${position}/file` })
+      }
+    }
+  }
+
+  // §4.1 — a description image is a media path, so §5's existence and
+  // containment rules reach it. Only well-formed ones: a destination that is
+  // not a media path at all is already ERR_IMAGE_NOT_LOCAL, and piling
+  // ERR_MEDIA_NOT_FOUND on top would report one mistake twice.
+  const ast = descriptionAst(document)
+  if (ast !== undefined) {
+    for (const node of walk(ast)) {
+      const destination = node.destination ?? ''
+      if (node.type === 'image' && MEDIA_PATH.test(destination)) {
+        found.push({ path: destination, pointer: '/spec/description' })
+      }
+    }
+  }
+  return found
+}
+
+/**
+ * True when `target` lies strictly inside `root`. Both are expected to be
+ * resolved already — this compares locations, and the caller is the one that
+ * decides what resolution means.
+ */
+function contains(root: string, target: string): boolean {
+  const rel = relative(root, target)
+  return rel !== '' && !rel.startsWith('..') && !isAbsolute(rel)
+}
+
+/**
+ * The resolved location of `path`, following symlinks. Containment is a
+ * property of the resolved location rather than of the spelling — listing §5
+ * and blueprint §4.1 both turn on that distinction.
+ */
+function resolveReal(path: string): string {
+  try {
+    return realpathSync(path)
+  } catch {
+    // A dangling symlink still has a target, and a target outside the item root
+    // is an escape whether or not anything is there. `readlinkSync` reads the
+    // link itself, which `realpathSync` cannot once the chain is broken.
+    try {
+      return resolve(dirname(path), readlinkSync(path))
+    } catch {
+      // Not a link, or unreadable — the caller reports it as missing instead.
+      return resolve(path)
+    }
+  }
+}
+
+/** Listing §5 — existence and containment, both of which need the filesystem. */
+function checkMediaOnDisk(document: Json, itemRoot: string, out: Diagnostic[]): void {
+  for (const { path, pointer } of mediaPaths(document)) {
+    const target = join(itemRoot, path)
+    if (!existsSync(target) && !isSymlink(target)) {
+      out.push({
+        code: 'ERR_MEDIA_NOT_FOUND',
+        path: pointer,
+        message: `${path} does not exist in the item`,
+      })
+      continue
+    }
+    if (!contains(itemRoot, resolveReal(target))) {
+      out.push({
+        code: 'ERR_PATH_ESCAPE',
+        path: pointer,
+        message: `${path} resolves outside the item root`,
+      })
+    }
+  }
+}
+
+function isSymlink(path: string): boolean {
+  try {
+    return lstatSync(path).isSymbolicLink()
+  } catch {
+    return false
+  }
+}
+
+/** Every `*.yaml`/`*.yml` under `root`, recursively, as absolute paths. */
+function yamlFiles(root: string): string[] {
+  const found: string[] = []
+  const walk = (dir: string): void => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const path = join(dir, entry.name)
+      if (entry.isDirectory()) walk(path)
+      else if (/\.ya?ml$/i.test(entry.name)) found.push(path)
+    }
+  }
+  walk(root)
+  return found.sort()
+}
+
+const documentCache = new Map<string, Json | undefined>()
+
+/** Parse a document off disk, or `undefined` when it is unreadable. */
+function readDocument(path: string): Json | undefined {
+  if (documentCache.has(path)) return documentCache.get(path)
+  let parsed: Json | undefined
+  try {
+    const result = parseDocument(readFileSync(path, 'utf8'))
+    parsed = 'value' in result ? result.value : undefined
+  } catch {
+    // Unreadable or malformed. The item's own parser-phase run reports that;
+    // this one declines to describe a document it could not read.
+    parsed = undefined
+  }
+  documentCache.set(path, parsed)
+  return parsed
+}
+
+/**
+ * Blueprint §3 and listing §3 — `metadata.slug` MUST equal the item directory
+ * name, and `metadata.revision` MUST equal the sibling document's.
+ */
+function checkIdentity(family: Family, document: Json, itemRoot: string, out: Diagnostic[]): void {
+  const metadata = child(document, 'metadata')
+  const slug = asString(child(metadata, 'slug'))
+  const directory = basename(itemRoot)
+  if (slug !== undefined && slug !== directory) {
+    out.push({
+      code: 'ERR_SLUG_MISMATCH',
+      path: '/metadata/slug',
+      message: `slug "${slug}" disagrees with the item directory "${directory}"`,
+    })
+  }
+
+  // The sibling is the other half of the item. Listing §3 conditions the rule
+  // on there being one: a `listingKind: COMPONENT` item need not hold a
+  // blueprint, and where there is none the rule has nothing to compare.
+  const siblingName = family.name === 'blueprint' ? 'listing.yaml' : 'blueprint.yaml'
+  const siblingPath = join(itemRoot, siblingName)
+  if (!existsSync(siblingPath)) return
+
+  const sibling = readDocument(siblingPath)
+  const version = child(metadata, 'revision')
+  const siblingVersion = child(child(sibling, 'metadata'), 'revision')
+  if (sibling !== undefined && version !== siblingVersion) {
+    out.push({
+      code: 'ERR_VERSION_MISMATCH',
+      path: '/metadata/revision',
+      message: `version ${String(version)} disagrees with ${siblingName}'s ${String(siblingVersion)}`,
+    })
+  }
+}
+
+/**
+ * Blueprint §4.1 and §4.2, plus §3's unreferenced-document rule and §5's two
+ * parameter paths. All of them need the component documents the graph names,
+ * which is what makes them item-scoped.
+ */
+function checkGraphAgainstItem(
+  document: Json,
+  itemRoot: string,
+  documentPath: string,
+  out: Diagnostic[],
+): void {
+  const components = child(child(document, 'spec'), 'components')
+  const parameters = child(child(document, 'spec'), 'parameters')
+  const baseDir = dirname(documentPath)
+  const referenced = new Set<string>()
+  const resolved = new Map<string, Json>()
+
+  for (const node of keysOf(components)) {
+    const reference = asString(child(child(components, node), 'componentRef'))
+    const pointer = `/spec/components/${token(node)}/componentRef`
+    // A published reference is a UUID and belongs to the capability phase; only
+    // the repo-local form resolves offline (§4.1).
+    if (reference === undefined || !LOCAL_REFERENCE.test(reference)) continue
+
+    const target = resolve(baseDir, reference)
+    if (!contains(itemRoot, resolveReal(target))) {
+      out.push({
+        code: 'ERR_REFERENCE_ESCAPE',
+        path: pointer,
+        message: `${reference} resolves outside the item root`,
+      })
+      continue
+    }
+    if (!existsSync(target)) {
+      out.push({
+        code: 'ERR_COMPONENT_NOT_FOUND',
+        path: pointer,
+        message: `${reference} names no document`,
+      })
+      continue
+    }
+    referenced.add(realpathSync(target))
+    const component = readDocument(target)
+    if (component !== undefined) resolved.set(node, component)
+  }
+
+  checkUnreferencedComponents(itemRoot, documentPath, referenced, out)
+  checkConnectionOutputs(components, resolved, out)
+  checkConnectionInputs(components, resolved, out)
+  checkConnectableInputs(components, resolved, out)
+  checkRequiredConnections(components, resolved, out)
+  checkConnectionCompatibility(components, resolved, out)
+  checkNodeCompute(components, resolved, out)
+
+  // §5's two paths are exclusive. An authored override is used in place of
+  // derivation rather than merged with it (§5), so where one is written the
+  // merge does not run and §5.2's conflict has nothing to conflict — which is
+  // what makes §5.2's own remedy a remedy. §5.3 is what the override answers to
+  // instead.
+  if (keysOf(parameters).length === 0) {
+    checkInputMerge(components, resolved, out)
+  } else {
+    checkParameterBinding(parameters, components, resolved, out)
+  }
+}
+
+/** Blueprint §3 — every component document in the item MUST be referenced. */
+function checkUnreferencedComponents(
+  itemRoot: string,
+  documentPath: string,
+  referenced: Set<string>,
+  out: Diagnostic[],
+): void {
+  const self = realpathSync(documentPath)
+  for (const path of yamlFiles(itemRoot)) {
+    const real = realpathSync(path)
+    if (real === self || referenced.has(real)) continue
+    if (child(readDocument(path), 'kind') !== 'COMPONENT') continue
+    out.push({
+      code: 'ERR_UNREFERENCED_COMPONENT',
+      // Anchored at the mapping that should have named the file: a JSON Pointer
+      // addresses this document, and the file it complains about is not in it.
+      path: '/spec/components',
+      message: `${relative(itemRoot, path)} is referenced by no node`,
+    })
+  }
+}
+
+/**
+ * Blueprint §4.2 — a connection may fill only a `CONNECTION` input.
+ *
+ * The gap this closes was recorded rather than decided: a wire and the install
+ * form would both claim the value, with nothing saying which arrives. It is the
+ * failure §5.2 rejects for merging and §5.3 for coverage, and admitting it at
+ * the third door would be the only place this contract tolerated it.
+ *
+ * It is also what component §6.2's `INPUT` output depends on. If a `USER` input
+ * could be wired, an output reading one could depend on an inbound edge, and
+ * §4.2's legal cycles would stop being resolvable.
+ */
+function checkConnectableInputs(
+  components: Json | undefined,
+  resolved: Map<string, Json>,
+  out: Diagnostic[],
+): void {
+  for (const node of keysOf(components)) {
+    const component = resolved.get(node)
+    if (component === undefined) continue
+    const inputs = child(child(child(component, 'spec'), 'contract'), 'inputs')
+    const connections = child(child(components, node), 'connections')
+
+    for (const key of keysOf(connections)) {
+      const input = child(inputs, key)
+      // Naming no input at all is ERR_UNKNOWN_INPUT, reported elsewhere; one
+      // mistake is not reported twice.
+      if (input === undefined) continue
+      // `suppliedBy` defaults to USER, and a default is invisible here, so an
+      // input saying nothing about who satisfies it is bound by this too.
+      if (child(input, 'suppliedBy') === 'CONNECTION') continue
+      out.push({
+        code: 'ERR_INPUT_NOT_CONNECTABLE',
+        path: `/spec/components/${token(node)}/connections/${token(key)}`,
+        message: `input "${key}" is not supplied by a connection`,
+      })
+    }
+  }
+}
+
+/**
+ * Blueprint §4.3 — a node names compute if and only if it runs something.
+ *
+ * One code for both directions: `ERR_CONFLICTING_*` in this repository means two
+ * declarations claiming one slot, which is what the node and the component it
+ * deploys are doing about this node's compute. Both anchor at the node's `size`,
+ * the field an author has to change.
+ *
+ * Goes silent for a published reference, on the terms §5.3 sets for every rule
+ * that reads a referenced component: `resolved` holds only what resolved
+ * offline.
+ */
+function checkNodeCompute(
+  components: Json | undefined,
+  resolved: Map<string, Json>,
+  out: Diagnostic[],
+): void {
+  for (const node of keysOf(components)) {
+    const component = resolved.get(node)
+    if (component === undefined) continue
+    const external = child(child(component, 'spec'), 'external') !== undefined
+    const size = child(child(components, node), 'size')
+    // An absent `size` is ERR_MISSING_FIELD in the structural phase; this rule
+    // is about the two declarations disagreeing, not about a missing one.
+    if (size === undefined) continue
+    if (external === (size === null)) continue
+    out.push({
+      code: 'ERR_CONFLICTING_NODE_COMPUTE',
+      path: `/spec/components/${token(node)}/size`,
+      message: external
+        ? `node "${node}" names compute for a component this platform does not run`
+        : `node "${node}" names no compute for a component that runs`,
+    })
+  }
+}
+
+/** Blueprint §4.2 — `fromOutput` MUST name an output the component declares. */
+function checkConnectionOutputs(
+  components: Json | undefined,
+  resolved: Map<string, Json>,
+  out: Diagnostic[],
+): void {
+  for (const node of keysOf(components)) {
+    const connections = child(child(components, node), 'connections')
+    for (const key of keysOf(connections)) {
+      const connection = child(connections, key)
+      const role = asString(child(connection, 'fromRole'))
+      const output = asString(child(connection, 'fromOutput'))
+      if (role === undefined || output === undefined) continue
+
+      const producer = resolved.get(role)
+      // An unresolved producer is already ERR_UNKNOWN_ROLE or
+      // ERR_COMPONENT_NOT_FOUND; do not pile a second diagnostic on one cause.
+      if (producer === undefined) continue
+
+      const outputs = child(child(child(producer, 'spec'), 'contract'), 'outputs')
+      if (!keysOf(outputs).includes(output)) {
+        out.push({
+          code: 'ERR_UNKNOWN_OUTPUT',
+          path: `/spec/components/${token(node)}/connections/${token(key)}/fromOutput`,
+          message: `"${output}" is not an output of the component "${role}" deploys`,
+        })
+      }
+    }
+  }
+}
+
+/** The inputs a node's component declares, keyed by input name. */
+function inputsOf(component: Json | undefined): Json | undefined {
+  return child(child(child(component, 'spec'), 'contract'), 'inputs')
+}
+
+/**
+ * Blueprint §4.2 — a connection's map key MUST name an input of the component
+ * the *consuming* node deploys. The mirror of `ERR_UNKNOWN_OUTPUT`: a wire whose
+ * two ends are each checked and whose consumer end is not can be misspelled at
+ * one end only.
+ */
+function checkConnectionInputs(
+  components: Json | undefined,
+  resolved: Map<string, Json>,
+  out: Diagnostic[],
+): void {
+  for (const node of keysOf(components)) {
+    const consumer = resolved.get(node)
+    // An unresolved consumer is already ERR_COMPONENT_NOT_FOUND, or is a
+    // published reference this phase may not resolve at all.
+    if (consumer === undefined) continue
+
+    const declared = keysOf(inputsOf(consumer))
+    for (const key of keysOf(child(child(components, node), 'connections'))) {
+      if (declared.includes(key)) continue
+      out.push({
+        code: 'ERR_UNKNOWN_INPUT',
+        path: `/spec/components/${token(node)}/connections/${token(key)}`,
+        message: `"${key}" is not an input of the component "${node}" deploys`,
+      })
+    }
+  }
+}
+
+/**
+ * Blueprint §4.2 — a required `CONNECTION` input MUST be wired.
+ *
+ * `required` defaults to true, so an absent key is a required input. A
+ * `CONNECTION` input never reaches the install form, so a graph that leaves one
+ * unwired has no later chance to supply it.
+ */
+function checkRequiredConnections(
+  components: Json | undefined,
+  resolved: Map<string, Json>,
+  out: Diagnostic[],
+): void {
+  for (const node of keysOf(components)) {
+    const consumer = resolved.get(node)
+    if (consumer === undefined) continue
+
+    const wired = new Set(keysOf(child(child(components, node), 'connections')))
+    const inputs = inputsOf(consumer)
+    for (const key of keysOf(inputs)) {
+      const input = child(inputs, key)
+      if (child(input, 'suppliedBy') !== 'CONNECTION') continue
+      if (child(input, 'required') === false) continue
+      if (wired.has(key)) continue
+      out.push({
+        code: 'ERR_UNWIRED_REQUIRED_INPUT',
+        path: `/spec/components/${token(node)}/connections`,
+        message: `required input "${key}" of node "${node}" is satisfied by no connection`,
+      })
+    }
+  }
+}
+
+/**
+ * Blueprint §4.2 — the two ends of a connection MUST fit.
+ *
+ * `type` is compared for equality with no widening in either direction; a
+ * `resourceType` the consumer names must be matched exactly by the producer,
+ * while a consumer naming none accepts anything. Both ends always carry a
+ * `schema` with a required `type`, so there is no unconstrained producer case.
+ */
+function checkConnectionCompatibility(
+  components: Json | undefined,
+  resolved: Map<string, Json>,
+  out: Diagnostic[],
+): void {
+  for (const node of keysOf(components)) {
+    const connections = child(child(components, node), 'connections')
+    const consumer = resolved.get(node)
+    if (consumer === undefined) continue
+
+    for (const key of keysOf(connections)) {
+      const connection = child(connections, key)
+      const role = asString(child(connection, 'fromRole'))
+      const output = asString(child(connection, 'fromOutput'))
+      if (role === undefined || output === undefined) continue
+
+      const producer = resolved.get(role)
+      if (producer === undefined) continue
+
+      // A dangling end is already ERR_UNKNOWN_OUTPUT or ERR_UNKNOWN_INPUT; do
+      // not pile a compatibility verdict on a pair that does not both exist.
+      const outputs = child(child(child(producer, 'spec'), 'contract'), 'outputs')
+      const inputs = child(child(child(consumer, 'spec'), 'contract'), 'inputs')
+      const from = child(child(outputs, output), 'schema')
+      const to = child(child(inputs, key), 'schema')
+      if (from === undefined || to === undefined) continue
+
+      const path = `/spec/components/${token(node)}/connections/${token(key)}/fromOutput`
+      const fromType = child(from, 'type')
+      const toType = child(to, 'type')
+      if (fromType !== toType) {
+        out.push({
+          code: 'ERR_INCOMPATIBLE_TYPE',
+          path,
+          message: `output "${output}" is ${String(fromType)}, and input "${key}" takes ${String(toType)}`,
+        })
+        continue
+      }
+
+      // A consumer naming no resourceType has said the value addresses no
+      // particular resource, so nothing it receives can contradict that.
+      const toResource = asString(child(to, 'resourceType'))
+      if (toResource === undefined) continue
+      const fromResource = asString(child(from, 'resourceType'))
+      if (fromResource !== toResource) {
+        out.push({
+          code: 'ERR_INCOMPATIBLE_RESOURCE_TYPE',
+          path,
+          message: `input "${key}" requires ${toResource}, and output "${output}" declares ${fromResource ?? 'none'}`,
+        })
+      }
+    }
+  }
+}
+
+/**
+ * Blueprint §5.2 — first-wins in lexicographic node-name order, and a *differing*
+ * redeclaration is an error rather than a silent discard. An identical one is
+ * absorbed: two components that agree on what `adminPassword` is are not in
+ * conflict.
+ *
+ * `ui` and `required` are deliberately not compared. They describe how a value
+ * is asked for, not what it is.
+ *
+ * The comparison is over the *canonical* form of each schema block, because
+ * §5.2's test is equality "once defaults are applied". Serialising the block as
+ * written would make two identical declarations differ over the order their keys
+ * happen to appear in and over whether a default was spelled out or left
+ * implicit — neither of which is a disagreement about the value.
+ */
+function checkInputMerge(
+  components: Json | undefined,
+  resolved: Map<string, Json>,
+  out: Diagnostic[],
+): void {
+  const taken = new Map<string, { node: string; schema: string }>()
+
+  for (const node of keysOf(components).sort()) {
+    const component = resolved.get(node)
+    if (component === undefined) continue
+    const inputs = child(child(child(component, 'spec'), 'contract'), 'inputs')
+
+    for (const key of keysOf(inputs)) {
+      const input = child(inputs, key)
+      // A CONNECTION input is satisfied by a wire, never by the install form,
+      // so it never reaches the merge (§5.1).
+      if (child(input, 'suppliedBy') === 'CONNECTION') continue
+
+      const schema = canonicalValueSchema(child(input, 'schema'))
+      const earlier = taken.get(key)
+      if (earlier === undefined) {
+        taken.set(key, { node, schema })
+        continue
+      }
+      if (earlier.schema === schema) continue
+      out.push({
+        code: 'ERR_CONFLICTING_INPUT_SCHEMA',
+        path: `/spec/components/${token(node)}/componentRef`,
+        message: `input "${key}" is declared with a different schema by node "${earlier.node}"`,
+      })
+    }
+  }
+}
+
+/**
+ * The defaults component §6.1's `schema` block carries. A property left out
+ * declares the same thing as one written at its default, so both have to reach
+ * the same canonical form before two blocks are compared.
+ */
+const VALUE_SCHEMA_DEFAULTS: Record<string, Json> = {
+  default: null,
+  format: null,
+  sensitive: false,
+  pattern: null,
+  resourceType: null,
+}
+
+/**
+ * A schema block reduced to a form that depends on what it declares rather than
+ * on how it was written: defaults filled in, keys emitted in a fixed order.
+ */
+function canonicalValueSchema(schema: Json | undefined): string {
+  if (
+    schema === undefined ||
+    schema === null ||
+    typeof schema !== 'object' ||
+    Array.isArray(schema)
+  ) {
+    return JSON.stringify(schema ?? null)
+  }
+  const merged: Record<string, Json> = { ...VALUE_SCHEMA_DEFAULTS }
+  for (const key of keysOf(schema)) {
+    const value = child(schema, key)
+    if (value !== undefined) merged[key] = value
+  }
+  const canonical: Record<string, Json> = {}
+  for (const key of Object.keys(merged).sort()) canonical[key] = merged[key] as Json
+  return JSON.stringify(canonical)
+}
+
+/** Present and not null. An optional property spelled `null` sets nothing. */
+function isSet(value: Json | undefined): boolean {
+  return value !== undefined && value !== null
+}
+
+/**
+ * Blueprint §5.3 — the input side of the coverage test. An input has to be
+ * covered only when nothing else can supply it: a wire, a minted secret, a
+ * platform-derived address and a declared default each take it out of scope.
+ */
+function mustBeSupplied(input: Json | undefined): boolean {
+  if (child(input, 'suppliedBy') === 'CONNECTION') return false
+  // `required` defaults to true on a component input, so an absent key is a
+  // required one — hence `=== false` rather than `!== true`.
+  if (child(input, 'required') === false) return false
+  if (isSet(child(input, 'generator'))) return false
+  if (isSet(child(input, 'platformDefault'))) return false
+  return !isSet(child(child(input, 'schema'), 'default'))
+}
+
+/**
+ * Blueprint §5.3 — the parameter side. Naming the key is not enough; the
+ * parameter has to actually ask for a value.
+ *
+ * `required` defaults to **false** here, the opposite of a component input,
+ * which is why this tests `=== true` where `mustBeSupplied` tests `=== false`.
+ * An override that copies a required input's key and says nothing else has made
+ * it optional, and that is the case this catches.
+ */
+function guaranteesValue(parameter: Json | undefined): boolean {
+  if (child(parameter, 'required') === true) return true
+  if (isSet(child(parameter, 'generator'))) return true
+  return isSet(child(child(parameter, 'schema'), 'default'))
+}
+
+/**
+ * Blueprint §5.3 — an authored override binds to inputs by key, and the key is
+ * the whole of the correspondence: a parameter carries no `suppliedBy`, no node
+ * name and no `target`.
+ *
+ * Only reached when `parameters` is non-empty. The derived set is built from
+ * the inputs themselves, so none of these three rules can fail on that path.
+ */
+function checkParameterBinding(
+  parameters: Json | undefined,
+  components: Json | undefined,
+  resolved: Map<string, Json>,
+  out: Diagnostic[],
+): void {
+  // Input key → every USER declaration of it, in canonical node order. One key
+  // may be declared by several nodes; a parameter covers all of them.
+  const declared = new Map<string, Json[]>()
+
+  // §5.3 — the unbound test asserts that *no* node declares the key, so it needs
+  // every node's inputs. Where one was not read — a published reference, or a
+  // local one already rejected as missing or escaping — the claim is not
+  // decidable and MUST NOT be reported. The coverage and type rules below are
+  // positive claims over what was read, so they degrade on their own.
+  const allReadable = keysOf(components).every((node) => resolved.has(node))
+
+  for (const node of keysOf(components).sort()) {
+    const component = resolved.get(node)
+    // A published reference resolves in the capability phase, so its inputs are
+    // unreadable here. §5.3: an implementation MUST NOT report an input it was
+    // never given the means to read.
+    if (component === undefined) continue
+
+    const inputs = inputsOf(component)
+    for (const key of keysOf(inputs)) {
+      const input = child(inputs, key)
+      if (input === undefined) continue
+      if (child(input, 'suppliedBy') === 'CONNECTION') continue
+      const seen = declared.get(key)
+      if (seen === undefined) declared.set(key, [input])
+      else seen.push(input)
+    }
+  }
+
+  for (const key of keysOf(parameters)) {
+    const pointer = `/spec/parameters/${token(key)}`
+    const covered = declared.get(key)
+    if (covered === undefined) {
+      if (!allReadable) continue
+      out.push({
+        code: 'ERR_UNBOUND_PARAMETER',
+        path: pointer,
+        message: `parameter "${key}" names no USER input of any node`,
+      })
+      continue
+    }
+
+    // `type` and `resourceType` are compared. §5.3 records the rest as silences,
+    // and `type` is REQUIRED on both sides, so it needs no defaulting pass.
+    const schema = child(child(parameters, key), 'schema')
+    const type = child(schema, 'type')
+    const mismatch = covered.find((input) => child(child(input, 'schema'), 'type') !== type)
+    if (mismatch !== undefined) {
+      out.push({
+        code: 'ERR_INCOMPATIBLE_PARAMETER_TYPE',
+        path: `${pointer}/schema/type`,
+        message: `parameter "${key}" declares ${String(type)} where an input it covers declares ${String(child(child(mismatch, 'schema'), 'type'))}`,
+      })
+      continue
+    }
+
+    // A parameter declaring no resourceType covers an input that declares one:
+    // the tag says what a value addresses, and an install form is not where a
+    // value acquires one. Declaring a different one is the error — the parameter
+    // would be answering for a resource the input does not address.
+    const resourceType = asString(child(schema, 'resourceType'))
+    if (resourceType === undefined) continue
+    const tagMismatch = covered.find(
+      (input) => asString(child(child(input, 'schema'), 'resourceType')) !== resourceType,
+    )
+    if (tagMismatch === undefined) continue
+    out.push({
+      code: 'ERR_INCOMPATIBLE_PARAMETER_RESOURCE_TYPE',
+      path: `${pointer}/schema/resourceType`,
+      message: `parameter "${key}" declares ${resourceType} where an input it covers declares ${asString(child(child(tagMismatch, 'schema'), 'resourceType')) ?? 'none'}`,
+    })
+  }
+
+  for (const key of declared.keys()) {
+    const inputs = declared.get(key) ?? []
+    if (!inputs.some(mustBeSupplied)) continue
+    if (guaranteesValue(child(parameters, key))) continue
+    out.push({
+      code: 'ERR_UNCOVERED_REQUIRED_INPUT',
+      path: '/spec/parameters',
+      message: `input "${key}" must be supplied by the deploying user, and no parameter guarantees it a value`,
+    })
+  }
+}
+
+// ===========================================================================
+// entry point
+// ===========================================================================
+
+/**
+ * Every semantic diagnostic one document produces. Ordering within the result is
+ * not normative — the conformance contract is that a declared diagnostic is
+ * among those produced, not that it is produced first.
+ */
+export function semanticDiagnostics(
+  family: Family,
+  document: Json,
+  context: SemanticContext = {},
+): Diagnostic[] {
+  const out: Diagnostic[] = []
+
+  if (family.name === 'component') {
+    checkImageRef(document, out)
+    checkEndpointReferences(document, out)
+    checkOutputInputReferences(document, out)
+    checkEnvVarKeys(document, out)
+    checkEnumLabels(
+      child(child(child(document, 'spec'), 'contract'), 'inputs'),
+      '/spec/contract/inputs',
+      out,
+    )
+  }
+  if (family.name === 'blueprint') {
+    checkConnectionRoles(document, out)
+    checkEnumLabels(child(child(document, 'spec'), 'parameters'), '/spec/parameters', out)
+  }
+  if (family.name === 'listing') {
+    checkScreenshotBasenames(document, out)
+    checkDescriptionMarkdown(document, out)
+  }
+
+  const { itemRoot } = context
+  if (itemRoot === undefined) return out
+
+  const documentPath =
+    context.documentPath ??
+    join(itemRoot, family.name === 'blueprint' ? 'blueprint.yaml' : 'listing.yaml')
+
+  if (family.name === 'blueprint' || family.name === 'listing') {
+    checkIdentity(family, document, itemRoot, out)
+  }
+  if (family.name === 'blueprint') {
+    checkGraphAgainstItem(document, itemRoot, documentPath, out)
+  }
+  if (family.name === 'listing') {
+    checkMediaOnDisk(document, itemRoot, out)
+  }
+
+  return out
+}

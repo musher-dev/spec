@@ -1402,7 +1402,7 @@ profile while skipping any case in a phase that profile requires.
 This schema was seeded from the platform's Pydantic-generated catalog schema.
 The naming that arrived with it — `$defs` keys carrying `Seed…`/`…Request`
 affixes, and generated `title` values like `Specversion` — has been cleaned,
-and `tools/src/lint.ts` now rejects both. No section of this document is marked
+and `tools/src/schema/lint.ts` now rejects both. No section of this document is marked
 TODO any longer: every rule it states is stated in prose, and the schema
 implements the prose rather than standing in for it.
 

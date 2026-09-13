@@ -13,33 +13,33 @@ tasks:
     desc: Compile schemas/src into the published schemas/dist bundles
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/bundle.ts
-      - bun run src/catalog.ts
-      - bun run src/traceability.ts
+      - bun run src/schema/bundle.ts
+      - bun run src/publication/catalog.ts
+      - bun run src/render/traceability.ts
 
   traceability:
     desc: Regenerate the requirement traceability matrix
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/traceability.ts
+      - bun run src/render/traceability.ts
 
   catalog:
     desc: Regenerate the SchemaStore catalog index
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/catalog.ts
+      - bun run src/publication/catalog.ts
 
   changes:
     desc: Report what this branch does to the published contract (BASE=origin/main)
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/changes.ts {{.BASE | default "origin/main"}}
+      - bun run src/publication/changes.ts {{.BASE | default "origin/main"}}
 
   site:build:
     desc: Assemble the publication tree served at schemas.musher.dev
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/site.ts
+      - bun run src/publication/site.ts
 
   site:deploy:
     desc: Deploy the assembled publication tree to Cloudflare Pages

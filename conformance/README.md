@@ -18,7 +18,7 @@ and biases the specification toward one language's standard library. Each
 implementation writes its own thin adapter over this data instead. That is what
 makes cross-language parity provable rather than asserted.
 
-`tools/src/conformance.ts` is one such adapter. It exists to keep the fixtures
+`tools/src/conformance/conformance.ts` is one such adapter. It exists to keep the fixtures
 honest inside this repository and carries no special authority.
 
 ## Layout
@@ -338,7 +338,7 @@ exist to pin down prose, not to freeze current implementation behaviour.
 an implemented phase.
 
 **Executing** a case runs the document through the pipeline and compares the
-outcome. `tools/src/conformance.ts` implements `parser`, `structural` and
+outcome. `tools/src/conformance/conformance.ts` implements `parser`, `structural` and
 `semantic`; a `capability` case is skipped.
 
 **Validating** a case runs whether or not its phase does: the `id` leads with

@@ -7,7 +7,7 @@ container, it goes in here.
 Policy and rationale:
 [`docs/adr/0011-tooling-configuration-layout.md`](../docs/adr/0011-tooling-configuration-layout.md).
 Enforcement: `task check:config` (CFG-01..CFG-08), implemented in
-[`tools/src/config.ts`](../tools/src/config.ts).
+[`tools/src/policy/config.ts`](../tools/src/policy/config.ts).
 
 The convention is shared with `musher-dev/development-container` and
 `musher-dev/platform`. Keeping the three aligned is the point: a contributor
