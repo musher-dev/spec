@@ -1,0 +1,31 @@
+# The STRING_LIST member on the authored-parameter path. Fixtured here rather
+# than only in the component family for the reason 027 gives: this family
+# carries its own copy of the block component §6.3 defines, so a fixture over
+# there proves nothing about a blueprint and the two would drift apart silently
+# with CI green.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  revision: 1
+spec:
+  components:
+    db:
+      componentRef: ./components/postgres.yaml
+      size: general.standard.small
+      connections: {}
+  parameters:
+    telemetry:
+      schema:
+        type: STRING_LIST
+        enum:
+          - logs
+          - metrics
+          - traces
+        default: '["logs"]'
+      required: false
+      ui:
+        label: Telemetry to export
+        enumLabels:
+          logs: Logs
+          metrics: Metrics

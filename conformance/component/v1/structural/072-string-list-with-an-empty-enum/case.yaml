@@ -1,0 +1,29 @@
+# The companion to 071, and a separate case because the two halves carry
+# different codes. An empty `enum` is the unconstrained state everywhere else in
+# §6.3 — it is what `JSON` is required to hold — so writing one here is present
+# but says nothing, and the rule is that it stays non-empty rather than that the
+# field appears.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  revision: 1
+spec:
+  workload:
+    type: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+    endpoints:
+      web:
+        containerPort: 8080
+        protocol: HTTP
+        visibility: PRIVATE
+  contract:
+    inputs:
+      telemetry:
+        schema:
+          type: STRING_LIST
+          enum: []
+        ui:
+          label: Telemetry to export
+    outputs: {}

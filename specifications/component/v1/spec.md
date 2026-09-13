@@ -864,7 +864,14 @@ takes. That is why `default` is a string, why `enum` is a list of strings, why a
 `DECLARED` output's `value` is a string, and why `pattern` is a regular
 expression over the same form.
 
-<a id="COMP-VAL-001"></a>**`COMP-VAL-001`** — `type` MUST be one of four
+**A `STRING_LIST` is one value too.** Its string form is a JSON array of
+strings, each of them a member of `enum` and each appearing once —
+`["logs","traces"]`. The empty array is the unset value, so a `STRING_LIST`
+that has to be able to mean "none of them" declares `default: '[]'` rather than
+reaching for a member that means it. A `default` is still a string, holding
+that array's text.
+
+<a id="COMP-VAL-001"></a>**`COMP-VAL-001`** — `type` MUST be one of five
 members. Anything else is rejected in the `structural` phase with
 `ERR_INVALID_VALUE`.
 
@@ -874,6 +881,7 @@ members. Anything else is rejected in the `structural` phase with
 | `NUMBER` | a JSON number — `5432`, `-1`, `2.5` | forbidden | permitted | permitted |
 | `BOOLEAN` | `true` or `false`, in lower case | forbidden | permitted | permitted |
 | `JSON` | a JSON value of any kind — object, array, string, number, boolean or null | forbidden | forbidden | MUST be empty |
+| `STRING_LIST` | a JSON array of strings — `["logs","traces"]` | forbidden | forbidden | MUST be present and non-empty |
 
 **There is no integer member, and the omission is deliberate.** `NUMBER` is
 JSON's own numeric kind and covers whole numbers and reals alike. An author who
@@ -982,14 +990,62 @@ pairing goes unchecked in either direction is a gap rather than a considered
 permission; the registry records a primitive type per identifier, and nothing in
 this contract reads it.
 
+<a id="COMP-VAL-006"></a>**`COMP-VAL-006`** — Where `type` is `STRING_LIST`,
+`enum` MUST be present and non-empty, and `pattern` MUST NOT be present. All
+three are `structural`: an absent `enum` is `ERR_MISSING_FIELD`, an empty one
+is `ERR_INVALID_VALUE`, and a `pattern` is `ERR_INVALID_VALUE`.
+
+**`enum` is required rather than optional.** A `STRING_LIST` with no members
+named would be an unconstrained list of strings, which is what `JSON` already
+is, and [§6.4](#install-form)'s derivation would have nothing to offer: a
+chooser with no choices is a text box that has been made harder to type into.
+The member is for the shape an install form can honestly ask for — several of a
+named set — and a document that has not named the set has not reached it.
+
+**`pattern` is forbidden for `COMP-VAL-002`'s reason, arriving by a second
+door.** The string form is a JSON array, `["a","b"]` and `[ "a" , "b" ]` are one
+value spelled two ways, and a regular expression decides membership on the
+spelling. What an author wants constrained is each member, and `enum` — which
+is required here — is the field that constrains each member.
+
+**`format` needs no clause of its own.** [`COMP-VAL-003`](#value-schema)
+above already forbids it wherever `type` is not `STRING`, and a `STRING_LIST`
+is not a `STRING`. The
+row in the table above records the outcome rather than a second rule, and
+[`structural/074`](../../../conformance/component/v1/structural/074-string-list-with-a-format/)
+is the fixture that holds it down.
+
+**The multiplicity is in `type` rather than beside it.** An earlier draft of
+this member, and the issue that asked for it, spelled it as a boolean
+`multiple` sitting next to `type: STRING`. Every contract that decides this
+question for data rather than for a control puts it in the type — JSON Schema's
+`type: array` with `items`, Ansible's `type: list` with `elements`,
+CloudFormation's `Type: CommaDelimitedList` with its per-member
+`AllowedValues`, Terraform's `set(string)`, Protocol Buffers' `repeated`. Only
+HTML spells it `multiple`, and there it is an attribute of `<select>`: a
+statement about a control, which is the one thing [§6.4](#install-form) says
+this block never makes. The practical half matters more than the provenance.
+[Blueprint §4.2](../../blueprint/v1/spec.md#connections) compares `type` for
+equality, [blueprint §5.3](../../blueprint/v1/spec.md#authored-parameters)
+requires a parameter's to agree with the input it covers, and
+[blueprint §5.2](../../blueprint/v1/spec.md#merge) compares whole `schema`
+blocks — so a member is compared at all three doors the day it is added, while a
+field beside `type` would have had to be remembered at each of them, and would
+have been a silent gap at any one that was missed.
+
+[ADR 0020](../../../docs/adr/0020-multi-value-value-shape.md) records the
+decision and what it rejects.
+
 **What v1 does not check.** No phase tests a **value** against the shape its
 `schema` declares. A `DECLARED` output may write `type: NUMBER` beside
 `value: 'banana'`; a `default` may ignore the `pattern` and the `enum` written
-beside it; a `JSON` value's `default` is not parsed. None of this is new with
-`JSON` — it has been true of every member since v1 — and it is recorded here
-rather than described aspirationally, because the table above is the first place
-a reader could reasonably expect the check to be. Closing any of them rejects
-documents that validate today.
+beside it; a `JSON` value's `default` is not parsed; a `STRING_LIST`'s
+`default` is not parsed either, and nothing tests that a submitted array holds
+members of `enum`, or that it repeats none of them. None of this is new with
+`JSON` or with `STRING_LIST` — it has been true of every member since v1 — and
+it is recorded here rather than described aspirationally, because the table
+above is the first place a reader could reasonably expect the check to be.
+Closing any of them rejects documents that validate today.
 
 ### <a id="install-form"></a>6.4 Install-form presentation
 
@@ -1067,6 +1123,7 @@ first that applies decides.
 | Where the value's `schema` says | The control |
 |---|---|
 | `sensitive: true` | MUST conceal the value as it is entered, and MUST NOT display a stored one. |
+| `type: STRING_LIST` | MUST offer several of the `enum` members at once, under their `enumLabels` wording where one is given, and MUST NOT offer a value outside them. |
 | a non-empty `enum` | MUST offer those members, under their `enumLabels` wording where one is given, and MUST NOT offer a value outside them. |
 | `type: BOOLEAN` | MUST offer exactly `true` and `false`. |
 | `type: JSON` | SHOULD accept text spanning more than one line. |
@@ -1074,9 +1131,11 @@ first that applies decides.
 | `format: TIMEZONE` | SHOULD offer the identifiers [§6.3](#value-schema) names. |
 | anything else | accepts text. |
 
-The order matters in one place and is stated rather than left to chance: a
+The order matters in two places and is stated rather than left to chance. A
 secret drawn from an enumeration is concealed rather than listed, because
-`sensitive` is read first.
+`sensitive` is read first. And a `STRING_LIST` always carries a non-empty
+`enum` ([`COMP-VAL-006`](#value-schema)), so it is read before the `enum` row
+that would otherwise catch it and offer exactly one member.
 
 **This clause binds an implementation's output rather than a document**, which
 [listing §4.1](../../listing/v1/spec.md#description-markdown) is the only other

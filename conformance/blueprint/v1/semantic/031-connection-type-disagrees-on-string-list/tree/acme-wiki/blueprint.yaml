@@ -1,0 +1,25 @@
+# The companion to 030, at the other door. `db` publishes one STRING; `web`
+# reads a STRING_LIST. §4.2 compares `type` for equality and needed no third
+# axis to catch it, because the multiplicity is part of `type` — a consumer that
+# will parse an array out of what it receives and a producer that sends a word
+# are asking for different things, which is the argument §4.2 already makes
+# about JSON with a different pair of members in it.
+specVersion: v1
+kind: BLUEPRINT
+metadata:
+  slug: acme-wiki
+  revision: 1
+spec:
+  components:
+    db:
+      componentRef: ./components/postgres.yaml
+      size: general.standard.small
+      connections: {}
+    web:
+      componentRef: ./components/web.yaml
+      size: general.standard.small
+      connections:
+        replicas:
+          fromRole: db
+          fromOutput: replica
+  parameters: {}

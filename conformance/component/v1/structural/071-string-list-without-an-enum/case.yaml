@@ -1,0 +1,29 @@
+# A STRING_LIST with no members named is an unconstrained list of strings, which
+# is what JSON already is — and §6.4's derivation would have nothing to offer,
+# so the form would fall back to the text box the member exists to replace.
+# `enum` is REQUIRED here rather than merely non-empty when written, so an
+# absent one is the field an author has to add: ERR_MISSING_FIELD, anchored at
+# the object that should have carried it.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  revision: 1
+spec:
+  workload:
+    type: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+    endpoints:
+      web:
+        containerPort: 8080
+        protocol: HTTP
+        visibility: PRIVATE
+  contract:
+    inputs:
+      telemetry:
+        schema:
+          type: STRING_LIST
+        ui:
+          label: Telemetry to export
+    outputs: {}
