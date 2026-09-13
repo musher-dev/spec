@@ -26,9 +26,11 @@ import {
   discoverFamilies,
   Failures,
   type Family,
+  failCli,
   hasPart,
   isObject,
   type Json,
+  LayoutError,
   REPO_ROOT,
   releaseDirPaths,
   requireTreeAtRef,
@@ -177,7 +179,15 @@ export function replayAll(
 
 function main(): void {
   const failures = new Failures()
-  const { replayed, checked } = replayAll(REPO_ROOT, failures)
+  let result: { replayed: number; checked: number }
+  try {
+    result = replayAll(REPO_ROOT, failures)
+  } catch (error) {
+    // A release whose tag lacks a path the layout names: one line, not a trace.
+    if (error instanceof LayoutError) failCli(error)
+    throw error
+  }
+  const { replayed, checked } = result
 
   failures.report(
     checked === 0

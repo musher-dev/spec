@@ -33,10 +33,15 @@ import {
 export const INDEX_START = '<!-- adr-index:start -->'
 export const INDEX_END = '<!-- adr-index:end -->'
 
-/** A relation's verb, as the back-reference the cited ADR shows for it. */
+/**
+ * A relation's verb, as the back-reference the cited ADR shows for it. The
+ * sections a relation names belong to the cited ADR — the row's own — so they
+ * lead: `§1 superseded by 0021`, never `Superseded by 0021 §1`, which reads as a
+ * section of 0021.
+ */
 const BACK_REFERENCE: { readonly [verb: string]: string } = {
-  Supersedes: 'Superseded by',
-  Refines: 'Refined by',
+  Supersedes: 'superseded by',
+  Refines: 'refined by',
 }
 
 /** `follow-up 2`, cited beside a section. */
@@ -149,7 +154,10 @@ export function backReferences(records: readonly AdrRecord[]): Map<string, strin
     for (const record of records) {
       for (const relation of record.relations) {
         if (relation.verb !== verb || relation.file === null) continue
-        const entry = `${backVerb} ${cited(record.file, relation.parts)}`
+        const entry =
+          relation.parts.length === 0
+            ? `${backVerb.charAt(0).toUpperCase()}${backVerb.slice(1)} ${adrLink(record.file)}`
+            : `${relation.parts.join(', ')} ${backVerb} ${adrLink(record.file)}`
         found.set(relation.file, [...(found.get(relation.file) ?? []), entry])
       }
     }

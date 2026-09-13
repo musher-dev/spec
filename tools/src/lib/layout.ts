@@ -529,6 +529,17 @@ export function relativeToRepo(path: string): string {
 }
 
 /** Collected failures, reported together so one run surfaces every problem. */
+/**
+ * End a command line on an error it cannot recover from — a layout the release
+ * does not match, a network failure — with one line rather than a stack trace.
+ */
+export function failCli(error: unknown): never {
+  const message = error instanceof Error ? error.message : String(error)
+  const name = error instanceof Error && error.name !== 'Error' ? `${error.name}: ` : ''
+  console.error(`  ✗ ${name}${message.split('\n')[0]}`)
+  process.exit(1)
+}
+
 export class Failures {
   private readonly items: string[] = []
 

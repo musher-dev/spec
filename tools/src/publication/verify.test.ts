@@ -10,7 +10,7 @@ import { git } from '../lib/git.ts'
 import { CORE_FAMILY, Failures, familyPaths, LEDGER_FILE } from '../lib/layout.ts'
 import { pinnedBundle } from '../schema/bundle.ts'
 import { gitReader } from '../schema/sources.ts'
-import { FixtureRepo } from '../testing/fixture.ts'
+import { FixtureRepo, RELEASE_SECTIONS } from '../testing/fixture.ts'
 import { Pipeline } from '../testing/pipeline.ts'
 import { type LedgerEntry, readLedger, serializeLedger } from './ledger.ts'
 import { record } from './record.ts'
@@ -164,6 +164,7 @@ describe('verifyPublications', () => {
     fx.commit('chore: the manifest moved out from under the entry')
     expect(verify(fx.root).failures).toEqual([
       expect.stringContaining('only valid while its release is pending'),
+      expect.stringContaining('reads 1.2.0, which is neither tagged nor recorded'),
     ])
   })
 
@@ -219,29 +220,57 @@ describe('verifyPublications', () => {
       ])
     })
 
-    test('fails when a releasable core commit lies between core’s tag and the release', () => {
+    test('does not reclassify history: a releasable core commit before the release is stage’s to refuse', () => {
       const { fx, p } = fixture()
       p.releaseCore('1.0.0')
       fx.writeFile(CORE.spec, '## <a id="scope"></a>1. Core scope, extended\n')
       fx.commit('feat(core): a rule core never released')
       prepare(fx, '1.0.0')
       forge(fx, '1.0.0')
+      expect(verify(fx.root).failures).toEqual([])
+    })
+
+    test('a later config change that unhides a type does not fail an existing tagged release', () => {
+      const { fx, p } = fixture()
+      p.releaseCore('1.0.0')
+      fx.writeFile(CORE.spec, '## <a id="scope"></a>1. Core scope, tidied\n')
+      fx.commit('chore(core): tidy')
+      p.releaseKind('component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
+      expect(verify(fx.root)).toEqual({ failures: [], warnings: [] })
+
+      fx.writeReleaseConfig(
+        RELEASE_SECTIONS.map((s) => (s.type === 'chore' ? { type: 'chore' } : s)),
+      )
+      fx.commit('ci(repo): show maintenance in the changelog')
+      expect(verify(fx.root)).toEqual({ failures: [], warnings: [] })
+    })
+  })
+
+  describe('a manifest version neither tagged nor recorded', () => {
+    test('fails on the release branch, and still fails once tagged without an entry', () => {
+      const { fx, p } = fixture()
+      p.releaseCore('1.0.0')
+      // The release pull request before release-ledger.yml has pushed its entry.
+      prepare(fx, '1.0.0')
       expect(verify(fx.root).failures).toEqual([
-        expect.stringContaining('releasable commit(s) between core/v1.0.0 and the release'),
+        expect.stringContaining(
+          `${COMPONENT.manifestKey} reads 1.0.0, which is neither tagged nor recorded`,
+        ),
+      ])
+
+      // Merged and tagged anyway: now it is a tag with no entry.
+      fx.tag('component/v1.0.0')
+      expect(verify(fx.root).failures).toEqual([
+        expect.stringContaining('component/v1.0.0 is tagged but absent from published.json'),
       ])
     })
 
-    test('fails when requires.core is not on the core line the family cites', () => {
+    test('0.0.0 is never released, so it is never unrecorded', () => {
       const { fx, p } = fixture()
       p.releaseCore('1.0.0')
-      fx.writeFamilySkeleton('component', 'v1')
-      fx.writeFile(COMPONENT.spec, fx.kindSpec('component', undefined, 'v2'))
-      fx.commit('docs(component): cite core v2')
-      prepare(fx, '1.0.0')
-      forge(fx, '1.0.0')
-      expect(verify(fx.root).failures).toEqual([
-        expect.stringContaining('but its §2 cites core v2'),
-      ])
+      fx.setManifestVersion(COMPONENT.manifestKey, '0.0.0')
+      fx.commit('chore(repo): an unreleased package')
+      expect(verify(fx.root).failures).toEqual([])
     })
   })
 

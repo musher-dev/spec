@@ -15,8 +15,8 @@
  * requiring it to would be requiring a second implementation to be the first.
  *
  * Skipped rather than failed when the CLI is absent, so a contributor without
- * it can still run `task check`. CI has it, and a skip is reported rather than
- * counted as a pass.
+ * it can still run `task check`. Under `CI=true` an absent CLI fails instead:
+ * CI installs it, and a skip there would pass a gate that never ran.
  *
  * NON-NORMATIVE, like everything under tools/.
  */
@@ -34,6 +34,7 @@ import {
   relativeToRepo,
 } from '../lib/layout.ts'
 import { ensureBundleFile } from '../schema/bundle.ts'
+import { reportAbsentCli } from '../schema/standards.ts'
 import { parseDocument } from '../validation/document.ts'
 import { compileFamily } from '../validation/validator.ts'
 
@@ -188,8 +189,7 @@ function subjectsFor(family: Family): Subject[] {
 
 function main(): void {
   if (!existsSync(CLI)) {
-    console.log(`  · ${relativeToRepo(CLI)} not installed — parity skipped, not passed.`)
-    console.log('    Run `bun install` in tools/ to enable it.')
+    reportAbsentCli('check:parity', CLI)
     return
   }
 

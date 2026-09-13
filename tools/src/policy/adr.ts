@@ -54,11 +54,25 @@ function sectionNumbers(text: string): Set<string> {
 }
 
 /**
- * The text ADR-04 compares: every Markdown link target blanked, so a retargeted
- * link reads as unchanged and any other difference does not.
+ * The text ADR-04 compares: every relative Markdown link target blanked, so a
+ * file that moved reads as unchanged and any other difference does not. An
+ * absolute URL is compared verbatim. Whether a retargeted link still points at
+ * what the ADR meant is a review obligation, not something this can see.
  */
 export function normalizeLinkTargets(text: string): string {
-  return text.replace(/\]\([^)]*\)/g, ']()')
+  return text.replace(/\]\(([^)]*)\)/g, (link, target: string) =>
+    isRelativeTarget(target) ? ']()' : link,
+  )
+}
+
+/**
+ * Whether a link target is relative: no scheme and not protocol-relative. Only
+ * a relative target can go stale when a file moves; an absolute URL is part of
+ * the accepted prose, and changing one is a change to the ADR.
+ */
+export function isRelativeTarget(target: string): boolean {
+  const bare = target.trim().replace(/^</, '')
+  return !/^[A-Za-z][A-Za-z0-9+.-]*:/.test(bare) && !bare.startsWith('//')
 }
 
 /** The 1-based line of the first difference between two texts. */

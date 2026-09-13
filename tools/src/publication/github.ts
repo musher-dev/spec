@@ -40,6 +40,8 @@ export interface ReleaseSource {
 export type FetchLike = (url: string, init?: RequestInit) => Promise<Response>
 
 const API = 'https://api.github.com'
+/** Every request gives up after this long, so a stalled connection fails the job rather than hanging it. */
+export const REQUEST_TIMEOUT_MS = 30_000
 const REPOSITORY = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/
 
 /** `GITHUB_TOKEN`, else `gh auth token`, else null. */
@@ -128,7 +130,10 @@ export class GitHubReleaseSource implements ReleaseSource {
 
   private async getJson(path: string): Promise<{ status: number; body: unknown }> {
     const url = `${this.api}/repos/${this.repository}${path}`
-    const response = await this.fetch(url, { headers: this.headers('application/vnd.github+json') })
+    const response = await this.fetch(url, {
+      headers: this.headers('application/vnd.github+json'),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    })
     if (response.status === 404) return { status: 404, body: null }
     if (!response.ok) {
       throw new Error(`GET ${url} failed (${response.status}) — ${await response.text()}`)
@@ -159,6 +164,7 @@ export class GitHubReleaseSource implements ReleaseSource {
     const first = await this.fetch(asset.url, {
       headers: this.headers('application/octet-stream'),
       redirect: 'manual',
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     })
     let response = first
     if (first.status >= 300 && first.status < 400) {
@@ -166,6 +172,7 @@ export class GitHubReleaseSource implements ReleaseSource {
       if (location === null) throw new Error(`${asset.name}: redirect without a location`)
       response = await this.fetch(location, {
         headers: { 'User-Agent': 'musher-specifications-tools' },
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       })
     }
     if (!response.ok) {

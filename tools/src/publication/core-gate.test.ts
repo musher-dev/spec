@@ -36,6 +36,25 @@ describe('classifyCommit', () => {
     ['test(core): add a fixture', '', 'non-releasable'],
     ['perf(core): hidden section', '', 'non-releasable'],
     ['refactor(core): reshape', 'mentions BREAKING CHANGE: mid-line only', 'non-releasable'],
+    [
+      'chore(core): tidy',
+      'BREAKING CHANGE: in the first paragraph\n\nThen more prose.',
+      'non-releasable',
+    ],
+    [
+      'chore(core): tidy',
+      'BREAKING CHANGE: a footer that is not last\nand a line of prose after it',
+      'non-releasable',
+    ],
+    [
+      'chore(core): tidy',
+      'Body.\n\nBREAKING CHANGE: a rule moved\n  and continues here\nSigned-off-by: A <a@example.invalid>',
+      'releasable',
+    ],
+    ['chore(core): tidy', 'Body.\n\nRelease-As: 1.2.0', 'releasable'],
+    ['test(core): cover', 'release-as: 2.0.0\nSigned-off-by: A <a@example.invalid>', 'releasable'],
+    ['chore(core): tidy', 'Release-As: 1.2.0\n\nprose after the would-be footer', 'non-releasable'],
+    ['chore(core): tidy', 'Signed-off-by: A <a@example.invalid>', 'non-releasable'],
     ['feat(core) add a rule', '', 'non-releasable'],
     ['Merge branch main', 'BREAKING CHANGE: not a conventional header', 'non-releasable'],
   ]

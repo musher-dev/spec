@@ -3,7 +3,12 @@
  * the network.
  */
 import { describe, expect, test } from 'bun:test'
-import { type FetchLike, GitHubReleaseSource, resolveRepository } from './github.ts'
+import {
+  type FetchLike,
+  GitHubReleaseSource,
+  REQUEST_TIMEOUT_MS,
+  resolveRepository,
+} from './github.ts'
 
 interface Seen {
   url: string
@@ -100,6 +105,28 @@ describe('GitHubReleaseSource', () => {
     expect(bytes.toString()).toBe('bytes')
     expect(seen[0]?.headers.Accept).toBe('application/octet-stream')
     expect(seen[1]?.headers.Authorization).toBeUndefined()
+  })
+})
+
+describe('request timeouts', () => {
+  test('every request carries a timeout signal, so a stalled connection fails', async () => {
+    const signals: (AbortSignal | null | undefined)[] = []
+    const fetch: FetchLike = async (url, init) => {
+      signals.push(init?.signal)
+      if (url.endsWith('/asset')) {
+        return new Response(null, { status: 302, headers: { location: 'https://storage/x' } })
+      }
+      if (url === 'https://storage/x') return new Response('bytes')
+      if (url.includes('/releases?')) return Response.json([])
+      return Response.json({ tag_name: 'core/v1.0.0', assets: [] })
+    }
+    const source = new GitHubReleaseSource({ repository: 'o/r', token: null, api: API, fetch })
+    await source.publishedRelease('core/v1.0.0')
+    await source.listReleases()
+    await source.download({ name: 'x', digest: null, url: `${API}/asset` })
+    expect(signals).toHaveLength(4)
+    for (const signal of signals) expect(signal).toBeInstanceOf(AbortSignal)
+    expect(REQUEST_TIMEOUT_MS).toBe(30_000)
   })
 })
 

@@ -43,7 +43,7 @@ const CONTRIBUTING = join(REPO_ROOT, '.github', 'CONTRIBUTING.md')
 const DEPENDABOT_SCOPES = ['deps', 'deps-dev'] as const
 
 /** A `key:` followed by an indented `- item` list, in a small YAML file. */
-function yamlList(source: string, key: string): string[] {
+export function yamlList(source: string, key: string): string[] {
   const lines = source.split('\n')
   const start = lines.findIndex((line) => line.trimEnd() === `${key}:`)
   if (start < 0) return []

@@ -4,16 +4,18 @@
  */
 import { afterEach, describe, expect, test } from 'bun:test'
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { readBlobAtRef, tagCommit } from '../lib/git.ts'
+import { git, readBlobAtRef, tagCommit } from '../lib/git.ts'
 import { CORE_FAMILY, familyPaths, LEDGER_FILE } from '../lib/layout.ts'
+import { pinnedBundle } from '../schema/bundle.ts'
+import { gitReader } from '../schema/sources.ts'
 import { FixtureRepo } from '../testing/fixture.ts'
 import { Pipeline } from '../testing/pipeline.ts'
 import { type LedgerEntry, readLedger, serializeLedger } from './ledger.ts'
 import { sha256 } from './releases.ts'
-import { StageError, stageRelease } from './stage.ts'
+import { archiveEnv, resolveBaseLedgerRef, StageError, stageRelease } from './stage.ts'
 
 const COMPONENT = familyPaths('component', 'v1')
 const CORE = familyPaths(CORE_FAMILY, 'v1')
@@ -48,6 +50,44 @@ function member(archive: string, name: string): string {
   return spawnSync('tar', ['-xzOf', archive, name], { encoding: 'utf8' }).stdout
 }
 
+/** Stage against the fixture's default branch, which has no `origin/`. */
+function stage(fx: FixtureRepo, tag: string, out: string, baseLedgerRef = 'main') {
+  return stageRelease(fx.root, tag, out, { baseLedgerRef })
+}
+
+/**
+ * Commit component sources, record them by hand past the pending core gate,
+ * commit and tag — a release whose history `release:stage` must still judge.
+ */
+function forge(fx: FixtureRepo, options: { coreLine?: string; examples?: boolean } = {}): void {
+  fx.writeFamilySkeleton('component', 'v1')
+  if (options.examples === false) fx.remove(COMPONENT.examples)
+  fx.writeFile(COMPONENT.spec, fx.kindSpec('component', undefined, options.coreLine))
+  fx.writeSources('component', 'v1', fx.bundleDoc('component', 'v1'))
+  fx.setManifestVersion(COMPONENT.manifestKey, '1.0.0')
+  fx.commit('feat(component): component 1.0.0')
+  const bundle = pinnedBundle({ name: 'component', major: 'v1', repoRoot: fx.root }, '1.0.0', {
+    reader: gitReader(fx.root, 'HEAD'),
+  })
+  fx.writeFile(
+    LEDGER_FILE,
+    serializeLedger({
+      version: 2,
+      releases: {
+        ...readLedger(fx.root).releases,
+        'component/v1.0.0': {
+          path: COMPONENT.dir,
+          tree: fx.treeId('HEAD', COMPONENT.dir),
+          bundleSha256: sha256(bundle as string),
+          requires: { core: '1.0.0' },
+        },
+      },
+    }),
+  )
+  fx.commit('chore(repo): release component 1.0.0')
+  fx.tag('component/v1.0.0')
+}
+
 function refusal(fn: () => unknown): string {
   try {
     fn()
@@ -63,7 +103,7 @@ describe('stageRelease', () => {
     const { fx, p } = fixture()
     p.releaseKind('component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'), { publish: false })
     const out = outDir()
-    const staged = stageRelease(fx.root, 'component/v1.0.0', out)
+    const staged = stage(fx, 'component/v1.0.0', out)
 
     expect(staged.map((f) => f.name)).toEqual(['component.schema.json', 'component-v1.0.0.tar.gz'])
     expect(readdirSync(out).sort()).toEqual(['component-v1.0.0.tar.gz', 'component.schema.json'])
@@ -78,7 +118,7 @@ describe('stageRelease', () => {
     const { fx, p } = fixture()
     p.releaseKind('component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'), { publish: false })
     const out = outDir()
-    stageRelease(fx.root, 'component/v1.0.0', out)
+    stage(fx, 'component/v1.0.0', out)
     const archive = join(out, 'component-v1.0.0.tar.gz')
 
     expect(members(archive)).toEqual([
@@ -113,8 +153,8 @@ describe('stageRelease', () => {
     const { fx, p } = fixture()
     p.releaseKind('component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'), { publish: false })
     const [a, b] = [outDir(), outDir()]
-    stageRelease(fx.root, 'component/v1.0.0', a)
-    stageRelease(fx.root, 'component/v1.0.0', b)
+    stage(fx, 'component/v1.0.0', a)
+    stage(fx, 'component/v1.0.0', b)
     const left = readFileSync(join(a, 'component-v1.0.0.tar.gz'))
     const right = readFileSync(join(b, 'component-v1.0.0.tar.gz'))
     expect(left.equals(right)).toBe(true)
@@ -128,7 +168,7 @@ describe('stageRelease', () => {
     p.releaseKind('component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'), { publish: false })
 
     const out = outDir()
-    stageRelease(fx.root, 'component/v1.0.0', out)
+    stage(fx, 'component/v1.0.0', out)
     const archived = member(join(out, 'component-v1.0.0.tar.gz'), 'component-v1/core/spec.md')
     expect(archived).toBe(
       readBlobAtRef(fx.root, 'core/v1.0.0', CORE.spec)?.toString('utf8') as string,
@@ -140,7 +180,7 @@ describe('stageRelease', () => {
     const { fx, p } = fixture()
     p.releaseCore('1.0.0')
     const out = outDir()
-    const staged = stageRelease(fx.root, 'core/v1.0.0', out)
+    const staged = stage(fx, 'core/v1.0.0', out)
     expect(staged.map((f) => f.name)).toEqual(['core-v1.0.0.tar.gz'])
     const archive = join(out, 'core-v1.0.0.tar.gz')
     expect(members(archive)).toEqual([
@@ -185,15 +225,27 @@ describe('stageRelease', () => {
     fx.commit('chore(repo): release component 1.0.0 with a wrong hash')
     fx.tag('component/v1.0.0')
     const out = outDir()
-    expect(refusal(() => stageRelease(fx.root, 'component/v1.0.0', out))).toContain(
+    expect(refusal(() => stage(fx, 'component/v1.0.0', out))).toContain(
       'the pinned bundle built at the tag hashes to',
     )
     expect(readdirSync(out)).toEqual([])
   })
 
-  test('refuses when the working ledger disagrees with the tag’s', () => {
+  test('refuses when the default branch’s ledger does not record the entry', () => {
+    const { fx, p } = fixture()
+    p.releaseKind('component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'), { publish: false })
+    // core/v1.0.0 is a commit on the default branch from before component was recorded.
+    const out = outDir()
+    expect(refusal(() => stage(fx, 'component/v1.0.0', out, 'core/v1.0.0'))).toContain(
+      "core/v1.0.0's ledger does not record it",
+    )
+    expect(readdirSync(out)).toEqual([])
+  })
+
+  test('refuses when the default branch’s ledger differs from the tag’s', () => {
     const { fx, p } = fixture()
     p.releaseCore('1.0.0')
+    fx.branch('altered')
     const ledger = readLedger(fx.root)
     fx.writeFile(
       LEDGER_FILE,
@@ -202,12 +254,80 @@ describe('stageRelease', () => {
         releases: {
           'core/v1.0.0': {
             ...(ledger.releases['core/v1.0.0'] as LedgerEntry),
-            path: `${CORE.dir}x`,
+            tree: '0'.repeat(40),
           },
         },
       }),
     )
-    expect(refusal(() => stageRelease(fx.root, 'core/v1.0.0', outDir()))).toContain('differs')
+    fx.commit('chore(repo): an edited ledger on the default branch')
+    fx.checkout('main')
+    expect(refusal(() => stage(fx, 'core/v1.0.0', outDir(), 'altered'))).toContain(
+      "the tag's ledger entry differs from altered's",
+    )
+  })
+
+  test('refuses when the default branch ref cannot be read', () => {
+    const { fx, p } = fixture()
+    p.releaseCore('1.0.0')
+    expect(refusal(() => stage(fx, 'core/v1.0.0', outDir(), 'origin/main'))).toContain(
+      'origin/main: its ledger cannot be read',
+    )
+  })
+
+  test('the base ledger ref is BASE_LEDGER_REF, else origin/main', () => {
+    expect(resolveBaseLedgerRef({})).toBe('origin/main')
+    expect(resolveBaseLedgerRef({ BASE_LEDGER_REF: '' })).toBe('origin/main')
+    expect(resolveBaseLedgerRef({ BASE_LEDGER_REF: 'upstream/main' })).toBe('upstream/main')
+  })
+
+  test('refuses a kind family release without examples', () => {
+    const { fx, p } = fixture()
+    p.releaseCore('1.0.0')
+    forge(fx, { examples: false })
+    expect(refusal(() => stage(fx, 'component/v1.0.0', outDir()))).toContain(
+      `${COMPONENT.examples} is empty or absent`,
+    )
+  })
+
+  test('refuses when a releasable core commit lies between core’s tag and the release', () => {
+    const { fx, p } = fixture()
+    p.releaseCore('1.0.0')
+    fx.writeFile(CORE.spec, '## <a id="scope"></a>1. Core scope, extended\n')
+    fx.commit('feat(core): a rule core never released')
+    forge(fx)
+    expect(refusal(() => stage(fx, 'component/v1.0.0', outDir()))).toContain(
+      'releasable commit(s) between core/v1.0.0 and the release',
+    )
+  })
+
+  test('refuses when requires.core is not on the core line the family cites', () => {
+    const { fx, p } = fixture()
+    p.releaseCore('1.0.0')
+    forge(fx, { coreLine: 'v2' })
+    expect(refusal(() => stage(fx, 'component/v1.0.0', outDir()))).toContain(
+      'but its §2 cites core v2',
+    )
+  })
+
+  test('clears only this tag’s outputs before staging', () => {
+    const { fx, p } = fixture()
+    p.releaseCore('1.0.0')
+    const out = outDir()
+    writeFileSync(join(out, 'core-v1.0.0.tar.gz'), 'stale')
+    writeFileSync(join(out, 'component.schema.json'), 'another release')
+    stage(fx, 'core/v1.0.0', out)
+    expect(readFileSync(join(out, 'core-v1.0.0.tar.gz')).toString()).not.toBe('stale')
+    expect(readFileSync(join(out, 'component.schema.json'), 'utf8')).toBe('another release')
+
+    writeFileSync(join(out, 'core-v1.0.0.tar.gz'), 'stale')
+    git(fx.root, ['tag', '-d', 'core/v1.0.0'])
+    refusal(() => stage(fx, 'core/v1.0.0', out))
+    expect(readdirSync(out)).toEqual(['component.schema.json'])
+  })
+
+  test('tar and gzip run without TAR_OPTIONS or GZIP', () => {
+    const env = archiveEnv({ TAR_OPTIONS: '--mtime=now', GZIP: '-1', PATH: '/bin' })
+    expect(env).toEqual({ PATH: '/bin', LC_ALL: 'C' })
   })
 
   test('refuses a core release that carries schemas/src', () => {
@@ -224,16 +344,12 @@ describe('stageRelease', () => {
     })
     fx.commit('chore(repo): release core 1.0.0')
     fx.tag('core/v1.0.0')
-    expect(refusal(() => stageRelease(fx.root, 'core/v1.0.0', outDir()))).toContain(
-      'core publishes no schema',
-    )
+    expect(refusal(() => stage(fx, 'core/v1.0.0', outDir()))).toContain('core publishes no schema')
   })
 
   test('refuses a tag that does not exist', () => {
     const { fx, p } = fixture()
     p.releaseCore('1.0.0')
-    expect(refusal(() => stageRelease(fx.root, 'component/v1.0.0', outDir()))).toContain(
-      'does not exist',
-    )
+    expect(refusal(() => stage(fx, 'component/v1.0.0', outDir()))).toContain('does not exist')
   })
 })

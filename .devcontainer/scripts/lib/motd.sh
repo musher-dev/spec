@@ -136,7 +136,6 @@ _motd_quickref() {
   echo ""
   echo "  ${_BOLD}Quick Reference${_RESET}"
   echo "  ${_DIM}${sep}${_RESET}"
-  echo "  docker compose -f .devcontainer/compose.yaml up -d / down / logs -f"
   echo "  git status / log / diff"
   echo "  task                             Task runner"
   echo "  claude                           Claude Code AI"

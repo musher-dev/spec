@@ -94,7 +94,7 @@ describe('the publication pipeline, end to end', () => {
 
   test('4. merged and tagged; staging proves the bundle and ships core 1.0.0, not HEAD’s core', () => {
     fx.tag(TAG)
-    const files = stageRelease(fx.root, TAG, staged)
+    const files = stageRelease(fx.root, TAG, staged, { baseLedgerRef: 'main' })
     const entry = readLedger(fx.root).releases[TAG]
     expect(files.find((f) => f.name === 'component.schema.json')?.sha256).toBe(
       entry?.bundleSha256 as string,
@@ -113,7 +113,13 @@ describe('the publication pipeline, end to end', () => {
   test('5. published as an immutable release, fetched and verified into the cache', async () => {
     p.source.publishDir(TAG, staged)
     const result = await fetchReleases(fx.root, p.source, p.cacheDir)
-    expect(result).toEqual({ failures: [], verified: [TAG, 'core/v1.0.0'], cached: [] })
+    expect(result).toEqual({
+      failures: [],
+      verified: [TAG, 'core/v1.0.0'],
+      cached: [],
+      pending: [],
+      warnings: [],
+    })
   })
 
   test('6. the site serves the pinned bytes that were staged, verified and recorded', () => {

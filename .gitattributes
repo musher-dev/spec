@@ -11,8 +11,6 @@
 *.sh      text eol=lf
 
 *.png     binary
-*.jpg     binary
-*.ico     binary
 
 # Two parser fixtures are *about* their bytes, so normalization would quietly
 # destroy what they test. The CRLF case asserts CRLF endings are accepted; the

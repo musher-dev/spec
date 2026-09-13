@@ -129,6 +129,14 @@ tasks:
     cmds:
       - bun run src/policy/commits.ts
 
+  title:
+    desc: Validate a pull request title against .github/conventional-commits.yaml (PR_TITLE=<title>)
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      # CI only, on pull requests: not part of `task check`, which has no title.
+      # PR_TITLE is read from the environment and fails when unset.
+      - bun run src/policy/title.ts
+
   docs:
     desc: Fail if docs/traceability.md or the ADR index differs from a fresh generation
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
@@ -156,10 +164,16 @@ tasks:
       # pull_request_template.md is excluded because it is a form fragment, not
       # a document: GitHub renders it into a textarea, so it has no title and
       # MD041 would be asking it to grow one.
+      #
+      # release-please writes specifications/*/v*/CHANGELOG.md. It is generated,
+      # its blank-line style (two blank lines before a `###` section) violates
+      # MD012, and a fix here would be overwritten by the next release pull
+      # request — so it is excluded rather than linted.
       - >-
         tools/node_modules/.bin/markdownlint-cli2
         --config .config/markdown/markdownlint.jsonc
         "**/*.md" "#tools/node_modules" "#site" "#.github/pull_request_template.md"
+        "#specifications/*/v*/CHANGELOG.md"
 
   spelling:
     desc: Spell-check prose, tooling sources, and schema descriptions

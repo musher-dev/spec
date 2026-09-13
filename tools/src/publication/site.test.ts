@@ -15,7 +15,7 @@ import { pinnedBundle } from '../schema/bundle.ts'
 import { gitReader } from '../schema/sources.ts'
 import { FixtureRepo } from '../testing/fixture.ts'
 import { Pipeline } from '../testing/pipeline.ts'
-import { cachedBundlePath } from './fetch.ts'
+import { cachedBundlePath, fetchReleases } from './fetch.ts'
 import { LEDGER_FILE, type LedgerEntry, readLedger, serializeLedger } from './ledger.ts'
 import { aliasUrl, sha256, stampId } from './releases.ts'
 import { assembleSite, type HeaderRule, renderHeaders } from './site.ts'
@@ -277,14 +277,57 @@ describe('assembleSite', () => {
     )
   })
 
+  test('a pending release is left out under ALLOW_PENDING_RELEASES, and fails the build without it', async () => {
+    const fx = fixture()
+    await release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
+    p().releaseKind(
+      'component',
+      'v1',
+      '1.1.0',
+      fx.bundleDoc('component', 'v1', { minProperties: 1 }),
+    )
+    p().source.setDraft('component/v1.1.0', true)
+    const fetched = await fetchReleases(fx.root, p().source, p().cacheDir, { allowPending: true })
+    expect(fetched.pending).toEqual(['component/v1.1.0'])
+
+    const site = join(fx.root, 'site')
+    assembleSite({ repoRoot: fx.root, siteDir: site, cacheDir: p().cacheDir, allowPending: true })
+    const served = servedPaths(site)
+    expect(served).toContain('/component/v1.0.0/component.schema.json')
+    expect(served).not.toContain('/component/v1.1.0/component.schema.json')
+    const versions = readSite(fx, 'component', 'versions.json')
+    expect(versions).toContain('1.0.0')
+    expect(versions).not.toContain('1.1.0')
+
+    expect(() =>
+      assembleSite({
+        repoRoot: fx.root,
+        siteDir: site,
+        cacheDir: p().cacheDir,
+        allowPending: false,
+      }),
+    ).toThrow(/component\/v1\.1\.0: no verified release asset/)
+  })
+
   test('a release tag lacking examples/ fails loudly rather than rendering none', async () => {
     // Before the layout module, a moved examples directory read as "this
     // release has no examples" and the site deployed without them.
     const fx = fixture()
     fx.writeFamilySkeleton('component', 'v1')
     fx.remove(COMPONENT.examples)
-    p().releaseKind('component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'), {
+    const tag = p().releaseKind('component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'), {
       skeleton: false,
+      publish: false,
+    })
+    // release:stage now refuses a release without examples, so publish the
+    // bytes by hand — a release cut by older tooling, which the site must
+    // still refuse to render without them.
+    const bundle = pinnedBundle({ name: 'component', major: 'v1', repoRoot: fx.root }, '1.0.0', {
+      reader: gitReader(fx.root, tag),
+    })
+    p().source.publish(tag, {
+      'component.schema.json': bundle as string,
+      'component-v1.0.0.tar.gz': 'archive',
     })
     await p().fetch()
 

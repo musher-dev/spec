@@ -55,7 +55,7 @@ import { type ProseContext, readOutline, renderProse } from '../render/prose.ts'
 import { buildReference, renderReference } from '../render/reference.ts'
 import { familyBundle } from '../schema/bundle.ts'
 import { buildCatalog } from './catalog.ts'
-import { readCachedBundle } from './fetch.ts'
+import { allowPendingFromEnv, readCachedBundle, readPendingReleases } from './fetch.ts'
 import {
   LEDGER_FILE,
   type RecordedRelease,
@@ -64,13 +64,19 @@ import {
   taggedEntries,
 } from './ledger.ts'
 import { aliasUrl, discoverReleases, pinnedUrl, sha256, stampId } from './releases.ts'
-import { pendingNotices } from './verify.ts'
+import { unrecordedVersions } from './verify.ts'
 
 export interface SiteOptions {
   readonly repoRoot: string
   readonly siteDir: string
   /** Where `site:fetch` cached verified release assets. Defaults to the repository's. */
   readonly cacheDir?: string
+  /**
+   * The draft window: leave out every release `site:fetch` recorded as pending.
+   * Defaults to `ALLOW_PENDING_RELEASES=1`. Without it, a release with no
+   * verified asset fails the build.
+   */
+  readonly allowPending?: boolean
 }
 
 export interface SiteResult {
@@ -346,7 +352,16 @@ export function assembleSite(options: SiteOptions): SiteResult {
   // Pinned paths, from verified release assets only. Enumerated from the ledger,
   // so a family retired from the working tree keeps serving what it published.
   // ---------------------------------------------------------------------------
-  const releases = taggedEntries(repoRoot, ledger)
+  const allowPending = options.allowPending ?? allowPendingFromEnv()
+  const pendingReleases = allowPending ? readPendingReleases(cacheDir) : new Set<string>()
+  const releases = taggedEntries(repoRoot, ledger).filter(({ release }) => {
+    if (!pendingReleases.has(release.tag)) return true
+    console.log(
+      `  ! ${release.tag}: its GitHub release is not yet published — not served in this build ` +
+        '(ALLOW_PENDING_RELEASES=1)',
+    )
+    return false
+  })
   const newestByMajor = new Map<string, { recorded: RecordedRelease; pinned: Buffer }>()
   const versionsByFamily = new Map<string, PublishedVersion[]>()
   const references: ReferenceTarget[] = []
@@ -757,7 +772,7 @@ export function assembleSite(options: SiteOptions): SiteResult {
   write(join(siteDir, HEADERS_FILE), renderHeaders(rules))
   console.log(`  ✓ /${HEADERS_FILE} (${rules.length} rule(s))`)
 
-  for (const notice of pendingNotices(repoRoot)) {
+  for (const notice of unrecordedVersions(repoRoot)) {
     console.log(`  · ${notice}`)
   }
 
@@ -891,7 +906,7 @@ function renderReferenceIndex(rendered: readonly ReferenceTarget[]): string {
   return page(
     'Musher schema reference',
     [
-      `<p class="muted">${link('/', 'Schemas')} / reference</p>`,
+      `<p class="muted">${link('/', 'Specifications')} / reference</p>`,
       '<h1>Musher schema reference</h1>',
       '<p class="lead">A field-by-field reference for each document family, generated from the ' +
         "schema bundle it describes, beside that family's specification.</p>",
@@ -953,12 +968,13 @@ function renderIndex(
   })
 
   return page(
-    'Musher schemas',
+    'Musher specifications',
     [
-      '<h1>Musher schemas</h1>',
-      '<p class="lead">Canonical JSON Schema 2020-12 bundles for the Musher document families.',
-      'This host serves the schemas; the normative prose, the conformance suite and the',
-      `publication ledger live in ${link(REPO_URL, 'musher-dev/specifications')}.</p>`,
+      '<h1>Musher specifications</h1>',
+      '<p class="lead">The Musher document specifications and their JSON Schema 2020-12 bundles.',
+      'This host serves the schemas and the rendered specifications; the normative Markdown,',
+      'the conformance suite and the publication ledger live in',
+      `${link(REPO_URL, 'musher-dev/specifications')}.</p>`,
       '<table>',
       '<thead><tr><th>Family</th><th>Alias</th><th>Latest</th><th>Versions</th>',
       '<th>Prose</th><th>Reference</th></tr></thead>',
@@ -1046,7 +1062,7 @@ function renderFamilyIndex(
   return page(
     `${family} schemas`,
     [
-      `<p>${link('/', 'Musher schemas')}</p>`,
+      `<p>${link('/', 'Musher specifications')}</p>`,
       `<h1>${escapeHtml(family)}</h1>`,
       // The newest major, not the first: `aliases` arrives in release order, so
       // once a family has both v1 and v2 the first entry is the older one.
@@ -1113,7 +1129,7 @@ function renderProseFamilyIndex(
   return page(
     `${family} specification`,
     [
-      `<p>${link('/', 'Musher schemas')}</p>`,
+      `<p>${link('/', 'Musher specifications')}</p>`,
       `<h1>${escapeHtml(family)}</h1>`,
       '<p class="lead">This specification publishes no schema. Its rules are prose and a',
       'conformance corpus, and every document family built on it expresses them in its own',

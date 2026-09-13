@@ -105,10 +105,10 @@ describe('backReferences', () => {
     writeRecords(fx)
     const back = backReferences(readAdrRecords(fx.root))
     expect(back.get('0001-first.md')).toEqual([
-      'Superseded by [0002](0002-second.md) §1, §2',
+      '§1, §2 superseded by [0002](0002-second.md)',
       'Refined by [0003](0003-third.md)',
     ])
-    expect(back.get('0002-second.md')).toEqual(['Refined by [0003](0003-third.md) §4'])
+    expect(back.get('0002-second.md')).toEqual(['§4 refined by [0003](0003-third.md)'])
     // Closes is a relation, not a supersession or a refinement.
     expect(back.has('0003-third.md')).toBe(false)
   })
@@ -123,7 +123,7 @@ describe('buildAdrIndex', () => {
     expect(index.startsWith('# Decisions\n\nHand-written.\n\n')).toBe(true)
     expect(index).toContain(
       '| [0001](0001-first.md) | The first decision | Accepted | 2026-01-01 | ' +
-        'Supersedes the old repository | Superseded by [0002](0002-second.md) §1, §2; ' +
+        'Supersedes the old repository | §1, §2 superseded by [0002](0002-second.md); ' +
         'Refined by [0003](0003-third.md) |',
     )
     expect(index).toContain('| A pipe \\| in a title |')

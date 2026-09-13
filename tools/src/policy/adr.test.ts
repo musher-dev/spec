@@ -10,7 +10,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { FixtureRepo } from '../testing/fixture.ts'
-import { adrViolations, normalizeLinkTargets, resolveBaseRef } from './adr.ts'
+import { adrViolations, isRelativeTarget, normalizeLinkTargets, resolveBaseRef } from './adr.ts'
 
 let repo: FixtureRepo | null = null
 
@@ -175,8 +175,27 @@ describe('ADR-04 — accepted ADRs change only link targets', () => {
     expect(adrViolations(fx.root, base)).toEqual([])
   })
 
-  test('link-target normalisation blanks targets and nothing else', () => {
-    expect(normalizeLinkTargets('[a](x.md#y) and [b](https://z) text')).toBe('[a]() and [b]() text')
+  test('link-target normalisation blanks relative targets and nothing else', () => {
+    expect(normalizeLinkTargets('[a](x.md#y) and [b](../c/d.md) and [e](#f) text')).toBe(
+      '[a]() and [b]() and [e]() text',
+    )
+  })
+
+  test('an absolute URL is compared verbatim, so changing one is a change', () => {
+    const text = '[a](https://z.example/p) [b](mailto:x@example.invalid) [c](//cdn.example/x)'
+    expect(normalizeLinkTargets(text)).toBe(text)
+    expect(normalizeLinkTargets('[a](https://z.example/p)')).not.toBe(
+      normalizeLinkTargets('[a](https://other.example/p)'),
+    )
+  })
+
+  test('isRelativeTarget', () => {
+    expect(isRelativeTarget('0001-first.md')).toBe(true)
+    expect(isRelativeTarget('#anchor')).toBe(true)
+    expect(isRelativeTarget('<../x.md>')).toBe(true)
+    expect(isRelativeTarget('https://example.invalid')).toBe(false)
+    expect(isRelativeTarget('//example.invalid/x')).toBe(false)
+    expect(isRelativeTarget('<https://example.invalid>')).toBe(false)
   })
 })
 

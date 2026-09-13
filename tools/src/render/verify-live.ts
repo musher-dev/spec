@@ -17,7 +17,7 @@
  * NON-NORMATIVE, like everything under tools/.
  */
 import { discoverKinds, REPO_ROOT, SCHEMA_ORIGIN } from '../lib/layout.ts'
-import type { FetchLike } from '../publication/github.ts'
+import { type FetchLike, REQUEST_TIMEOUT_MS } from '../publication/github.ts'
 import { readLedger, taggedEntries } from '../publication/ledger.ts'
 import { aliasUrl, assetNames, pinnedUrl, sha256, stampId } from '../publication/releases.ts'
 import { familyBundle } from '../schema/bundle.ts'
@@ -63,6 +63,7 @@ export async function verifyLive(repoRoot: string, options: LiveOptions = {}): P
       try {
         const response = await doFetch(expected.url, {
           headers: { 'Cache-Control': 'no-cache', 'User-Agent': 'musher-specifications-tools' },
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
         })
         if (!response.ok) {
           last = `HTTP ${response.status}`

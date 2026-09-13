@@ -12,12 +12,15 @@
  *             A non-releasable core commit warns — release-please opens no core
  *             release for it, so blocking would deadlock every kind family on
  *             the one change that alters no rule.
- *   tagged    `core/v<requires.core>` must be an ancestor of the family tag with
- *             no releasable core commit between them, and its major must be the
- *             core line the family's §2 cites.
+ *   tagged    `core/v<requires.core>` must be an ancestor of the family tag.
+ *             That is all `check:published` asks of history. `release:stage`,
+ *             on the tag's own tooling, also requires no releasable core commit
+ *             between them and its major to be the core line the family's §2
+ *             cites — classification is never re-run by newer tooling.
  *
  * A commit is releasable when its type is one release-please's changelog shows,
- * read from the same configuration release-please reads, or when it is breaking.
+ * read from the same configuration release-please reads, when it is breaking,
+ * or when its trailer block carries `Release-As:`.
  * The gate reads `git log`, not a pull request body, so a
  * `BEGIN_COMMIT_OVERRIDE` is invisible to it; ADR 0023 §5 makes not using one on
  * core a review obligation.
@@ -91,13 +94,59 @@ export function releasableTypes(repoRoot: string): ReadonlySet<string> {
 }
 
 const HEADER = /^(?<type>[A-Za-z]+)(?:\([^()\r\n]*\))?(?<bang>!)?: \S/
-const BREAKING_FOOTER = /^BREAKING[ -]CHANGE: /m
+
+/**
+ * A trailer line, as git reads one: a token of letters, digits and hyphens,
+ * then `: ` or ` #`. `BREAKING CHANGE` is the one token with a space, which
+ * Conventional Commits adds to git's grammar.
+ */
+const TRAILER = /^(?<token>BREAKING CHANGE|[A-Za-z0-9-]+)(?::\s|\s#)/
+/** Trailers git itself writes, which let a block that also holds prose count. */
+const GIT_GENERATED = /^(?:Signed-off-by: |\(cherry picked from commit )/
+
+/**
+ * The tokens of a body's trailer block, by git's rules: the last paragraph, in
+ * which every line is a trailer or an indented continuation of one — or, when
+ * it carries a trailer git generates, at least a quarter of its lines are
+ * trailers. A token mentioned anywhere else is prose.
+ */
+export function trailerTokens(body: string): string[] {
+  const paragraphs = body
+    .replace(/\r\n/g, '\n')
+    .split(/\n[ \t]*\n/)
+    .map((paragraph) => paragraph.replace(/^\n+|\s+$/g, ''))
+    .filter((paragraph) => paragraph !== '')
+  const last = paragraphs[paragraphs.length - 1]
+  if (last === undefined) return []
+  const tokens: string[] = []
+  let trailers = 0
+  let prose = 0
+  let generated = false
+  let previousWasTrailer = false
+  for (const line of last.split('\n')) {
+    if (/^\s/.test(line) && previousWasTrailer) continue
+    const match = TRAILER.exec(line)
+    if (match?.groups?.token !== undefined) {
+      tokens.push(match.groups.token)
+      trailers += 1
+      previousWasTrailer = true
+      if (GIT_GENERATED.test(line)) generated = true
+    } else {
+      prose += 1
+      previousWasTrailer = false
+    }
+  }
+  if (trailers === 0) return []
+  if (prose === 0 || (generated && trailers * 3 >= prose)) return tokens
+  return []
+}
 
 /**
  * Whether a commit would make release-please release.
  *
  * Breaking is `!` after the type or scope, or a `BREAKING CHANGE:` or
- * `BREAKING-CHANGE:` footer. A subject that is not a conventional header is
+ * `BREAKING-CHANGE:` footer in the trailer block. A `Release-As:` footer forces
+ * a release whatever the type. A subject that is not a conventional header is
  * never releasable: release-please cannot parse it, so it releases nothing.
  */
 export function classifyCommit(
@@ -108,7 +157,11 @@ export function classifyCommit(
   const header = HEADER.exec(subject)
   const type = header?.groups?.type
   if (type === undefined) return 'non-releasable'
-  if (header?.groups?.bang === '!' || BREAKING_FOOTER.test(body)) return 'releasable'
+  if (header?.groups?.bang === '!') return 'releasable'
+  for (const token of trailerTokens(body)) {
+    if (token === 'BREAKING CHANGE' || token === 'BREAKING-CHANGE') return 'releasable'
+    if (token.toLowerCase() === 'release-as') return 'releasable'
+  }
   return types.has(type) ? 'releasable' : 'non-releasable'
 }
 
@@ -281,15 +334,17 @@ export function assertCoreGatePending(
 }
 
 /**
- * The gate for a tagged kind family release. `path` is the ledger's; it
- * defaults to where the layout keeps the family today.
+ * The gate for a tagged kind family release, as `check:published` runs it on
+ * history: `core/v<requires.core>` must exist and be an ancestor of the family
+ * tag. Nothing is reclassified — which commits are releasable was decided by
+ * the tooling and configuration of the release itself (`release:stage`), and a
+ * later change to either must not turn a published release red.
  */
 export function assertCoreGateTagged(
   repoRoot: string,
   familyTag: string,
   coreVersion: string,
   failures: Failures,
-  path?: string,
 ): void {
   const release = parseReleaseTag(familyTag)
   if (release === null || isCore(release.family)) {
@@ -306,8 +361,28 @@ export function assertCoreGateTagged(
       `${familyTag}: requires core ${coreVersion}, but ${coreTag} is not an ancestor of it — ` +
         'the release was not built on that edition.',
     )
-    return
   }
+}
+
+/**
+ * The whole tagged gate, as `release:stage` runs it with the tag's own
+ * tooling: ancestry, no releasable core commit between the core tag and the
+ * family tag, and `requires.core`'s major matching the core line the family's
+ * §2 cites at the tag. `path` is the ledger's; it defaults to where the layout
+ * keeps the family today.
+ */
+export function assertCoreGateTaggedContent(
+  repoRoot: string,
+  familyTag: string,
+  coreVersion: string,
+  failures: Failures,
+  path?: string,
+): void {
+  const before = failures.count
+  assertCoreGateTagged(repoRoot, familyTag, coreVersion, failures)
+  if (failures.count > before) return
+  const release = parseReleaseTag(familyTag) as NonNullable<ReturnType<typeof parseReleaseTag>>
+  const coreTag = releaseTag(CORE_FAMILY, coreVersion)
   const line = lineOf(coreVersion)
   const releasable = coreCommitsBetween(repoRoot, coreTag, familyTag, { line }).filter(
     (c) => c.class === 'releasable',

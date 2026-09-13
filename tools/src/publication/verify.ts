@@ -3,15 +3,21 @@
  * `task check:published` (docs/adr/0023 §4).
  *
  *   entry + tag     `<tag>:<path>` must have the recorded tree id, and the tag's
- *                   own ledger must hold the same entry. Kind families also pass
- *                   the tagged core gate. Nothing is rebuilt: a released version
- *                   is never re-derived by newer tooling. Its bytes are checked
- *                   online, against the immutable release asset, by `fetch.ts`.
+ *                   own ledger must hold the same entry, and a kind family's core
+ *                   tag must be an ancestor of it. Nothing is rebuilt and no
+ *                   commit is reclassified: a released version is never
+ *                   re-judged by newer tooling or configuration. Its bytes are
+ *                   checked online, against the immutable release asset, by
+ *                   `fetch.ts`.
  *   entry, no tag   a release pull request mid-flight. The manifest must name
  *                   the version, `tree` must equal `HEAD:<path>`, the pinned
  *                   bundle built from the working tree must hash to
  *                   `bundleSha256`, and the pending core gate must pass.
  *   tag, no entry   a tag created outside the release flow. Always a failure.
+ *   manifest only   a manifest version other than 0.0.0 that is neither tagged
+ *                   nor recorded: a release pull request whose ledger commit has
+ *                   not landed. A failure, so the pull request cannot merge
+ *                   until `release-ledger.yml` records it (docs/adr/0023 §4).
  *
  * NON-NORMATIVE, like everything under tools/.
  */
@@ -108,7 +114,7 @@ export function verifyPublications(
         continue
       }
       if (entry.requires !== undefined) {
-        assertCoreGateTagged(repoRoot, tag, entry.requires.core, failures, entry.path)
+        assertCoreGateTagged(repoRoot, tag, entry.requires.core, failures)
       }
       continue
     }
@@ -181,29 +187,40 @@ export function verifyPublications(
         'recorded on its release pull request before it is tagged.',
     )
   }
+
+  for (const message of unrecordedVersions(repoRoot, ledger)) {
+    failures.add(
+      `${message}. A release pull request cannot merge before its ledger entry: run ` +
+        '`task release:record`, or wait for release-ledger.yml to push it.',
+    )
+  }
 }
 
-/** A manifest version that is neither tagged nor recorded — worth saying, not failing. */
-export function pendingNotices(repoRoot: string): string[] {
+/**
+ * Every manifest version other than 0.0.0 that is neither tagged nor recorded,
+ * as `<key> reads <version>, which is neither tagged nor recorded`.
+ */
+export function unrecordedVersions(
+  repoRoot: string,
+  ledger: Ledger = readLedger(repoRoot),
+): string[] {
   if (isEmptyRepository(repoRoot)) return []
-  const ledger = readLedger(repoRoot)
-  const notices: string[] = []
+  const found: string[] = []
   for (const [key, version] of Object.entries(readManifest(repoRoot))) {
     if (version === UNRELEASED_VERSION) continue
     const family = parseManifestKey(key)?.name
     if (family === undefined) continue
     const tag = releaseTag(family, version)
     if (ledger.releases[tag] !== undefined || tagExists(repoRoot, tag)) continue
-    notices.push(`${key} reads ${version}, which is neither tagged nor recorded yet`)
+    found.push(`${key} reads ${version}, which is neither tagged nor recorded`)
   }
-  return notices
+  return found
 }
 
 function main(): void {
   const failures = new Failures()
   const warnings: string[] = []
   verifyPublications(REPO_ROOT, failures, warnings)
-  for (const notice of pendingNotices(REPO_ROOT)) console.log(`  · ${notice}`)
   for (const warning of warnings) console.log(`  ! ${warning}`)
 
   const ledger = failures.count === 0 ? readLedger(REPO_ROOT) : { releases: {} }

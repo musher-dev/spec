@@ -9,7 +9,7 @@
 // Kept: Bun and Node for tools/, Task as the runner, shellcheck for the
 // devcontainer scripts, gh for release work.
 {
-  "name": "Musher Specification",
+  "name": "Musher Specifications",
 
   // Pinned to the LTS, not the floating :ubuntu tag — that one rolls to interim
   // releases some upstream Features do not support.

@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+    # `edited` so a retitled pull request re-runs the title check in Lint. The
+    # default types do not include it, and the check would otherwise keep
+    # reporting on a title that no longer exists.
+    types: [opened, edited, synchronize, reopened]
 
 permissions:
   contents: read
@@ -72,6 +76,17 @@ jobs:
 
       - name: Typecheck tooling
         run: task check:types
+
+      # The pull request title is the subject the squash merge lands, so it is
+      # held to .github/conventional-commits.yaml here, inside a required job.
+      # lint-pr.yml still lowercases a Dependabot subject, but is not the gate.
+      # The title reaches the shell through the environment, never through
+      # ${{ }} interpolation into the script: it is attacker-chosen text.
+      - name: Pull request title
+        if: github.event_name == 'pull_request'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: task check:title
 
   # ---------------------------------------------------------------------------
   # Schema — the normative gates
@@ -188,17 +203,26 @@ jobs:
           path: .cache/releases
           key: releases-${{ hashFiles('published.json') }}
 
-      # Online, with a read-only token: the same verification the deploy runs,
-      # so a release that is not published and immutable fails here first.
+      # Online, with a read-only token: the same verification the deploy runs.
+      # ALLOW_PENDING_RELEASES covers the draft window — the push that tags a
+      # release runs CI before release.yml has published it — so a tagged entry
+      # whose release is not yet published warns here and is left out of this
+      # build. The deploy sets no such flag and fails on it.
       - name: Fetch and verify release assets
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          ALLOW_PENDING_RELEASES: '1'
         run: task site:fetch
 
       # No `task bundle` first: pinned paths come from the verified cache and
       # every untagged alias is built in memory, and this step is what proves a
       # clean checkout needs nothing more.
+      # site:build runs site:fetch again when the ledger has a tagged entry, so
+      # it gets the same token and flag: no second fetch goes unauthenticated.
       - name: Assemble publication tree
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ALLOW_PENDING_RELEASES: '1'
         run: |
           task site:build
           find site -type f | sort

@@ -47,7 +47,7 @@ jobs:
   # ---------------------------------------------------------------------------
   release-please:
     name: Release Please
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -138,6 +138,18 @@ jobs:
     outputs:
       matrix: ${{ steps.plan.outputs.matrix }}
     steps:
+      # A dispatch runs from the ref it was started on, and every job after this
+      # one trusts that ref: the release matrix, the deploy of its tree. Refuse
+      # anything but main here, with a message, rather than skipping silently.
+      - name: Dispatched from main
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          if [ "$REF" != 'refs/heads/main' ]; then
+            echo "::error::release.yml runs only from refs/heads/main, not ${REF}. Dispatch it from main with the tag to recover." >&2
+            exit 1
+          fi
+
       - name: Build the release matrix
         id: plan
         env:
@@ -188,7 +200,7 @@ jobs:
   artifacts:
     name: Release artifacts
     needs: plan
-    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.matrix != '[]' }}
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && needs.plan.result == 'success' && needs.plan.outputs.matrix != '[]' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -233,11 +245,12 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      # release-please tags this push's commit, but nothing here says so, and the
-      # assets are published as a description of the tag. Assert it rather than
-      # depending on release-please internals staying put. On a dispatch the
-      # push commit is unrelated, so the tag must at least be on the default
-      # branch: a tag cut from anywhere else is not a release of this repository.
+      # The assets are published as a description of the tag, so the tag must
+      # belong to this run. On a push it must be an ancestor of the pushed
+      # commit — not equal to it: release-please may pick up a release an
+      # earlier merge left untagged, on a later push. On a dispatch it must be
+      # an ancestor of origin/main. Either way it must be on the default branch:
+      # a tag cut from anywhere else is not a release of this repository.
       - name: The tag points at the tree being built
         env:
           TAG: ${{ matrix.tag }}
@@ -251,8 +264,13 @@ jobs:
             echo "::error::${TAG} points at ${tagged}, but the checkout is ${head}" >&2
             exit 1
           fi
-          if [ "$EVENT" = 'push' ] && [ "$tagged" != "$GITHUB_SHA" ]; then
-            echo "::error::${TAG} points at ${tagged}, but this run was pushed as ${GITHUB_SHA}" >&2
+          if [ "$EVENT" = 'push' ]; then
+            if ! git merge-base --is-ancestor "$tagged" "$GITHUB_SHA"; then
+              echo "::error::${TAG} (${tagged}) is not an ancestor of the pushed commit ${GITHUB_SHA}" >&2
+              exit 1
+            fi
+          elif ! git merge-base --is-ancestor "$tagged" refs/remotes/origin/main; then
+            echo "::error::${TAG} (${tagged}) is not an ancestor of origin/main" >&2
             exit 1
           fi
           if ! git merge-base --is-ancestor "$tagged" "refs/remotes/origin/${DEFAULT_BRANCH}"; then
@@ -447,15 +465,18 @@ jobs:
 
   # ---------------------------------------------------------------------------
   # Deploy, once per run and always last, so the site a push produces includes
-  # every release that push published. A release that failed stops the deploy:
+  # every release that push published. It runs only when plan and artifacts
+  # each succeeded or were skipped: a release that failed stops the deploy, as
   # site:fetch would refuse its unpublished tag anyway, and the red X belongs on
-  # the job that can be recovered. Skipped artifacts — a push that released
-  # nothing — deploy as normal.
+  # the job that can be recovered. A failed release-please job does not block
+  # it — plan is then skipped and nothing partial exists — and is reported red
+  # on its own. Skipped artifacts, a push that released nothing, deploy as
+  # normal.
   # ---------------------------------------------------------------------------
   deploy:
     name: Deploy
     needs: [plan, artifacts]
-    if: ${{ !cancelled() && needs.plan.result != 'failure' && needs.artifacts.result != 'failure' }}
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && (needs.plan.result == 'success' || needs.plan.result == 'skipped') && (needs.artifacts.result == 'success' || needs.artifacts.result == 'skipped') }}
     permissions:
       contents: read
     # A reusable workflow inherits no secrets by default. Without this the

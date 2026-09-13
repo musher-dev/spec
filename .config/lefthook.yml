@@ -7,6 +7,12 @@
 # Keep min_version in step with .devcontainer/mise.toml.
 min_version: 2.1.10
 
+# Standard `**` semantics. Under the default gobwas matcher `**/*.md` needs at
+# least one directory, so a root README.md or tools/biome.json never matched
+# the globs below. With doublestar, `*` stops at `/`: a glob meant for any
+# depth says `**/`.
+glob_matcher: doublestar
+
 pre-commit:
   parallel: true
   jobs:
@@ -43,7 +49,7 @@ pre-commit:
       run: task check:md
 
     - name: shell
-      glob: '*.sh'
+      glob: '**/*.sh'
       run: task check:shell:files -- {staged_files}
 
     - name: workflow

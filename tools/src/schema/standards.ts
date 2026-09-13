@@ -84,10 +84,36 @@ function run(args: string[]): { status: number; output: string } {
   }
 }
 
+/**
+ * What an absent jsonschema CLI means. Locally a skip, so a contributor without
+ * it can still run `task check`. In CI (`CI=true`) a failure: CI installs it,
+ * and a skip there would pass a gate that never ran.
+ */
+export function absentCliIsFailure(
+  env: { readonly [key: string]: string | undefined } = process.env,
+): boolean {
+  return env.CI === 'true'
+}
+
+/**
+ * Report an absent CLI: in CI, fail the process; elsewhere, say it was skipped.
+ * Returns only when the caller should stop without failing.
+ */
+export function reportAbsentCli(check: string, cli: string = CLI): void {
+  if (absentCliIsFailure()) {
+    console.error(
+      `  ✗ ${relativeToRepo(cli)} is not installed, and CI=true — ${check} cannot be skipped ` +
+        'in CI. Run `bun install --frozen-lockfile` in tools/ first.',
+    )
+    process.exit(1)
+  }
+  console.log(`  · ${relativeToRepo(cli)} not installed — ${check} skipped, not passed.`)
+  console.log('    Run `bun install` in tools/ to enable it.')
+}
+
 function main(): void {
   if (!existsSync(CLI)) {
-    console.log(`  · ${relativeToRepo(CLI)} not installed — skipped, not passed.`)
-    console.log('    Run `bun install` in tools/ to enable it.')
+    reportAbsentCli('check:standards')
     return
   }
 

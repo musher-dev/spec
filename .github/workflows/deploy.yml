@@ -38,6 +38,19 @@ jobs:
     permissions:
       contents: read
     steps:
+      # Only main is deployed. A dispatch from another branch would publish that
+      # branch's working tree as the alias of every unreleased major. Under
+      # workflow_call, github.ref is the caller's, which release.yml holds to
+      # main as well.
+      - name: Dispatched from main
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          if [ "$REF" != 'refs/heads/main' ]; then
+            echo "::error::Deploy runs only from refs/heads/main, not ${REF}. Dispatch it from main." >&2
+            exit 1
+          fi
+
       # Full history and every tag: check:published proves each tagged ledger
       # entry against `<tag>:<path>`, and a shallow clone holding a non-empty
       # ledger but no tags is refused outright.
@@ -77,7 +90,13 @@ jobs:
       # `_headers` is assembled here too, from the same enumeration that writes
       # the tree. The cache contract is therefore reviewed in this repository
       # rather than configured at an edge this repository cannot see.
+      # site:build re-runs site:fetch when the ledger has a tagged entry, so it
+      # holds the same token: no fetch goes out unauthenticated. No
+      # ALLOW_PENDING_RELEASES here — a deploy without a tagged release's
+      # published assets would drop its pinned path, so it fails instead.
       - name: Assemble publication tree
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: task site:build
 
       # The token is scoped to the Cloudflare Pages project. `task site:deploy`

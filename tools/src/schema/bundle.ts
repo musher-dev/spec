@@ -176,17 +176,31 @@ const memo = new Map<string, string | null>()
  */
 export function familyBundle(family: FamilyRef): string | null {
   const repoRoot = family.repoRoot ?? REPO_ROOT
-  const reader = fsReader(repoRoot)
+  const disk = fsReader(repoRoot)
   const src = familyPaths(family.name, family.major).src
+  // Read each module once, and both key and build from those bytes: a module
+  // written between hashing and building must not be cached under a key that
+  // describes other bytes.
+  const snapshot = new Map<string, Buffer>()
   const hash = createHash('sha256').update(`${repoRoot}\0${label(family)}\0`)
-  for (const name of reader.list(src).sort()) {
+  for (const name of disk.list(src).sort()) {
+    const bytes = disk.read(`${src}/${name}`)
+    if (bytes === null) continue
+    snapshot.set(name, bytes)
     hash.update(`${name}\0`)
-    hash.update(reader.read(`${src}/${name}`) ?? Buffer.alloc(0))
+    hash.update(bytes)
     hash.update('\0')
   }
   const key = hash.digest('hex')
   const cached = memo.get(key)
   if (cached !== undefined) return cached
+  const reader: ModuleReader = {
+    list: (dir) => (dir === src ? [...snapshot.keys()] : disk.list(dir)),
+    read: (path) =>
+      path.startsWith(`${src}/`) && !path.slice(src.length + 1).includes('/')
+        ? (snapshot.get(path.slice(src.length + 1)) ?? null)
+        : disk.read(path),
+  }
   const built = buildBundle(family, { reader })
   memo.set(key, built)
   return built

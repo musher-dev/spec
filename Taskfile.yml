@@ -93,10 +93,14 @@ tasks:
   fmt:md:
     desc: Apply the Markdown fixes markdownlint can make itself
     cmds:
+      # The exclusions check:md makes, for its reasons: release-please's
+      # CHANGELOG.md is generated, and rewriting it would only be undone by the
+      # next release pull request.
       - >-
         tools/node_modules/.bin/markdownlint-cli2 --fix
         --config .config/markdown/markdownlint.jsonc
         "**/*.md" "#tools/node_modules" "#site" "#.github/pull_request_template.md"
+        "#specifications/*/v*/CHANGELOG.md"
 
   # ===========================================================================
   # Environment

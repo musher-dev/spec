@@ -9,7 +9,13 @@ import { dirname, join } from 'node:path'
 import { FixtureRepo } from '../testing/fixture.ts'
 import { Pipeline } from '../testing/pipeline.ts'
 import { FakeReleaseSource } from '../testing/release-source.ts'
-import { cachedBundlePath, fetchReleases, readCachedBundle } from './fetch.ts'
+import {
+  allowPendingFromEnv,
+  cachedBundlePath,
+  fetchReleases,
+  readCachedBundle,
+  readPendingReleases,
+} from './fetch.ts'
 import { readLedger } from './ledger.ts'
 import { stageRelease } from './stage.ts'
 
@@ -45,6 +51,8 @@ describe('fetchReleases', () => {
       failures: [],
       verified: ['component/v1.0.0', 'core/v1.0.0'],
       cached: [],
+      pending: [],
+      warnings: [],
     })
     expect(readCachedBundle(p.cacheDir, TAG, sha)).not.toBeNull()
   })
@@ -96,14 +104,14 @@ describe('fetchReleases', () => {
     const source = new FakeReleaseSource()
     const out = mkdtempSync(join(tmpdir(), 'musher-fetch-test-'))
     try {
-      stageRelease(fx.root, 'core/v1.0.0', out)
+      stageRelease(fx.root, 'core/v1.0.0', out, { baseLedgerRef: 'main' })
       source.publishDir('core/v1.0.0', out)
     } finally {
       rmSync(out, { recursive: true, force: true })
     }
     expect((await fetchReleases(fx.root, source, p.cacheDir)).failures).toEqual([
       expect.stringContaining(
-        'component/v1.0.0: tagged and recorded, but no published GitHub release',
+        'component/v1.0.0: tagged and recorded, but its GitHub release is not published',
       ),
     ])
   })
@@ -159,5 +167,75 @@ describe('fetchReleases', () => {
     await fetchReleases(p.fx.root, p.source, p.cacheDir, { verifyOnly: true })
     expect(p.source.calls).toContain(`release ${TAG}`)
     expect(readFileSync(cachedBundlePath(p.cacheDir, TAG)).equals(before)).toBe(true)
+  })
+
+  test('a cache hit is served only while its release is still published and immutable', async () => {
+    const { p } = released()
+    await p.fetch()
+    p.source.setDraft(TAG, true)
+    expect(await failures(p)).toEqual([expect.stringContaining('is still a draft')])
+
+    p.source.setDraft(TAG, false)
+    p.source.setImmutable(TAG, false)
+    expect(await failures(p)).toEqual([expect.stringContaining('is not immutable')])
+  })
+})
+
+describe('the draft window (ALLOW_PENDING_RELEASES)', () => {
+  test('the flag is ALLOW_PENDING_RELEASES=1 and nothing else', () => {
+    expect(allowPendingFromEnv({ ALLOW_PENDING_RELEASES: '1' })).toBe(true)
+    expect(allowPendingFromEnv({})).toBe(false)
+    expect(allowPendingFromEnv({ ALLOW_PENDING_RELEASES: 'true' })).toBe(false)
+  })
+
+  test('a draft warns, is recorded as pending in the cache, and fails without the flag', async () => {
+    const { p } = released()
+    p.source.setDraft(TAG, true)
+    const result = await fetchReleases(p.fx.root, p.source, p.cacheDir, { allowPending: true })
+    expect(result.failures).toEqual([])
+    expect(result.pending).toEqual([TAG])
+    expect(result.warnings).toEqual([expect.stringContaining('is still a draft. Pending')])
+    expect([...readPendingReleases(p.cacheDir)]).toEqual([TAG])
+
+    const strict = await fetchReleases(p.fx.root, p.source, p.cacheDir)
+    expect(strict.failures).toEqual([expect.stringContaining('is still a draft')])
+    expect(readPendingReleases(p.cacheDir).size).toBe(0)
+  })
+
+  test('a release GitHub does not return at all is pending under the flag', async () => {
+    const { fx, p } = released()
+    const source = new FakeReleaseSource()
+    const out = mkdtempSync(join(tmpdir(), 'musher-fetch-test-'))
+    try {
+      stageRelease(fx.root, 'core/v1.0.0', out, { baseLedgerRef: 'main' })
+      source.publishDir('core/v1.0.0', out)
+    } finally {
+      rmSync(out, { recursive: true, force: true })
+    }
+    const result = await fetchReleases(fx.root, source, p.cacheDir, { allowPending: true })
+    expect(result).toMatchObject({ failures: [], pending: [TAG], verified: ['core/v1.0.0'] })
+  })
+
+  test('a cache hit whose release went back to draft is pending under the flag', async () => {
+    const { p } = released()
+    await p.fetch()
+    p.source.setDraft(TAG, true)
+    const result = await fetchReleases(p.fx.root, p.source, p.cacheDir, { allowPending: true })
+    expect(result).toMatchObject({ failures: [], pending: [TAG], cached: [] })
+  })
+
+  test('the flag never excuses a published release that is not immutable', async () => {
+    const { p } = released()
+    p.source.setImmutable(TAG, false)
+    const result = await fetchReleases(p.fx.root, p.source, p.cacheDir, { allowPending: true })
+    expect(result.failures).toEqual([expect.stringContaining('is not immutable')])
+    expect(result.pending).toEqual([])
+  })
+
+  test('--verify-only records nothing in the cache', async () => {
+    const { p } = released()
+    p.source.setDraft(TAG, true)
+    await fetchReleases(p.fx.root, p.source, p.cacheDir, { allowPending: true, verifyOnly: true })
+    expect(existsSync(join(p.cacheDir, 'pending.json'))).toBe(false)
   })
 })

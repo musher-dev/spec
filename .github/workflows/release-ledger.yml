@@ -100,7 +100,9 @@ jobs:
           git config user.name "$bot"
           git config user.email "${id}+${bot}@users.noreply.github.com"
           git add published.json
-          git commit -s -m 'chore(repo): record pending release in published.json'
+          # Hooks disabled: nothing from the branch runs while the App identity is set.
+          git -c core.hooksPath=/dev/null commit --no-verify -s \
+            -m 'chore(repo): record pending release in published.json'
 
       # Pushed as the App, so unlike a GITHUB_TOKEN push this one triggers
       # workflows: CI runs on the new head, which is what lets the required
@@ -116,5 +118,6 @@ jobs:
           set -euo pipefail
           auth="$(printf 'x-access-token:%s' "$APP_TOKEN" | base64 -w0)"
           echo "::add-mask::${auth}"
-          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
-            push origin "HEAD:refs/heads/${HEAD_REF}"
+          git -c core.hooksPath=/dev/null \
+            -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            push --no-verify origin "HEAD:refs/heads/${HEAD_REF}"

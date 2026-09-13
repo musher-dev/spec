@@ -43,7 +43,7 @@ export class Pipeline {
   publish(tag: string): string {
     const out = mkdtempSync(join(tmpdir(), 'musher-staged-'))
     try {
-      stageRelease(this.fx.root, tag, out)
+      stageRelease(this.fx.root, tag, out, { baseLedgerRef: 'main' })
       this.source.publishDir(tag, out)
     } finally {
       rmSync(out, { recursive: true, force: true })

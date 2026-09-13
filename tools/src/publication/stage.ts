@@ -5,11 +5,13 @@
  * Runs in the release job, checked out at the tag, on the tag's own tooling.
  * Before staging anything it refuses unless:
  *
- *   - the tag exists and its ledger entry is the working tree's, verbatim;
+ *   - the tag exists, its own ledger records it, and the default branch's
+ *     ledger holds the same entry — `origin/main`, or `BASE_LEDGER_REF`;
  *   - `<tag>:<path>` has the recorded tree id;
- *   - a kind family passes the tagged core gate, and the pinned bundle it
- *     builds at the tag hashes to `bundleSha256` — a determinism assertion,
- *     since `record` hashed the same tree;
+ *   - a kind family passes the whole tagged core gate on this, the tag's own
+ *     tooling, carries `examples/`, and the pinned bundle it builds at the tag
+ *     hashes to `bundleSha256` — a determinism assertion, since `record` hashed
+ *     the same tree;
  *   - core records `bundleSha256: null` and carries no `schemas/src`.
  *
  * A kind family stages `<family>.schema.json` and `<family>-v<X.Y.Z>.tar.gz`.
@@ -21,7 +23,10 @@
  *
  * Every file is read out of git at a tag, never from the working tree. The
  * archive is deterministic: sorted names, owner and group 0, a fixed mtime, and
- * `gzip -n`, with the flags the release workflow has always used.
+ * `gzip -n`, with the flags the release workflow has always used. `TAR_OPTIONS`
+ * and `GZIP` are removed from their environment, since either would add flags
+ * the archive's bytes depend on. Only this tag's own outputs are cleared from
+ * the output directory before staging, so a refusal leaves none of them behind.
  *
  * NON-NORMATIVE, like everything under tools/.
  */
@@ -43,9 +48,12 @@ import {
   CORE_FAMILY,
   canonicalJson,
   Failures,
+  failCli,
   familyPaths,
+  hasPart,
   inRepo,
   type Json,
+  LayoutError,
   LICENSE_FILE,
   NOTICE_FILE,
   RELEASE_STAGE_DIR,
@@ -54,8 +62,8 @@ import {
 } from '../lib/layout.ts'
 import { pinnedBundle } from '../schema/bundle.ts'
 import { gitReader } from '../schema/sources.ts'
-import { assertCoreGateTagged } from './core-gate.ts'
-import { ledgerAtRef, readLedger, sameEntry } from './ledger.ts'
+import { assertCoreGateTaggedContent } from './core-gate.ts'
+import { type AnyLedger, ledgerAtRef, sameEntry } from './ledger.ts'
 import { assetNames, isCore, parseReleaseTag, releaseTag, sha256 } from './releases.ts'
 
 export interface StagedFile {
@@ -70,6 +78,25 @@ export class StageError extends Error {
     super(message)
     this.name = 'StageError'
   }
+}
+
+export interface StageOptions {
+  /** The default branch's ref, whose ledger must hold the tag's entry. */
+  readonly baseLedgerRef?: string
+}
+
+/** `BASE_LEDGER_REF`, else `origin/main`. */
+export function resolveBaseLedgerRef(
+  env: { readonly [key: string]: string | undefined } = process.env,
+): string {
+  const explicit = env.BASE_LEDGER_REF
+  return explicit !== undefined && explicit !== '' ? explicit : 'origin/main'
+}
+
+/** The environment tar and gzip run in: C locale, and no variable that adds flags. */
+export function archiveEnv(env: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+  const { TAR_OPTIONS: _tar, GZIP: _gzip, ...rest } = env
+  return { ...rest, LC_ALL: 'C' }
 }
 
 /** Where core's files sit inside a kind family archive. */
@@ -137,31 +164,55 @@ export function deterministicArchive(parent: string, root: string): Buffer {
       parent,
       root,
     ],
-    { maxBuffer, env: { ...process.env, LC_ALL: 'C' } },
+    { maxBuffer, env: archiveEnv() },
   )
   if (tar.error !== undefined) throw new StageError(`tar could not be run — ${tar.error.message}`)
   if (tar.status !== 0) throw new StageError(`tar failed (${tar.status}) — ${tar.stderr}`)
-  const gzip = spawnSync('gzip', ['-n', '-9'], { input: tar.stdout, maxBuffer })
+  const gzip = spawnSync('gzip', ['-n', '-9'], { input: tar.stdout, maxBuffer, env: archiveEnv() })
   if (gzip.error !== undefined)
     throw new StageError(`gzip could not be run — ${gzip.error.message}`)
   if (gzip.status !== 0) throw new StageError(`gzip failed (${gzip.status}) — ${gzip.stderr}`)
   return gzip.stdout
 }
 
-export function stageRelease(repoRoot: string, tag: string, outDir: string): StagedFile[] {
+function readLedgerAt(repoRoot: string, ref: string): AnyLedger {
+  try {
+    return ledgerAtRef(repoRoot, ref)
+  } catch (error) {
+    throw new StageError(`${ref}: its ledger cannot be read — ${(error as Error).message}`)
+  }
+}
+
+export function stageRelease(
+  repoRoot: string,
+  tag: string,
+  outDir: string,
+  options: StageOptions = {},
+): StagedFile[] {
   const release = parseReleaseTag(tag)
   if (release === null) throw new StageError(`${tag} is not a release tag`)
+  const names = assetNames(release)
+  // This tag's outputs only: a directory may hold other releases' assets.
+  for (const name of [names.bundle, names.archive]) rmSync(join(outDir, name), { force: true })
   if (!tagExists(repoRoot, tag)) throw new StageError(`${tag} does not exist`)
 
-  const ledger = readLedger(repoRoot)
-  const entry = ledger.releases[tag]
-  if (entry === undefined) throw new StageError(`${tag} is not recorded in the working ledger`)
-  const atTag = ledgerAtRef(repoRoot, tag)
-  const own = atTag.version === 2 ? atTag.releases[tag] : undefined
-  if (own === undefined) throw new StageError(`${tag}: the tag's own ledger does not record it`)
-  if (!sameEntry(own, entry)) {
-    throw new StageError(`${tag}: the tag's ledger entry differs from the working tree's`)
+  const atTag = readLedgerAt(repoRoot, tag)
+  if (atTag.version !== 2) throw new StageError(`${tag}: the tag's own ledger is not version 2`)
+  const entry = atTag.releases[tag]
+  if (entry === undefined) throw new StageError(`${tag}: the tag's own ledger does not record it`)
+  const baseRef = options.baseLedgerRef ?? resolveBaseLedgerRef()
+  const base = readLedgerAt(repoRoot, baseRef)
+  const onBase = base.version === 2 ? base.releases[tag] : undefined
+  if (onBase === undefined) {
+    throw new StageError(
+      `${tag}: ${baseRef}'s ledger does not record it. A release is staged only once its ` +
+        'entry is on the default branch.',
+    )
   }
+  if (!sameEntry(onBase, entry)) {
+    throw new StageError(`${tag}: the tag's ledger entry differs from ${baseRef}'s`)
+  }
+  const ledger = atTag
 
   const tree = treeId(repoRoot, tag, entry.path)
   if (tree !== entry.tree) {
@@ -171,7 +222,6 @@ export function stageRelease(repoRoot: string, tag: string, outDir: string): Sta
   }
 
   const dir = releaseDirPaths(entry.path)
-  const names = assetNames(release)
   const rootName = `${release.family}-${release.major}`
   const staging = mkdtempSync(join(tmpdir(), 'musher-stage-'))
   const root = join(staging, rootName)
@@ -193,7 +243,7 @@ export function stageRelease(repoRoot: string, tag: string, outDir: string): Sta
         throw new StageError(`${tag}: a kind family entry needs bundleSha256 and requires.core`)
       }
       const failures = new Failures()
-      assertCoreGateTagged(repoRoot, tag, requires.core, failures, entry.path)
+      assertCoreGateTaggedContent(repoRoot, tag, requires.core, failures, entry.path)
       if (failures.count > 0) throw new StageError(failures.messages.join('\n'))
 
       if (entry.path !== familyPaths(release.family, release.major).dir) {
@@ -225,7 +275,11 @@ export function stageRelease(repoRoot: string, tag: string, outDir: string): Sta
       const corePath = ledger.releases[coreTag]?.path ?? familyPaths(CORE_FAMILY, coreLine).dir
       const coreDir = releaseDirPaths(corePath)
       writeMember(join(root, names.bundle), bundle)
-      extractTree(repoRoot, tag, dir.examples, join(root, 'examples'))
+      if (hasPart(release.family, release.major, 'examples')) {
+        requireTree(repoRoot, tag, dir.examples, join(root, 'examples'))
+      } else {
+        extractTree(repoRoot, tag, dir.examples, join(root, 'examples'))
+      }
       requireFile(repoRoot, coreTag, coreDir.spec, join(root, CORE_MEMBER, 'spec.md'))
       requireTree(repoRoot, coreTag, coreDir.conformance, join(root, CORE_MEMBER, 'conformance'))
       const manifest: Json = {
@@ -274,6 +328,7 @@ function main(): void {
   try {
     staged = stageRelease(REPO_ROOT, tag, out ?? inRepo(REPO_ROOT, RELEASE_STAGE_DIR))
   } catch (error) {
+    if (error instanceof LayoutError) failCli(error)
     if (!(error instanceof StageError)) throw error
     for (const line of error.message.split('\n')) console.error(`  ✗ ${line}`)
     process.exit(1)
