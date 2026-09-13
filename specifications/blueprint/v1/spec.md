@@ -332,6 +332,16 @@ the same reason: a consumer that will parse what it receives and one that will
 not are asking for different things, and the wire is the last place that
 difference is visible.
 
+**`STRING_LIST` is not an exception either.** It names a value whose string
+form is a JSON array of strings drawn from a named set
+([component §6.3](../../component/v1/spec.md#value-schema)), not a `STRING` that
+happens to hold several. A `STRING` output does not satisfy a `STRING_LIST`
+input and a `STRING_LIST` output does not satisfy a `STRING` one — a consumer
+that will parse an array out of what it receives and one that will not are
+asking for different things, which is the argument above with a different pair
+of members in it. This section needs no rule of its own to say so: the
+multiplicity is part of `type`, so the equality already stated decides it.
+
 **`resourceType` MUST agree where the consumer names one.** A consumer
 declaring none accepts any producer: it has said the value addresses no
 particular resource, and nothing it receives can contradict that. A consumer
@@ -739,7 +749,11 @@ validated against the parameter's schema and the component then receives the
 result against its own: a `STRING` accepted at the form where the workload
 expects a `NUMBER` is the failure [§4.2](#connections) rejected for
 connections and [§5.2](#merge) rejected for merging, arriving through a third
-door.
+door. A form collecting one value where the input reads a list of them is the
+same failure, which is why
+[component §6.3](../../component/v1/spec.md#value-schema) puts the multiplicity
+in `type` and not beside it — `STRING` and `STRING_LIST` are two members and
+this rule already separates them.
 
 **`resourceType` MUST agree where the parameter names one.** A parameter
 declaring none covers an input that declares one: the identifier says what a
@@ -779,7 +793,8 @@ takes no more than not mentioning it.
 **A parameter's `schema` is the block
 [component §6.3](../../component/v1/spec.md#value-schema) defines.** The `type`
 vocabulary, the `JSON` restrictions on `pattern`
-and `enum`, and the `STRING` restriction on `format` are that section's and
+and `enum`, the `STRING_LIST` requirement of a non-empty `enum`, and the
+`STRING` restriction on `format` are that section's and
 are not restated here; this family's schema enforces them on the same terms and
 in the same phase. Naming where a vocabulary is published rather than mirroring
 it is the rule

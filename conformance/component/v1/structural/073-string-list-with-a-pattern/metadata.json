@@ -1,0 +1,10 @@
+{
+  "id": "structural-073-string-list-with-a-pattern",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/component/v1/spec.md#value-schema",
+  "requirements": [
+    "COMP-VAL-006"
+  ],
+  "summary": "A regular expression on a STRING_LIST value is rejected."
+}

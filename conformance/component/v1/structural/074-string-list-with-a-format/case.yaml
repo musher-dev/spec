@@ -1,0 +1,32 @@
+# COMP-VAL-006 says nothing about `format`, deliberately: COMP-VAL-003 already
+# forbids it wherever `type` is not STRING, and a STRING_LIST is not a STRING.
+# This case is what holds that claim down. Without it the reasoning would be an
+# assertion in the prose about a rule written for four members, tested against
+# the four it was written for.
+specVersion: v1
+kind: COMPONENT
+metadata:
+  revision: 1
+spec:
+  workload:
+    type: SERVICE
+    source:
+      type: IMAGE
+      ref: nginx:1.29.4-alpine
+    endpoints:
+      web:
+        containerPort: 8080
+        protocol: HTTP
+        visibility: PRIVATE
+  contract:
+    inputs:
+      endpoints:
+        schema:
+          type: STRING_LIST
+          enum:
+            - primary
+            - replica
+          format: ENDPOINT_URL
+        ui:
+          label: Endpoints to publish
+    outputs: {}

@@ -193,6 +193,16 @@
       "path": "structural/034-placement-on-a-node-without-compute"
     },
     {
+      "id": "structural-035-string-list-parameter",
+      "phase": "structural",
+      "path": "structural/035-string-list-parameter"
+    },
+    {
+      "id": "structural-036-string-list-parameter-without-an-enum",
+      "phase": "structural",
+      "path": "structural/036-string-list-parameter-without-an-enum"
+    },
+    {
       "id": "semantic-001-connection-names-unknown-role",
       "phase": "semantic",
       "path": "semantic/001-connection-names-unknown-role"
@@ -336,6 +346,16 @@
       "id": "semantic-029-connection-fills-a-user-input",
       "phase": "semantic",
       "path": "semantic/029-connection-fills-a-user-input"
+    },
+    {
+      "id": "semantic-030-parameter-type-disagrees-on-string-list",
+      "phase": "semantic",
+      "path": "semantic/030-parameter-type-disagrees-on-string-list"
+    },
+    {
+      "id": "semantic-031-connection-type-disagrees-on-string-list",
+      "phase": "semantic",
+      "path": "semantic/031-connection-type-disagrees-on-string-list"
     }
   ]
 }
