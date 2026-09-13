@@ -137,8 +137,8 @@ consequence even where nothing blocks the merge.
 Types: `feat`, `fix`, `perf`, `docs`, `chore`, `refactor`, `test`, `ci`,
 `build`, `style`, `revert`.
 
-Scopes: `component`, `blueprint`, `listing`, `conformance`, `tools`, `ci`,
-`devcontainer`, `docs`, `repo`, `deps`, `deps-dev`.
+Scopes: `core`, `component`, `blueprint`, `listing`, `conformance`, `tools`,
+`ci`, `devcontainer`, `docs`, `repo`, `deps`, `deps-dev`.
 
 `deps` and `deps-dev` are Dependabot's: a dependency update arrives as
 `build(deps):`, `build(deps-dev):`, or `ci(deps):`. See

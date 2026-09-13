@@ -71,8 +71,8 @@ commit-msg:
           printf "  Got:      %s\n" "$first_line" >&2
           printf "%s\n" "" >&2
           printf "%s\n" "  Types:  feat, fix, chore, docs, style, refactor, perf, test, ci, build, revert" >&2
-          printf "%s\n" "  Scopes: component, blueprint, listing, conformance, tools, ci," >&2
-          printf "%s\n" "          devcontainer, docs, repo, deps" >&2
+          printf "%s\n" "  Scopes: core, component, blueprint, listing, conformance, tools, ci," >&2
+          printf "%s\n" "          devcontainer, docs, repo, deps, deps-dev" >&2
           printf "%s\n" "" >&2
           printf "%s\n" "  release-please picks the release from the paths a commit changes, not" >&2
           printf "%s\n" "  its scope: feat/fix/docs under specifications/<family>/ releases it." >&2

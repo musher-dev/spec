@@ -23,6 +23,7 @@ types:
 # train: release-please assigns a commit to a package by the paths the commit
 # changes (.github/release-please/config.json), whatever its scope says.
 scopes:
+  - core
   - component
   - blueprint
   - listing
