@@ -82,8 +82,13 @@ export function resolveBaseRef(
   try {
     git(repoRoot, ['rev-parse', '--verify', '--quiet', 'origin/main^{commit}'])
     return 'origin/main'
-  } catch {
-    return null
+  } catch (error) {
+    // `--quiet` makes an absent ref exit 1 with nothing on stderr. Anything
+    // else — not a repository, an ownership refusal — is git failing, and
+    // reporting it as "origin/main absent" would skip ADR-04 silently.
+    const message = error instanceof Error ? error.message : String(error)
+    if (/failed \(1\) — $/.test(message)) return null
+    throw error
   }
 }
 

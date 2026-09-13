@@ -4,7 +4,11 @@
  * ADR-04 compares against a git ref, so the corpus is committed and then edited
  * in the working tree — the same shape as a branch under review.
  */
+
 import { afterEach, describe, expect, test } from 'bun:test'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { FixtureRepo } from '../testing/fixture.ts'
 import { adrViolations, normalizeLinkTargets, resolveBaseRef } from './adr.ts'
 
@@ -185,5 +189,14 @@ describe('the base ref', () => {
   test('is null without BASE_REF or origin/main', () => {
     const fx = intact()
     expect(resolveBaseRef(fx.root, { BASE_REF: '' })).toBeNull()
+  })
+
+  test('throws, rather than skipping ADR-04, when git itself fails', () => {
+    const notARepository = mkdtempSync(join(tmpdir(), 'adr-no-repo-'))
+    try {
+      expect(() => resolveBaseRef(notARepository, { BASE_REF: '' })).toThrow()
+    } finally {
+      rmSync(notARepository, { recursive: true, force: true })
+    }
   })
 })
