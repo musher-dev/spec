@@ -22,10 +22,10 @@
  * but to make it verifiable: this asserts all three agree, and the file becomes
  * the source of truth by being the one the others are checked against.
  *
- * The scope matters more than it looks. It selects which release train a change
- * belongs to, so a scope accepted by the hook and rejected by CI — or worse,
- * accepted by both and understood by neither — is a release that does not
- * happen.
+ * The scope does not pick a release — release-please assigns a commit to a
+ * package by the paths it changes — but a scope accepted by the hook and
+ * rejected by CI is still a pull request that cannot merge, and a list that
+ * drifts is a vocabulary nobody can trust.
  *
  * NON-NORMATIVE, like everything under tools/.
  */
