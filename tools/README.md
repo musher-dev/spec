@@ -80,7 +80,7 @@ not run them. Everything else CI runs, `task check` runs locally.
 | Step | Job | When | Script |
 |---|---|---|---|
 | DCO sign-off on every commit | `Signed off` | Pull requests | `.github/workflows/dco.yml` |
-| `check:title`: the pull request title is a Conventional Commit, with a type and scope from `.github/conventional-commits.yaml` | `Lint` | Pull requests | `src/policy/commits.ts` |
+| `check:title`: the pull request title is a Conventional Commit, with a type and scope from `.github/conventional-commits.yaml` | `Lint` | Pull requests | `src/policy/title.ts` |
 | `check:ledger`: `published.json` edits no entry the base branch holds | `Site Build` | Pull requests | `src/publication/ledger.ts check` |
 | `site:fetch`, then `site:build` | `Site Build` | Every run | `src/publication/fetch.ts`, `src/publication/site.ts` |
 
@@ -98,13 +98,13 @@ the command line) and environment variables shown.
 | `docs` | Regenerates `docs/traceability.md` and the ADR index | `src/render/traceability.ts`, `src/render/adr-index.ts` | — |
 | `catalog` | Regenerates `dist/catalog.json` | `src/publication/catalog.ts` | — |
 | `changes` | Reports what the branch does to the published contract | `src/publication/changes.ts` | `BASE` variable, default `origin/main`; `-- --diff` |
-| `check:title` | Fails unless the pull request title is a Conventional Commit using the vocabulary in `.github/conventional-commits.yaml` | `src/policy/commits.ts` | `PR_TITLE` environment variable, required |
+| `check:title` | Fails unless the pull request title is a Conventional Commit using the vocabulary in `.github/conventional-commits.yaml` | `src/policy/title.ts` | `PR_TITLE` environment variable, required |
 | `check:ledger` | Fails if `published.json` changed a recorded entry | `src/publication/ledger.ts check` | `BASE_REF` environment variable; without it, only parses |
 | `check:published:online` | Verifies every tagged release's GitHub release and assets, without caching | `src/publication/fetch.ts --verify-only` | `GITHUB_TOKEN`, else `gh auth token`; `GITHUB_REPOSITORY` |
 | `release:record` | Records every pending release in `published.json`, applying the core gate | `src/publication/record.ts` | — |
 | `release:stage` | Verifies a tagged release and stages its assets into `dist/release/` | `src/publication/stage.ts` | `TAG` variable, required; `SOURCE_DATE_EPOCH`, default `0`; `BASE_LEDGER_REF`, default `origin/main` |
-| `site:fetch` | Verifies every tagged release on GitHub and caches its bundle in `.cache/releases/` | `src/publication/fetch.ts` | `GITHUB_TOKEN`, else `gh auth token`; `GITHUB_REPOSITORY`; `ALLOW_PENDING_RELEASES=1` turns an unpublished tagged release into a warning |
-| `site:build` | Runs `site:fetch` when the ledger has a tagged entry, then assembles `site/` | `src/publication/site.ts` | As `site:fetch` |
+| `site:fetch` | Verifies every tagged release on GitHub and caches its bundle in `.cache/releases/` | `src/publication/fetch.ts` | `GITHUB_TOKEN`, else `gh auth token`; `GITHUB_REPOSITORY`; `ALLOW_PENDING_RELEASES=1` turns an unpublished tagged release into a warning and records it in `.cache/releases/pending.json` |
+| `site:build` | Runs `site:fetch` when the ledger has a tagged entry, then assembles `site/`, leaving out releases `pending.json` lists | `src/publication/site.ts` | As `site:fetch`, including `GITHUB_TOKEN` and `ALLOW_PENDING_RELEASES` |
 | `site:deploy` | Uploads `site/` to Cloudflare Pages | `wrangler pages deploy` | `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, both required; `PAGES_PROJECT` variable |
 | `site:verify-live` | Fetches every pinned URL and alias from the origin and compares hashes | `src/render/verify-live.ts` | `ORIGIN` variable, else `SITE_ORIGIN`, else the production host |
 

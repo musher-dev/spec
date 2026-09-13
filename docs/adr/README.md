@@ -5,6 +5,14 @@ or its specifications: the context that forced it, what was decided, the
 alternatives turned down, and what it costs. Each ADR is numbered, and other
 documents cite it by number and section, as in "ADR 0021 §4".
 
+**New here?** Start with the three records that shape the repository today:
+[ADR 0021](0021-repository-organized-around-the-family-version.md), how the
+repository is organized around the family version;
+[ADR 0022](0022-the-musher-document-core-specification.md), the core
+specification; and
+[ADR 0023](0023-published-bytes-are-immutable-release-assets.md), how a release
+is published. The index shows which earlier records each supersedes or refines.
+
 ## When an ADR is required
 
 Structural changes need an accepted ADR before the implementation it governs.
@@ -19,7 +27,10 @@ in a new ADR, and the index below shows those back-references for each record.
 The one edit an accepted ADR admits is link-target maintenance: where a relative
 link's target moves, the target, and only the target, may be rewritten.
 [ADR 0021 §4](0021-repository-organized-around-the-family-version.md) sets out
-the rule, and `task check:adr` fails any other change.
+the rule. `task check:adr` compares each accepted ADR with only its relative link
+targets blanked, and absolute URLs compared verbatim, so it fails any other
+change. It cannot see whether a retargeted link's target really moved; confirming
+that is a review obligation.
 
 ## Adding an ADR
 
