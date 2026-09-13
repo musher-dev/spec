@@ -166,9 +166,9 @@ const ENVELOPE_PROPERTIES = ['specVersion', 'kind', 'metadata', 'spec'] as const
  * `const` to different codes. A `const` is accepted here as the same statement,
  * so this check describes the envelope rather than re-deciding that choice.
  *
- * When the family's §2 binds its parameters, `kind.const` must equal the bound
- * `kind`. When it does not yet — every family today — only that comparison is
- * skipped.
+ * `kind.const` must equal the `kind` the family's §2 binds. A spec with no
+ * bindings tables yet skips only that comparison; every kind family in the
+ * working tree binds its parameters, so the comparison runs for each.
  */
 export function checkEnvelope(
   doc: { [k: string]: Json },

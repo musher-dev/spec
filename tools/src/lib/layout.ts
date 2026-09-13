@@ -39,13 +39,6 @@ export const TRACEABILITY_FILE = 'docs/traceability.md'
 export const CATALOG_FILE = 'catalog.json'
 
 /**
- * The family whose diagnostics table the other families declare themselves
- * deltas on: blueprint §7 and listing §7 both open "The codes in component §8
- * apply. This family adds:".
- */
-export const BASE_FAMILY = 'component'
-
-/**
  * The base family: the Musher Document Core Specification (docs/adr/0022).
  *
  * It defines no `kind` and ships no schema — only prose and a parser-phase
@@ -486,6 +479,11 @@ export class Failures {
 
   get count(): number {
     return this.items.length
+  }
+
+  /** Every failure added so far, in order — for a caller that inspects rather than reports. */
+  get messages(): readonly string[] {
+    return this.items
   }
 
   /** Print all failures and exit non-zero, or print `okMessage` and return. */

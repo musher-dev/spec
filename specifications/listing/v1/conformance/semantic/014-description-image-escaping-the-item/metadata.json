@@ -2,7 +2,7 @@
   "id": "semantic-014-description-image-escaping-the-item",
   "phase": "semantic",
   "expected": "fail",
-  "clause": "specifications/listing/v1/spec.md#description-markdown",
+  "clause": "specifications/listing/v1/spec.md#media",
   "requirements": [
     "LIST-MEDIA-002"
   ],

@@ -11,6 +11,10 @@
  * that exists and declares codes the prose actually defines — does not. The
  * second kind runs for every case, including the ones the first kind skips,
  * because a `semantic` fixture would otherwise be checked by nothing at all.
+ *
+ * Two kinds of corpus live in the tree. A kind family's corpus runs through the
+ * whole pipeline against that family's bundle. The core corpus runs through the
+ * parser alone, with no bundle and no dispatch on `kind` (core v1 §8.1).
  */
 import {
   cpSync,
@@ -25,13 +29,13 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, isAbsolute, join, normalize } from 'node:path'
+import { BindingsError, readBindings } from '../lib/bindings.ts'
 import {
-  BASE_FAMILY,
+  CORE_FAMILY,
   canonicalJson,
   discoverFamilies,
   Failures,
   type Family,
-  familyPaths,
   inRepo,
   isObject,
   type Json,
@@ -39,8 +43,14 @@ import {
   readJson,
   relativeToRepo,
 } from '../lib/layout.ts'
+import { enclosingSections, type Outline, REQUIREMENT_ID, readOutline } from '../lib/outline.ts'
 import { effectiveValue, pointerSegments } from '../validation/effective.ts'
-import { type Phase, parseDocument, validateDocument } from '../validation/validator.ts'
+import {
+  type Diagnostic,
+  type Phase,
+  parseDocument,
+  validateDocument,
+} from '../validation/validator.ts'
 
 interface CaseIndexEntry {
   readonly id: string
@@ -48,28 +58,30 @@ interface CaseIndexEntry {
   readonly path: string
 }
 
-interface CaseMetadata {
+export interface CaseMetadata {
   readonly id: string
   readonly phase: Phase
   readonly expected: 'pass' | 'fail'
   readonly clause?: string
   /**
-   * Stable requirement identifiers this case exercises, e.g. `COMP-ENV-002`.
+   * Stable requirement identifiers this case exercises, e.g. `CORE-ENV-002`.
    *
-   * `clause` names a section; a section states several rules. 27 cases cite
-   * `#envelope`, which covers `specVersion`, `kind`, unknown fields, and an
-   * unsupported version — so the citation says where to look and not what is
-   * being pinned. An ID says which rule, and survives a heading being renamed.
+   * `clause` names a section; a section states several rules. Thirteen cases
+   * cite core's `#envelope`, which covers `specVersion`, `kind`, unknown fields,
+   * and an unsupported version — so the citation says where to look and not
+   * what is being pinned. An ID says which rule, and survives a heading being
+   * renamed.
    */
   readonly requirements?: string[]
   readonly summary?: string
   /**
    * Effective values this case pins, keyed by JSON Pointer (ADR 0008).
    *
-   * `expected: "pass"` only. A validator answers whether a document is
-   * accepted; it does not answer what the document *means* where it says
-   * nothing, and two implementations that agree on the first can still
-   * disagree on the second. This map is where the corpus says so.
+   * `expected: "pass"` only, and never in the core corpus. A validator answers
+   * whether a document is accepted; it does not answer what the document
+   * *means* where it says nothing, and two implementations that agree on the
+   * first can still disagree on the second. This map is where the corpus says
+   * so.
    */
   readonly effective?: Record<string, Json>
   /**
@@ -140,9 +152,9 @@ interface SpecIndex {
   /** Diagnostic code to the phase the prose assigns it. */
   readonly codes: ReadonlyMap<string, Phase>
   readonly anchors: ReadonlySet<string>
+  /** Sections and the section each requirement is declared under. */
+  readonly outline: Outline
 }
-
-const EMPTY_INDEX: SpecIndex = { codes: new Map(), anchors: new Set() }
 
 const specIndexCache = new Map<string, SpecIndex | undefined>()
 
@@ -163,30 +175,29 @@ function specIndex(path: string): SpecIndex | undefined {
     for (const match of source.matchAll(SPEC_ANCHOR)) {
       if (match[1] !== undefined) anchors.add(match[1])
     }
-    index = { codes, anchors }
+    index = { codes, anchors, outline: readOutline(source) }
   }
   specIndexCache.set(path, index)
   return index
 }
 
-/** A stable requirement identifier: `COMP-ENV-001`, `BP-REF-003`. */
-const REQUIREMENT_ID = /^[A-Z]{2,6}-[A-Z0-9]{2,12}-\d{3}$/
-
-let requirementCache: Map<string, string> | undefined
+/** The codes one spec.md's diagnostics table declares; empty when it has none. */
+function codesOf(specPath: string): ReadonlyMap<string, Phase> {
+  return specIndex(specPath)?.codes ?? new Map()
+}
 
 /**
- * Every requirement ID declared across the three specifications, mapped to the
+ * Every requirement ID declared across the specifications, mapped to the
  * document that declares it.
  *
- * IDs are global rather than per-family on purpose: a blueprint fixture cites
- * component's envelope requirements, and the prefix already says which document
- * to open. Two documents declaring the same ID is a defect — the same name
- * would mean two rules.
+ * IDs are global rather than per-family on purpose: a component fixture cites
+ * core's envelope requirements, and the prefix already says which document to
+ * open. Two documents declaring the same ID is a defect — the same name would
+ * mean two rules.
  */
-function requirementIndex(): Map<string, string> {
-  if (requirementCache !== undefined) return requirementCache
+function requirementIndex(families: readonly Family[]): Map<string, string> {
   const index = new Map<string, string>()
-  for (const family of discoverFamilies()) {
+  for (const family of families) {
     const anchors = specIndex(family.specPath)?.anchors ?? new Set<string>()
     for (const anchor of anchors) {
       if (!REQUIREMENT_ID.test(anchor)) continue
@@ -200,32 +211,162 @@ function requirementIndex(): Map<string, string> {
       index.set(anchor, family.specPath)
     }
   }
-  requirementCache = index
   return index
 }
 
-/** Every diagnostic code a fixture in this family may legitimately declare. */
-function registryFor(family: Family): ReadonlyMap<string, Phase> {
-  const own = specIndex(family.specPath) ?? EMPTY_INDEX
-  // The registry a fixture may draw on is its own family's table unioned with
-  // the base family's, which the other families declare themselves deltas on.
-  const base = specIndex(inRepo(REPO_ROOT, familyPaths(BASE_FAMILY, family.major).spec))
-  return new Map([...(base ?? EMPTY_INDEX).codes, ...own.codes])
+/** What a corpus may draw on: the codes it may declare, and the specs it may cite. */
+export interface Reach {
+  /** Every diagnostic code a case in this corpus may declare, with its phase. */
+  readonly registry: ReadonlyMap<string, Phase>
+  /**
+   * Absolute paths of every spec.md a case in this corpus may cite: the
+   * family's own, core's, and each normative dependency its §2 declares.
+   */
+  readonly specs: ReadonlySet<string>
+}
+
+/** Everything the per-case checks read, resolved once for the whole tree. */
+export interface Context {
+  readonly repoRoot: string
+  readonly families: readonly Family[]
+  /** Requirement ID to the absolute path of the spec.md declaring it. */
+  readonly requirements: ReadonlyMap<string, string>
+  /** Keyed `<name>/<major>`. */
+  readonly reach: ReadonlyMap<string, Reach>
+}
+
+function familyKey(family: { readonly name: string; readonly major: string }): string {
+  return `${family.name}/${family.major}`
 }
 
 /**
- * Every code any of the three registries declares.
+ * Resolve what one family's corpus may draw on.
  *
- * Deliberately global rather than `registryFor`'s reachable set. A family's
- * prose legitimately names another family's code — component §3 and §10 name
- * blueprint's `ERR_UNKNOWN_COMPONENT`, listing §4 names
- * `ERR_UNREFERENCED_COMPONENT` — and those are citations, not declarations.
- * What `checkProseCodes` asks is whether the code exists at all.
+ * Core's registry is core §7 alone: it depends on nothing. A kind family's is
+ * its own table, core's, and the table of each family its §2 "Normative
+ * dependencies" table names — blueprint lists component, which is why a
+ * blueprint fixture may declare `ERR_UNKNOWN_ENUM_MEMBER` and a listing one may
+ * not. A family that names no dependencies has no route to core's codes, so it
+ * fails here rather than failing every case one at a time.
+ *
+ * Core §7 also says a family table adds codes and MUST NOT declare a core code
+ * again: two rows for one code can carry two meanings, which is exactly how
+ * blueprint and listing came to disagree on `ERR_VERSION_MISMATCH`.
  */
-function declaredCodes(): ReadonlySet<string> {
+export function resolveReach(
+  family: Family,
+  families: readonly Family[],
+  failures: Failures,
+): Reach {
+  const own = codesOf(family.specPath)
+  const ownOnly: Reach = { registry: own, specs: new Set([family.specPath]) }
+  if (family.role === 'core') return ownOnly
+
+  const where = `${familyKey(family)} spec.md §2`
+  let bindings: ReturnType<typeof readBindings>
+  try {
+    bindings = readBindings(family)
+  } catch (error) {
+    if (!(error instanceof BindingsError)) throw error
+    failures.add(`${error.message}. Its diagnostic registry cannot be resolved.`)
+    return ownOnly
+  }
+  if (bindings === null) {
+    failures.add(
+      `${where} declares no normative dependencies. A kind family is built on core and ` +
+        'MUST list it (core v1 §1.1), or no core diagnostic code is reachable from its corpus.',
+    )
+    return ownOnly
+  }
+
+  const dependencies: Family[] = []
+  for (const dependency of bindings.dependencies) {
+    const found = families.find((f) => f.name === dependency.family && f.major === dependency.line)
+    if (found === undefined) {
+      failures.add(
+        `${where} depends on ${dependency.family} ${dependency.line}, which is not a family ` +
+          'version in this tree',
+      )
+      continue
+    }
+    dependencies.push(found)
+  }
+
+  const core = dependencies.find((d) => d.role === 'core')
+  if (!bindings.dependencies.some((d) => d.family === CORE_FAMILY)) {
+    failures.add(
+      `${where} does not list core among its normative dependencies. Every kind family is ` +
+        'built on core and MUST declare the core line it applies (core v1 §1.1).',
+    )
+  }
+
+  if (core !== undefined) {
+    const coreCodes = codesOf(core.specPath)
+    for (const code of own.keys()) {
+      if (!coreCodes.has(code)) continue
+      failures.add(
+        `${relativeToRepo(family.specPath)}: ${code} is declared in ` +
+          `${relativeToRepo(core.specPath)} §7 and again in this family's diagnostics table. ` +
+          'A family adds codes to core’s and MUST NOT declare one of them again (core v1 §7).',
+      )
+    }
+  }
+
+  // Core first, then the other dependencies in table order, then the family's
+  // own rows — so a re-declaration, already reported above, cannot also
+  // silently change the phase a case is checked against.
+  const ordered = [
+    ...dependencies.filter((d) => d.role === 'core'),
+    ...dependencies.filter((d) => d.role !== 'core'),
+  ]
+  const registry = new Map<string, Phase>()
+  for (const dependency of ordered) {
+    for (const [code, phase] of codesOf(dependency.specPath)) registry.set(code, phase)
+  }
+  for (const [code, phase] of own) if (!registry.has(code)) registry.set(code, phase)
+
+  return {
+    registry,
+    specs: new Set([family.specPath, ...dependencies.map((d) => d.specPath)]),
+  }
+}
+
+/**
+ * Resolve every family's reach and the global requirement index.
+ *
+ * Resolution problems — a kind family with no core dependency, a re-declared
+ * core code — are reported once here, not once per case.
+ */
+export function loadContext(repoRoot: string, failures: Failures): Context {
+  const families = discoverFamilies(repoRoot)
+  const reach = new Map<string, Reach>()
+  for (const family of families)
+    reach.set(familyKey(family), resolveReach(family, families, failures))
+  return { repoRoot, families, requirements: requirementIndex(families), reach }
+}
+
+function reachOf(context: Context, family: Family): Reach {
+  return (
+    context.reach.get(familyKey(family)) ?? {
+      registry: codesOf(family.specPath),
+      specs: new Set([family.specPath]),
+    }
+  )
+}
+
+/**
+ * Every code any registry declares.
+ *
+ * Deliberately global rather than a corpus's reach. A family's prose
+ * legitimately names another family's code — component §10 names blueprint's
+ * `ERR_UNKNOWN_COMPONENT`, listing §3 names `ERR_UNREFERENCED_COMPONENT` — and
+ * those are citations, not declarations. What `checkProseCodes` asks is whether
+ * the code exists at all.
+ */
+function declaredCodes(families: readonly Family[]): ReadonlySet<string> {
   const codes = new Set<string>()
-  for (const family of discoverFamilies()) {
-    for (const code of specIndex(family.specPath)?.codes.keys() ?? []) codes.add(code)
+  for (const family of families) {
+    for (const code of codesOf(family.specPath).keys()) codes.add(code)
   }
   return codes
 }
@@ -238,6 +379,14 @@ function loadIndex(family: Family, failures: Failures): CaseIndexEntry[] {
   if (!isObject(index) || !Array.isArray(index.cases)) {
     failures.add(`${relativeToRepo(indexPath)}: must be an object with a "cases" array`)
     return []
+  }
+  // The index says which corpus it is. A core index that said `component` would
+  // be read by an adapter as a family corpus, and run through a bundle.
+  if (index.family !== undefined && index.family !== family.name) {
+    failures.add(
+      `${relativeToRepo(indexPath)}: "family" is ${JSON.stringify(index.family)} but the ` +
+        `corpus lives under ${familyKey(family)}`,
+    )
   }
 
   const entries: CaseIndexEntry[] = []
@@ -319,6 +468,154 @@ function checkCaseSubject(
 }
 
 /**
+ * The shape a core case has beyond every case's (core v1 §8.1): a `case.yaml`
+ * and never a `tree/`, because a case about an item needs a document of some
+ * family inside a directory; and no `effective` map, because the parser alone
+ * decides nothing about what a document means. The phase is checked with the
+ * citations, in `checkClauseConsistency`.
+ */
+function checkCoreCase(caseDir: string, label: string, metadata: CaseMetadata, failures: Failures) {
+  let ok = true
+  if (existsSync(join(caseDir, 'tree'))) {
+    failures.add(
+      `${label}: a core case is a case.yaml, never a tree/ — a case about an item needs a ` +
+        'document of some family (core v1 §8.1)',
+    )
+    ok = false
+  }
+  if (metadata.effective !== undefined) {
+    failures.add(
+      `${label}: a core case runs through the parser alone and declares no "effective" ` +
+        'values (core v1 §8.1)',
+    )
+    ok = false
+  }
+  return ok
+}
+
+/** A `clause` split into the spec it cites and the anchor within it. */
+interface Clause {
+  /** Absolute path of the cited spec.md. */
+  readonly specPath: string
+  /** The path as the case wrote it, for messages. */
+  readonly written: string
+  readonly fragment: string | undefined
+}
+
+function parseClause(repoRoot: string, clause: string): Clause {
+  const hash = clause.indexOf('#')
+  const written = hash === -1 ? clause : clause.slice(0, hash)
+  return {
+    specPath: inRepo(repoRoot, written),
+    written,
+    fragment: hash === -1 ? undefined : clause.slice(hash + 1),
+  }
+}
+
+/**
+ * A case's `clause` and its `requirements` point at the same rules.
+ *
+ * Each is checked alone elsewhere — the clause resolves to an anchor, every ID
+ * resolves to a declaration — and both can pass while the case says two
+ * different things: twelve parser cases once cited `#envelope` while pinning a
+ * YAML-profile rule declared somewhere else. For a case in corpus F, with D the
+ * specs declaring its requirements (conformance/README.md, the `clause` row):
+ *
+ * - (a) every spec in D is F's own, core's, or a normative dependency F's §2
+ *   declares — a corpus pins only rules its family applies;
+ * - (b) `clause` cites F's spec or a spec in D; with no requirements, a spec F
+ *   may cite at all;
+ * - (c) where `clause` cites a spec in D, its anchor is the section declaring
+ *   each requirement that spec declares, or a section enclosing it;
+ * - (d) a core case is a `parser` case and cites core only.
+ */
+export function checkClauseConsistency(
+  context: Context,
+  family: Family,
+  label: string,
+  metadata: Pick<CaseMetadata, 'phase' | 'clause' | 'requirements'>,
+  failures: Failures,
+): boolean {
+  let ok = true
+  const fail = (message: string) => {
+    failures.add(`${label}: ${message}`)
+    ok = false
+  }
+  const reach = reachOf(context, family)
+  const own = family.specPath
+
+  // Requirement to declaring spec. An ID that resolves nowhere is reported by
+  // `checkCaseShape`; it constrains nothing here.
+  const declaring = new Map<string, string>()
+  for (const requirement of metadata.requirements ?? []) {
+    const specPath = context.requirements.get(requirement)
+    if (specPath !== undefined) declaring.set(requirement, specPath)
+  }
+  const clause =
+    metadata.clause === undefined ? undefined : parseClause(context.repoRoot, metadata.clause)
+  const rel = (path: string) => relativeToRepo(path).replace(`${context.repoRoot}/`, '')
+
+  if (family.role === 'core') {
+    // (d)
+    if (metadata.phase !== 'parser') {
+      fail(
+        `a core case is a parser case, not ${metadata.phase} — core publishes no schema, and ` +
+          'an adapter runs a core case through its parser alone (core v1 §8.1)',
+      )
+    }
+    if (clause !== undefined && clause.specPath !== own) {
+      fail(`a core case cites core only, but clause cites ${clause.written}`)
+    }
+    for (const [requirement, specPath] of declaring) {
+      if (specPath !== own) {
+        fail(`a core case cites core only, but ${requirement} is declared in ${rel(specPath)}`)
+      }
+    }
+  } else {
+    // (a)
+    for (const [requirement, specPath] of declaring) {
+      if (reach.specs.has(specPath)) continue
+      fail(
+        `${requirement} is declared in ${rel(specPath)}, which is neither ` +
+          `${rel(own)}, core, nor a normative dependency ${familyKey(family)} §2 declares`,
+      )
+    }
+    // (b)
+    if (clause !== undefined) {
+      const cited = new Set(declaring.values())
+      if (cited.size > 0 && clause.specPath !== own && !cited.has(clause.specPath)) {
+        fail(
+          `clause cites ${clause.written}, which declares none of this case's requirements ` +
+            `and is not ${rel(own)}`,
+        )
+      } else if (cited.size === 0 && !reach.specs.has(clause.specPath)) {
+        fail(
+          `clause cites ${clause.written}, which is neither ${rel(own)}, core, nor a ` +
+            `normative dependency ${familyKey(family)} §2 declares`,
+        )
+      }
+    }
+  }
+
+  // (c)
+  if (clause?.fragment !== undefined) {
+    const outline = specIndex(clause.specPath)?.outline
+    for (const [requirement, specPath] of declaring) {
+      if (outline === undefined || specPath !== clause.specPath) continue
+      const enclosing = enclosingSections(outline, requirement)
+      if (enclosing.includes(clause.fragment)) continue
+      fail(
+        `clause cites #${clause.fragment}, but ${requirement} is declared under ` +
+          `${enclosing.map((id) => `#${id}`).join(' within ') || 'no section'} of ` +
+          `${clause.written}. Cite that section or one enclosing it.`,
+      )
+    }
+  }
+
+  return ok
+}
+
+/**
  * Copy a case's `tree/` somewhere writable and create its declared symlinks.
  * Returns the scratch root; the caller removes it.
  *
@@ -346,6 +643,7 @@ function materialiseTree(caseDir: string, metadata: CaseMetadata): string {
  * or `null` when the case is malformed.
  */
 function checkCaseShape(
+  context: Context,
   family: Family,
   entry: CaseIndexEntry,
   caseDir: string,
@@ -370,17 +668,20 @@ function checkCaseShape(
     ok = false
   }
   if (!checkCaseSubject(caseDir, label, metadata, failures)) ok = false
+  if (family.role === 'core' && !checkCoreCase(caseDir, label, metadata, failures)) ok = false
 
   // Every case should trace to prose — a fixture that cites nothing is an
   // assertion about an implementation, not about the specification.
   if (metadata.clause !== undefined) {
-    const [clausePath, fragment] = metadata.clause.split('#')
-    const cited = clausePath === undefined ? undefined : specIndex(join(REPO_ROOT, clausePath))
+    const clause = parseClause(context.repoRoot, metadata.clause)
+    const cited = specIndex(clause.specPath)
     if (cited === undefined) {
-      failures.add(`${label}: clause cites ${clausePath}, which does not exist`)
+      failures.add(`${label}: clause cites ${clause.written}, which does not exist`)
       ok = false
-    } else if (fragment === undefined || !cited.anchors.has(fragment)) {
-      failures.add(`${label}: clause anchor #${fragment ?? ''} is not declared in ${clausePath}`)
+    } else if (clause.fragment === undefined || !cited.anchors.has(clause.fragment)) {
+      failures.add(
+        `${label}: clause anchor #${clause.fragment ?? ''} is not declared in ${clause.written}`,
+      )
       ok = false
     }
   }
@@ -394,7 +695,7 @@ function checkCaseShape(
       ok = false
       continue
     }
-    if (!requirementIndex().has(requirement)) {
+    if (!context.requirements.has(requirement)) {
       failures.add(
         `${label}: requirement ${requirement} is not declared in any spec.md. ` +
           'Declare it beside the rule it names, or cite one that exists.',
@@ -402,6 +703,8 @@ function checkCaseShape(
       ok = false
     }
   }
+
+  if (!checkClauseConsistency(context, family, label, metadata, failures)) ok = false
 
   // An `effective` map pins what a document means where it says nothing, which
   // is only a question about a document that was accepted.
@@ -438,7 +741,7 @@ function checkCaseShape(
     return null
   }
 
-  const registry = registryFor(family)
+  const { registry } = reachOf(context, family)
   const diagnostics: DeclaredDiagnostic[] = []
   for (const item of declared as Json[]) {
     if (!isObject(item) || typeof item.code !== 'string' || typeof item.path !== 'string') {
@@ -465,12 +768,6 @@ function checkCaseShape(
   return ok ? diagnostics : null
 }
 
-/**
- * Validate a case's subject, supplying an item root only when the case declares
- * one. A `case.yaml` deliberately supplies none: blueprint §3.1 says a document
- * arriving without a directory has no item root, and the rules measured against
- * one MUST NOT be reported for it.
- */
 /**
  * Every pinned effective value is the one the contract actually yields.
  *
@@ -532,6 +829,12 @@ function checkEffective(
   return ok
 }
 
+/**
+ * Validate a case's subject, supplying an item root only when the case declares
+ * one. A `case.yaml` deliberately supplies none: core v1 §4.1 says a document
+ * arriving without a directory has no item root, and the rules measured against
+ * one MUST NOT be reported for it.
+ */
 function runValidation(family: Family, caseDir: string, metadata: CaseMetadata) {
   if (metadata.document === undefined) {
     return validateDocument(family, readFileSync(join(caseDir, 'case.yaml'), 'utf8'))
@@ -549,7 +852,27 @@ function runValidation(family: Family, caseDir: string, metadata: CaseMetadata) 
   }
 }
 
+/**
+ * Run a core case the way core v1 §8.1 says an adapter does: through the parser
+ * alone. No bundle is read, no later phase is entered, and nothing looks at the
+ * document's `kind` — the parser runs before a family is chosen, so there is no
+ * family to choose.
+ */
+function runParserOnly(caseDir: string): {
+  readonly ok: boolean
+  readonly phase: Phase
+  readonly diagnostics: Diagnostic[]
+} {
+  const parsed = parseDocument(readFileSync(join(caseDir, 'case.yaml'), 'utf8'))
+  return 'errors' in parsed
+    ? { ok: false, phase: 'parser', diagnostics: parsed.errors }
+    : { ok: true, phase: 'parser', diagnostics: [] }
+}
+
+export type Log = (line: string) => void
+
 function runCase(
+  context: Context,
   family: Family,
   entry: CaseIndexEntry,
   failures: Failures,
@@ -557,9 +880,10 @@ function runCase(
   exercised: Set<string>,
   /** Collects every requirement ID the corpus cites, for the same reason. */
   citedRequirements: Set<string>,
+  log: Log,
 ): 'ran' | 'skipped' | 'failed' {
   const caseDir = join(family.conformanceDir, entry.path)
-  const label = `${family.name}/${family.major}/${entry.id}`
+  const label = `${familyKey(family)}/${entry.id}`
 
   const metadataPath = join(caseDir, 'metadata.json')
   if (!existsSync(metadataPath)) {
@@ -577,27 +901,33 @@ function runCase(
     return 'failed'
   }
 
-  const declared = checkCaseShape(family, entry, caseDir, label, metadata, failures)
+  const declared = checkCaseShape(context, family, entry, caseDir, label, metadata, failures)
   if (declared === null) return 'failed'
   for (const item of declared) exercised.add(item.code)
   for (const requirement of metadata.requirements ?? []) citedRequirements.add(requirement)
 
   if (!IMPLEMENTED_PHASES.has(metadata.phase)) {
-    console.log(`  · ${label}: ${metadata.phase} phase not implemented here — skipped`)
+    log(`  · ${label}: ${metadata.phase} phase not implemented here — skipped`)
     return 'skipped'
   }
 
-  if (!existsSync(family.bundlePath)) {
-    failures.add(`${label}: no bundle to validate against — run \`task bundle\``)
-    return 'failed'
+  let result: ReturnType<typeof runParserOnly>
+  if (family.role === 'core') {
+    result = runParserOnly(caseDir)
+  } else {
+    if (!existsSync(family.bundlePath)) {
+      failures.add(`${label}: no bundle to validate against — run \`task bundle\``)
+      return 'failed'
+    }
+    result = runValidation(family, caseDir, metadata)
   }
-
-  const result = runValidation(family, caseDir, metadata)
 
   if (metadata.expected === 'pass') {
     if (result.ok) {
-      if (!checkEffective(family, caseDir, label, metadata, failures)) return 'failed'
-      console.log(`  ✓ ${label}`)
+      if (family.role !== 'core' && !checkEffective(family, caseDir, label, metadata, failures)) {
+        return 'failed'
+      }
+      log(`  ✓ ${label}`)
       return 'ran'
     }
     const detail = result.diagnostics.map((d) => `        ${d.code} at ${d.path || '/'}`).join('\n')
@@ -606,7 +936,11 @@ function runCase(
   }
 
   if (result.ok) {
-    failures.add(`${label}: expected to fail but validated cleanly`)
+    failures.add(
+      family.role === 'core'
+        ? `${label}: expected the parser to reject it, but the parser accepted it`
+        : `${label}: expected to fail but validated cleanly`,
+    )
     return 'failed'
   }
   if (result.phase !== metadata.phase) {
@@ -626,7 +960,7 @@ function runCase(
     }
   }
 
-  console.log(`  ✓ ${label} (fails as declared)`)
+  log(`  ✓ ${label} (fails as declared)`)
   return 'ran'
 }
 
@@ -667,17 +1001,20 @@ const UNCOVERED: ReadonlyMap<string, string> = new Map([
  *
  * A code goes uncovered only by someone adding it to `UNCOVERED` with a reason,
  * in a diff a reviewer sees.
+ *
+ * For a kind family, `exercised` is its own corpus's codes, and only the
+ * family's own additions are asked about: demanding that every family fixture
+ * every code it reaches would make each one restate the envelope suite. For
+ * core, `exercised` is every corpus's: core's corpus is parser-only, so its
+ * structural and item codes are fixtured in the family corpora that apply them.
  */
 function checkCoverage(family: Family, exercised: ReadonlySet<string>, failures: Failures): void {
-  // Only the family's own additions: a code inherited from component §8 is
-  // covered by component's corpus, and demanding a fixture per family would
-  // make every family restate the envelope suite.
-  const own = specIndex(family.specPath)?.codes ?? new Map()
-  for (const code of own.keys()) {
+  const where = family.role === 'core' ? 'no indexed case in any corpus' : 'no indexed case'
+  for (const code of codesOf(family.specPath).keys()) {
     if (exercised.has(code) || UNCOVERED.has(code)) continue
     failures.add(
-      `${family.name}/${family.major}: ${code} is declared in ${relativeToRepo(family.specPath)} ` +
-        'but no indexed case exercises it. Add a fixture, or record it in UNCOVERED with a reason.',
+      `${familyKey(family)}: ${code} is declared in ${relativeToRepo(family.specPath)} ` +
+        `but ${where} exercises it. Add a fixture, or record it in UNCOVERED with a reason.`,
     )
   }
 }
@@ -692,15 +1029,15 @@ function checkCoverage(family: Family, exercised: ReadonlySet<string>, failures:
  */
 const UNPINNED: ReadonlyMap<string, string> = new Map([
   [
-    'COMP-ENV-001',
+    'CORE-ENV-001',
     'A fixture cannot omit specVersion and still declare which family it belongs ' +
-      'to; the rule is exercised indirectly by every case in the corpus',
+      'to; the rule is exercised indirectly by every case in every corpus',
   ],
   [
-    'COMP-ENV-003',
-    'metadata is required by every fixture in the corpus, so no single case pins it',
+    'CORE-ENV-003',
+    'metadata is required by every fixture in every corpus, so no single case pins it',
   ],
-  ['COMP-ENV-004', 'spec is required by every fixture in the corpus, so no single case pins it'],
+  ['CORE-ENV-004', 'spec is required by every fixture in every corpus, so no single case pins it'],
   [
     'LIST-MEDIA-004',
     'a rule about what a consumer emits once it has relocated an item media set; ' +
@@ -715,9 +1052,14 @@ const UNPINNED: ReadonlyMap<string, string> = new Map([
  * This is the same bidirectional gate `checkCoverage` applies to diagnostic
  * codes, for the same reason: without it, a rule can be written into the
  * specification and never tested, and CI stays green because nothing asked.
+ * A `CORE-*` ID counts as pinned when a case in any corpus cites it.
  */
-function checkRequirementCoverage(cited: ReadonlySet<string>, failures: Failures): void {
-  for (const [requirement, specPath] of requirementIndex()) {
+function checkRequirementCoverage(
+  requirements: ReadonlyMap<string, string>,
+  cited: ReadonlySet<string>,
+  failures: Failures,
+): void {
+  for (const [requirement, specPath] of requirements) {
     if (cited.has(requirement) || UNPINNED.has(requirement)) continue
     failures.add(
       `${requirement} is declared in ${relativeToRepo(specPath)} but no case cites it. ` +
@@ -736,7 +1078,7 @@ function checkRequirementCoverage(cited: ReadonlySet<string>, failures: Failures
 const HYPOTHETICAL: ReadonlyMap<string, string> = new Map([
   [
     'ERR_SCHEMA_TOO_OLD',
-    'component §3 names it as a code that deliberately does not exist, to explain why a field from a newer release is reported as ERR_UNKNOWN_FIELD — a validator holding neither definition cannot tell that case from a misspelling',
+    'core §3 names it as a code that deliberately does not exist, to explain why a field from a newer release is reported as ERR_UNKNOWN_FIELD — a validator holding neither definition cannot tell that case from a misspelling',
   ],
 ])
 
@@ -749,13 +1091,13 @@ const HYPOTHETICAL: ReadonlyMap<string, string> = new Map([
  * sentence — which is how blueprint §10 came to reject a cycle §4.2 permits,
  * with `ERR_CONNECTION_CYCLE`, a code no table has ever defined, and CI green.
  *
- * Scoped to the three spec.md files. An ADR is immutable and records withdrawn
- * codes as history, so a code that no longer exists is correct there; a named
- * code is a promise only in a normative document.
+ * Scoped to the spec.md files. An ADR is immutable and records withdrawn codes
+ * as history, so a code that no longer exists is correct there; a named code is
+ * a promise only in a normative document.
  */
-function checkProseCodes(failures: Failures): void {
-  const declared = declaredCodes()
-  for (const family of discoverFamilies()) {
+function checkProseCodes(families: readonly Family[], failures: Failures): void {
+  const declared = declaredCodes(families)
+  for (const family of families) {
     if (!existsSync(family.specPath)) continue
     const lines = readFileSync(family.specPath, 'utf8').split('\n')
     for (const [offset, line] of lines.entries()) {
@@ -786,51 +1128,92 @@ function checkOrphans(family: Family, entries: CaseIndexEntry[], failures: Failu
       if (!statSync(join(phaseDir, name)).isDirectory()) continue
       if (indexed.has(normalize(join(phase, name)))) continue
       failures.add(
-        `${family.name}/${family.major}: ${phase}/${name} is not indexed in cases.json and runs nowhere`,
+        `${familyKey(family)}: ${phase}/${name} is not indexed in cases.json and runs nowhere`,
       )
     }
   }
 }
 
-function main(): void {
+export interface ConformanceResult {
+  readonly failures: Failures
+  readonly ran: number
+  readonly skipped: number
+  /** Indexed cases per corpus, keyed `<name>/<major>`, in discovery order. */
+  readonly corpora: ReadonlyMap<string, number>
+  /** Declared requirement IDs cited by at least one case. */
+  readonly pinned: number
+  readonly requirements: number
+}
+
+/** Run every corpus under `repoRoot`, collecting failures rather than exiting. */
+export function runConformance(
+  repoRoot: string = REPO_ROOT,
+  log: Log = console.log,
+): ConformanceResult {
   const failures = new Failures()
+  const context = loadContext(repoRoot, failures)
   let ran = 0
   let skipped = 0
+  const corpora = new Map<string, number>()
 
   // Requirement IDs are global, so coverage is answered across the whole corpus
   // rather than per family: a blueprint fixture may be the only thing pinning a
-  // component envelope rule.
+  // component rule, and every core structural rule is pinned in a family corpus.
   const cited = new Set<string>()
+  const exercisedAnywhere = new Set<string>()
 
-  for (const family of discoverFamilies()) {
+  for (const family of context.families) {
     const entries = loadIndex(family, failures)
+    corpora.set(familyKey(family), entries.length)
     if (entries.length === 0) {
-      console.log(`  · ${family.name}/${family.major}: no conformance cases indexed`)
+      log(`  · ${familyKey(family)}: no conformance cases indexed`)
       continue
     }
 
     const exercised = new Set<string>()
     for (const entry of entries) {
-      const outcome = runCase(family, entry, failures, exercised, cited)
+      const outcome = runCase(context, family, entry, failures, exercised, cited, log)
       if (outcome === 'ran') ran += 1
       if (outcome === 'skipped') skipped += 1
     }
+    for (const code of exercised) exercisedAnywhere.add(code)
 
-    checkCoverage(family, exercised, failures)
+    if (family.role !== 'core') checkCoverage(family, exercised, failures)
     checkOrphans(family, entries, failures)
   }
 
-  checkRequirementCoverage(cited, failures)
-  checkProseCodes(failures)
+  // Core's codes are covered by any corpus, so they are asked about only once
+  // every corpus has run.
+  for (const family of context.families) {
+    if (family.role === 'core') checkCoverage(family, exercisedAnywhere, failures)
+  }
 
-  const suffix = skipped > 0 ? ` (${skipped} skipped)` : ''
+  checkRequirementCoverage(context.requirements, cited, failures)
+  checkProseCodes(context.families, failures)
+
+  let pinned = 0
+  for (const requirement of context.requirements.keys()) if (cited.has(requirement)) pinned += 1
+
+  return {
+    failures,
+    ran,
+    skipped,
+    corpora,
+    pinned,
+    requirements: context.requirements.size,
+  }
+}
+
+function main(): void {
+  const result = runConformance()
+  const suffix = result.skipped > 0 ? ` (${result.skipped} skipped)` : ''
   const profile = profileFor(IMPLEMENTED_PHASES) ?? 'none'
-  const requirements = requirementIndex().size
-  failures.report(
-    ran === 0
+  const corpora = [...result.corpora].map(([key, count]) => `${key} ${count}`).join(', ')
+  result.failures.report(
+    result.ran === 0
       ? `No conformance cases executed${suffix}.`
-      : `${ran} conformance case(s) passed${suffix} — profile: ${profile}; ` +
-          `${cited.size}/${requirements} requirement(s) pinned.`,
+      : `${result.ran} conformance case(s) passed${suffix} — profile: ${profile}; ` +
+          `${result.pinned}/${result.requirements} requirement(s) pinned. Cases per corpus: ${corpora}.`,
   )
 }
 

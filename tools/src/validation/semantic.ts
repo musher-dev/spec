@@ -8,7 +8,7 @@
  * The rules divide by what they need, and the division is the prose's, not this
  * runner's. An **in-document** rule is decided by reading the document. An
  * **item-scoped** rule is measured against the item root
- * ([blueprint §3.1](../../specifications/blueprint/v1/spec.md#item-directory)),
+ * ([core v1 §4.1](../../specifications/core/v1/spec.md#item-directory)),
  * and a caller that supplies no item root MUST NOT have those rules reported:
  * "a diagnostic it cannot substantiate is worse than a silence."
  */

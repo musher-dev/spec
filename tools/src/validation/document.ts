@@ -20,7 +20,7 @@ export interface Diagnostic {
 }
 
 /**
- * The bounds component §7.1 states. They are part of the contract rather than
+ * The bounds core v1 §6.1 states. They are part of the contract rather than
  * an implementation detail: a document one validator accepts and another
  * refuses on size is not one contract, and "be sensible" is not a bound.
  *
@@ -40,7 +40,7 @@ function diagnostic(code: string, message: string): Diagnostic {
 /**
  * Strict YAML 1.2, restricted further by the Musher document profile.
  *
- * Component §7.1 is the clause. Everything rejected here is well-formed YAML
+ * Core v1 §6.1 is the clause. Everything rejected here is well-formed YAML
  * that this contract withholds, and the reason is always the same one: a
  * document whose meaning depends on which parser reads it, or on how much work
  * a reader is willing to do before deciding, is not a contract.

@@ -27,6 +27,7 @@ import {
   repoLink,
   TRACEABILITY_FILE,
 } from '../lib/layout.ts'
+import { readOutline } from '../lib/outline.ts'
 
 const OUTPUT = inRepo(REPO_ROOT, TRACEABILITY_FILE)
 /** The directory the matrix is read from, which every link in it is relative to. */
@@ -40,11 +41,6 @@ interface Citation {
   readonly path: string
 }
 
-const REQUIREMENT_ID = /^[A-Z]{2,6}-[A-Z0-9]{2,12}-\d{3}$/
-const ANCHOR = /<a id="([^"]+)"><\/a>/g
-/** The section anchor a requirement sits under, tracked while scanning. */
-const HEADING = /^#{2,3}\s+<a id="([^"]+)"><\/a>\s*([0-9.]+\s+)?(.+?)\s*$/
-
 interface Requirement {
   readonly id: string
   readonly family: string
@@ -55,30 +51,15 @@ interface Requirement {
 
 function requirementsIn(family: Family): Requirement[] {
   if (!existsSync(family.specPath)) return []
-  const found: Requirement[] = []
-  let section = ''
-  let sectionTitle = ''
-
-  for (const line of readFileSync(family.specPath, 'utf8').split('\n')) {
-    const heading = HEADING.exec(line)
-    if (heading?.[1] !== undefined) {
-      section = heading[1]
-      sectionTitle = heading[3] ?? ''
-      continue
-    }
-    for (const match of line.matchAll(ANCHOR)) {
-      const id = match[1]
-      if (id === undefined || !REQUIREMENT_ID.test(id)) continue
-      found.push({
-        id,
-        family: family.name,
-        section,
-        sectionTitle,
-        specPath: familyPaths(family.name, family.major).spec,
-      })
-    }
-  }
-  return found
+  const outline = readOutline(readFileSync(family.specPath, 'utf8'))
+  const titles = new Map(outline.sections.map((section) => [section.id, section.title]))
+  return [...outline.requirements].map(([id, section]) => ({
+    id,
+    family: family.name,
+    section,
+    sectionTitle: titles.get(section) ?? '',
+    specPath: familyPaths(family.name, family.major).spec,
+  }))
 }
 
 /** Requirement ID to the cases citing it, across every family's corpus. */

@@ -343,7 +343,9 @@ exceptions, all `capability`:
 That table is not prose anyone has to remember to update.
 `task check:conformance` derives it: every `ERR_*` row in a family's own
 diagnostics table must be exercised by an indexed case or appear in the
-runner's `UNCOVERED` list with a reason. A code goes untested only by someone
+runner's `UNCOVERED` list with a reason. A row of core's table counts as
+exercised by a case in any corpus, because the core corpus is `parser`-only and
+core's structural and item codes are fixtured by the families that apply them. A code goes untested only by someone
 writing down why, in a diff a reviewer sees.
 
 The check runs in both directions, and the second one is the reason for the

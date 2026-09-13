@@ -2,7 +2,7 @@
   "id": "semantic-015-description-image-resolves",
   "phase": "semantic",
   "expected": "pass",
-  "clause": "specifications/listing/v1/spec.md#media-resolution",
+  "clause": "specifications/listing/v1/spec.md#description-markdown",
   "requirements": [
     "LIST-MD-003"
   ],

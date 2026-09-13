@@ -30,7 +30,7 @@ describe('readOutline', () => {
     '',
     '## <a id="envelope"></a>2. Document envelope',
     '',
-    '| <a id="COMP-ENV-001"></a>`COMP-ENV-001` | `specVersion` |',
+    '| <a id="CORE-ENV-001"></a>`CORE-ENV-001` | `specVersion` |',
     '|---|---|',
     '| a | b |',
     '',
@@ -55,7 +55,7 @@ describe('readOutline', () => {
   })
 
   test('binds a requirement id to the section stating it', () => {
-    expect(readOutline(source).requirements.get('COMP-ENV-001')).toBe('envelope')
+    expect(readOutline(source).requirements.get('CORE-ENV-001')).toBe('envelope')
   })
 
   test('a section anchor is not mistaken for a requirement', () => {
@@ -74,12 +74,12 @@ describe('renderProse', () => {
 
   test('keeps an explicit anchor, in a heading and inside a table cell', () => {
     const html = renderProse(
-      '## <a id="envelope"></a>2. Envelope\n\n| <a id="COMP-ENV-001"></a>`X` |\n|---|\n| y |\n',
+      '## <a id="envelope"></a>2. Envelope\n\n| <a id="CORE-ENV-001"></a>`X` |\n|---|\n| y |\n',
       null,
       SPEC,
     )
     expect(html).toContain('<a id="envelope"></a>')
-    expect(html).toContain('<a id="COMP-ENV-001"></a>')
+    expect(html).toContain('<a id="CORE-ENV-001"></a>')
   })
 
   test('refuses a table row it cannot split faithfully', () => {

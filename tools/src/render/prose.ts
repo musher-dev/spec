@@ -5,7 +5,7 @@
  * is to lose nothing on the way through. Three properties carry that:
  *
  * 1. **Anchors survive.** `spec.md` carries explicit `<a id="envelope"></a>` and
- *    `<a id="COMP-ENV-001"></a>` anchors. Conformance `metadata.clause` cites the
+ *    `<a id="CORE-ENV-001"></a>` anchors. Conformance `metadata.clause` cites the
  *    first kind and `docs/traceability.md` links the second, so an anchor dropped
  *    here is a citation that silently stops resolving. CommonMark's renderer is
  *    therefore run with `safe: false`; `safe: true` replaces every one of them
@@ -29,23 +29,10 @@
  * NON-NORMATIVE, like everything under tools/.
  */
 import { HtmlRenderer, Node, Parser } from 'commonmark'
+import type { Outline } from '../lib/outline.ts'
 
-/** A heading, as `## <a id="envelope"></a>2. Document envelope`. */
-export interface Section {
-  readonly id: string
-  /** The authored section number, `2` or `7.1`, or '' where a heading has none. */
-  readonly number: string
-  readonly title: string
-  readonly level: number
-}
-
-export interface Outline {
-  readonly sections: readonly Section[]
-  /** Requirement id to the id of the section stating it. */
-  readonly requirements: ReadonlyMap<string, string>
-  /** Section number to anchor id, so `spec.md §5.2` can become a link. */
-  readonly byNumber: ReadonlyMap<string, string>
-}
+// Re-exported so the renderer's callers keep one import for what they render.
+export { type Outline, readOutline, type Section } from '../lib/outline.ts'
 
 /**
  * Context a document needs to turn its own citations into links.
@@ -62,60 +49,8 @@ export interface ProseContext {
   readonly resolveLink: (target: string) => string
 }
 
-/**
- * The heading form, shared with `traceability.ts`.
- *
- * Kept as a copy rather than an import: `traceability.ts` regenerates a
- * committed artifact and pulling it into this module's dependency graph would
- * put `docs/traceability.md` in the blast radius of a rendering change. If a
- * third caller appears, extract it then.
- */
-const HEADING = /^#{2,3}\s+<a id="([^"]+)"><\/a>\s*([0-9.]+)?\s*(.+?)\s*$/
-/** A stable requirement identifier, `COMP-ENV-001`. */
-const REQUIREMENT_ID = /^[A-Z]{2,6}-[A-Z0-9]{2,12}-\d{3}$/
-/** Any explicit anchor, wherever it sits. */
-const ANCHOR = /<a id="([^"]+)"><\/a>/g
 /** A citation to a numbered clause, `§5.2` or `spec.md §5.2`. */
 const CITATION = /§\s?(\d+(?:\.\d+)*)/g
-
-/**
- * Index a document's anchors: its sections, and the requirements under each.
- *
- * Both namespaces live in one file and neither is derivable from the other — a
- * section anchor is kebab-case and names a heading, a requirement id names a
- * single rule and is stable across a heading rename. That is exactly why both
- * exist; see `conformance/README.md`.
- */
-export function readOutline(markdown: string): Outline {
-  const sections: Section[] = []
-  const requirements = new Map<string, string>()
-  const byNumber = new Map<string, string>()
-  let current = ''
-
-  for (const line of markdown.split('\n')) {
-    const heading = HEADING.exec(line)
-    if (heading !== null) {
-      const [, id = '', number = '', title = ''] = heading
-      current = id
-      const level = line.startsWith('###') ? 3 : 2
-      // `2.` and `7.1` are both authored; the trailing dot on a top-level
-      // number is punctuation, not part of the number a citation names.
-      const numbered = number.trim().replace(/\.$/, '')
-      sections.push({ id, number: numbered, title, level })
-      if (numbered !== '') byNumber.set(numbered, id)
-      continue
-    }
-    // A requirement anchor sits in a table cell or glued to the start of an
-    // ordinary sentence, so it is found by scanning every line rather than by
-    // matching a shape.
-    for (const match of line.matchAll(ANCHOR)) {
-      const id = match[1]
-      if (id !== undefined && REQUIREMENT_ID.test(id)) requirements.set(id, current)
-    }
-  }
-
-  return { sections, requirements, byNumber }
-}
 
 /** A pipe table, lifted out of the Markdown so CommonMark never sees it. */
 interface Table {
