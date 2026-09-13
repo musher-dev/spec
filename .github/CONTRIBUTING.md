@@ -145,10 +145,12 @@ Scopes: `component`, `blueprint`, `listing`, `conformance`, `tools`, `ci`,
 [ADR 0016](../docs/adr/0016-dependency-update-policy.md).
 
 Releases are cut by [release-please](https://github.com/googleapis/release-please)
-from these messages. A `feat(component):` commit produces a `component/v1.x.0`
-tag; `feat(blueprint):` produces `blueprint/v1.x.0`. Families release
-independently, so scope your commits accurately — an unscoped `feat:` will not
-release anything.
+from these messages, and it assigns a commit to a family by the **paths the
+commit changes** — the scope labels the area for a reader, it does not choose a
+release. A `feat`, `fix`, or `docs` commit touching `specifications/component/v1/`
+enters the next `component/v1.x.y` release; one touching two families enters
+both. A change under a family's directory that should release nothing uses
+`refactor`, `chore`, `test`, `ci`, or `build`.
 
 ## Sign your work
 

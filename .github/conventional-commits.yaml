@@ -19,9 +19,9 @@ types:
   - style
   - revert
 
-# The scope selects which release train a change belongs to. The three
-# specification families release independently, so an unscoped `feat:` will
-# not produce a release.
+# The scope labels the area a change touches. It does not select a release
+# train: release-please assigns a commit to a package by the paths the commit
+# changes (.github/release-please/config.json), whatever its scope says.
 scopes:
   - component
   - blueprint

@@ -113,8 +113,11 @@ Conventional Commits, scoped, DCO-signed:
 git commit -s -m "feat(component): add restartPolicy"
 ```
 
-Scope drives release-please. `feat(component):` cuts `component/v1.x.0`;
-an unscoped `feat:` releases nothing.
+release-please assigns a commit to a package by the **paths it changes**, not
+by its scope. A `feat`, `fix`, or `docs` commit touching
+`specifications/component/v1/**` enters the next `component/v1.x.y` release
+whatever its scope says; use `refactor`, `chore`, `test`, `ci`, or `build` for
+a change under a package path that should release nothing.
 
 ## Known debt
 
