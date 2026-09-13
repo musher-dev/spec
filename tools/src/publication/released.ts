@@ -35,8 +35,12 @@ import {
 import {
   canonicalJson,
   type Failures,
+  familyPaths,
   isObject,
   type Json,
+  LEDGER_FILE,
+  parseManifestKey,
+  RELEASE_PLEASE_MANIFEST_FILE,
   readJson,
   SCHEMA_ORIGIN,
 } from '../lib/layout.ts'
@@ -44,8 +48,8 @@ import {
 /** Release tags are `<family>/v<MAJOR>.<MINOR>.<PATCH>` and nothing else. */
 const RELEASE_TAG = /^(?<family>[a-z][a-z0-9-]*)\/v(?<version>\d+\.\d+\.\d+)$/
 
-export const LEDGER_FILE = 'published.json'
-export const MANIFEST_FILE = join('.github', 'release-please', 'manifest.json')
+export { LEDGER_FILE }
+export const MANIFEST_FILE = RELEASE_PLEASE_MANIFEST_FILE
 
 export interface Release {
   /** The tag verbatim, e.g. `component/v1.2.0`. */
@@ -88,7 +92,7 @@ export function parseReleaseTag(tag: string): Release | null {
 
 /** Where a family's bundle lives by default — the layout in use today. */
 export function defaultBundlePath(family: string, major: string): string {
-  return join('specifications', family, major, 'schemas', 'dist', `${family}.schema.json`)
+  return familyPaths(family, major).bundle
 }
 
 /** The URL a pinned release is served from, and its own canonical `$id`. */
@@ -237,7 +241,7 @@ function readManifest(repoRoot: string): { [k: string]: string } {
 }
 
 function manifestKeyFor(release: Release): string {
-  return `specifications/${release.family}/${release.major}`
+  return familyPaths(release.family, release.major).manifestKey
 }
 
 /**
@@ -346,8 +350,7 @@ export function pendingNotices(repoRoot: string): string[] {
   const notices: string[] = []
   for (const [key, version] of Object.entries(readManifest(repoRoot))) {
     if (version === '0.0.0') continue
-    const parts = key.split('/')
-    const family = parts[1]
+    const family = parseManifestKey(key)?.name
     if (family === undefined) continue
     const tag = `${family}/v${version}`
     if (tags.has(tag) || ledger.releases[tag] !== undefined) continue

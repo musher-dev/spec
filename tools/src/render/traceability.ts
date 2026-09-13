@@ -12,18 +12,32 @@
  * NON-NORMATIVE, like everything under tools/.
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, posix } from 'node:path'
 import {
+  conformanceLink,
   discoverFamilies,
   type Family,
+  inRepo,
   isObject,
   type Json,
   REPO_ROOT,
   readJson,
   relativeToRepo,
+  repoLink,
+  TRACEABILITY_FILE,
 } from '../lib/layout.ts'
 
-const OUTPUT = join(REPO_ROOT, 'docs', 'traceability.md')
+const OUTPUT = inRepo(REPO_ROOT, TRACEABILITY_FILE)
+/** The directory the matrix is read from, which every link in it is relative to. */
+const OUTPUT_DIR = posix.dirname(TRACEABILITY_FILE)
+
+/** A conformance case citing a requirement. */
+interface Citation {
+  readonly family: string
+  readonly major: string
+  /** The case directory, relative to its family version's corpus. */
+  readonly path: string
+}
 
 const REQUIREMENT_ID = /^[A-Z]{2,6}-[A-Z0-9]{2,12}-\d{3}$/
 const ANCHOR = /<a id="([^"]+)"><\/a>/g
@@ -67,8 +81,8 @@ function requirementsIn(family: Family): Requirement[] {
 }
 
 /** Requirement ID to the cases citing it, across every family's corpus. */
-function citations(): Map<string, string[]> {
-  const cited = new Map<string, string[]>()
+function citations(): Map<string, Citation[]> {
+  const cited = new Map<string, Citation[]>()
   for (const family of discoverFamilies()) {
     const indexPath = join(family.conformanceDir, 'cases.json')
     if (!existsSync(indexPath)) continue
@@ -81,8 +95,8 @@ function citations(): Map<string, string[]> {
       if (!isObject(metadata) || !Array.isArray(metadata.requirements)) continue
       for (const requirement of metadata.requirements) {
         if (typeof requirement !== 'string') continue
-        const label = `${family.name}/${family.major}/${entry.path}`
-        cited.set(requirement, [...(cited.get(requirement) ?? []), label])
+        const citation = { family: family.name, major: family.major, path: entry.path }
+        cited.set(requirement, [...(cited.get(requirement) ?? []), citation])
       }
     }
   }
@@ -120,10 +134,16 @@ export function buildMatrix(): string {
       const cases = cited.get(requirement.id) ?? []
       if (cases.length > 0) pinned += 1
 
-      const clause = `[§${requirement.sectionTitle}](../${requirement.specPath}#${requirement.section})`
-      const links = cases.map((path) => `[\`${path}\`](../conformance/${path}/)`).join('<br>')
+      const spec = repoLink(OUTPUT_DIR, requirement.specPath)
+      const clause = `[§${requirement.sectionTitle}](${spec}#${requirement.section})`
+      const links = cases
+        .map(
+          (c) =>
+            `[\`${c.family}/${c.major}/${c.path}\`](${conformanceLink(OUTPUT_DIR, c.family, c.major, c.path)})`,
+        )
+        .join('<br>')
       lines.push(
-        `| [\`${requirement.id}\`](../${requirement.specPath}#${requirement.id}) | ${clause} | ${links || '—'} |`,
+        `| [\`${requirement.id}\`](${spec}#${requirement.id}) | ${clause} | ${links || '—'} |`,
       )
     }
     lines.push('')

@@ -8,6 +8,7 @@ import Ajv2020 from 'ajv/dist/2020.js'
 import {
   discoverFamilies,
   Failures,
+  familyPaths,
   isObject,
   type Json,
   METASCHEMA,
@@ -39,7 +40,7 @@ function main(): void {
     if (!hasRoot) {
       failures.add(
         `${family.name}/${family.major}: no entry-point module — expected ` +
-          `schemas/src/${family.name}.schema.json`,
+          `${familyPaths(family.name, family.major).src}/${family.name}.schema.json`,
       )
     }
 

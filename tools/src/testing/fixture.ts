@@ -12,11 +12,17 @@
  * identity and signing are passed per-commit, so a developer's global config,
  * signing key, or hook path cannot change what these tests do.
  */
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { git } from '../lib/git.ts'
-import { canonicalJson, type Json } from '../lib/layout.ts'
+import {
+  canonicalJson,
+  familyPaths,
+  type Json,
+  LEDGER_FILE,
+  RELEASE_PLEASE_MANIFEST_FILE,
+} from '../lib/layout.ts'
 
 const IDENTITY = [
   '-c',
@@ -44,16 +50,35 @@ export class FixtureRepo {
     writeFileSync(absolute, contents, 'utf8')
   }
 
-  /** Delete a file relative to the repository root. */
+  /** Delete a file or directory relative to the repository root. */
   remove(path: string): void {
-    rmSync(join(this.root, path), { force: true })
+    rmSync(join(this.root, path), { recursive: true, force: true })
   }
 
   /** Write a family's committed bundle, at the layout the tooling expects. */
   writeBundle(family: string, major: string, doc: Json): string {
-    const path = join('specifications', family, major, 'schemas', 'dist', `${family}.schema.json`)
+    const path = familyPaths(family, major).bundle
     this.writeFile(path, canonicalJson(doc))
     return path
+  }
+
+  /**
+   * Give a family version every part the layout says a release carries — prose,
+   * an example, a conformance index — without overwriting any a test wrote.
+   *
+   * A released tag missing one of them fails loudly, so a test that cuts a
+   * release to exercise something else has to carry them.
+   */
+  writeFamilySkeleton(family: string, major: string): void {
+    const paths = familyPaths(family, major)
+    const parts: [string, string, string][] = [
+      [paths.spec, paths.spec, '## <a id="scope"></a>1. Scope\n'],
+      [paths.examples, `${paths.examples}/minimal.yaml`, 'kind: COMPONENT\n'],
+      [paths.conformance, `${paths.conformance}/cases.json`, canonicalJson({ cases: [] })],
+    ]
+    for (const [part, file, contents] of parts) {
+      if (!existsSync(join(this.root, part))) this.writeFile(file, contents)
+    }
   }
 
   /** A minimal but realistic bundle — alias `$id`, as the bundler emits. */
@@ -68,11 +93,11 @@ export class FixtureRepo {
   }
 
   setManifest(entries: { [path: string]: string }): void {
-    this.writeFile(join('.github', 'release-please', 'manifest.json'), canonicalJson(entries))
+    this.writeFile(RELEASE_PLEASE_MANIFEST_FILE, canonicalJson(entries))
   }
 
   setLedger(ledger: Json): void {
-    this.writeFile('published.json', canonicalJson(ledger))
+    this.writeFile(LEDGER_FILE, canonicalJson(ledger))
   }
 
   commit(message: string): void {

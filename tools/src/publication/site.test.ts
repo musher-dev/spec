@@ -10,9 +10,12 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
+import { familyPaths, LayoutError } from '../lib/layout.ts'
 import { FixtureRepo } from '../testing/fixture.ts'
 import { record } from './ledger.ts'
 import { assembleSite, type HeaderRule, renderHeaders } from './site.ts'
+
+const COMPONENT = familyPaths('component', 'v1')
 
 let repo: FixtureRepo | null = null
 
@@ -27,12 +30,28 @@ afterEach(() => {
 })
 
 /** Cut a release the way the pipeline does: manifest, ledger entry, then tag. */
-function release(fx: FixtureRepo, family: string, major: string, version: string, doc: unknown) {
+function cut(fx: FixtureRepo, family: string, major: string, version: string, doc: unknown) {
   fx.writeBundle(family, major, doc as never)
-  fx.setManifest({ [`specifications/${family}/${major}`]: version })
+  fx.setManifest({ [familyPaths(family, major).manifestKey]: version })
   record(fx.root)
   fx.commit(`chore: release ${family} ${version}`)
   fx.tag(`${family}/v${version}`)
+}
+
+/** Cut a release carrying every part the layout says a release has. */
+function release(fx: FixtureRepo, family: string, major: string, version: string, doc: unknown) {
+  fx.writeFamilySkeleton(family, major)
+  cut(fx, family, major, version, doc)
+}
+
+/** The error a call throws, or undefined when it returns. */
+function thrown(fn: () => unknown): unknown {
+  try {
+    fn()
+  } catch (error) {
+    return error
+  }
+  return undefined
 }
 
 function readSite(fx: FixtureRepo, ...parts: string[]): string {
@@ -106,7 +125,7 @@ describe('assembleSite', () => {
     // built from the working tree passes everything and starts lying on the
     // first release.
     const fx = fixture()
-    fx.writeFile('specifications/component/v1/spec.md', PROSE)
+    fx.writeFile(COMPONENT.spec, PROSE)
     release(
       fx,
       'component',
@@ -117,7 +136,7 @@ describe('assembleSite', () => {
       }),
     )
 
-    fx.writeFile('specifications/component/v1/spec.md', DRAFT)
+    fx.writeFile(COMPONENT.spec, DRAFT)
     fx.writeBundle(
       'component',
       'v1',
@@ -141,7 +160,7 @@ describe('assembleSite', () => {
 
   test('an untagged family renders from the working tree', () => {
     const fx = fixture()
-    fx.writeFile('specifications/component/v1/spec.md', PROSE)
+    fx.writeFile(COMPONENT.spec, PROSE)
     fx.writeBundle(
       'component',
       'v1',
@@ -155,7 +174,7 @@ describe('assembleSite', () => {
 
   test('no reference path draws a Cache-Control header', () => {
     const fx = fixture()
-    fx.writeFile('specifications/component/v1/spec.md', PROSE)
+    fx.writeFile(COMPONENT.spec, PROSE)
     release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
 
     const site = join(fx.root, 'site')
@@ -173,7 +192,7 @@ describe('assembleSite', () => {
 
   test('the reference costs no header rules, however many versions it renders', () => {
     const fx = fixture()
-    fx.writeFile('specifications/component/v1/spec.md', PROSE)
+    fx.writeFile(COMPONENT.spec, PROSE)
     release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
     release(fx, 'component', 'v1', '1.1.0', fx.bundleDoc('component', 'v1'))
     release(fx, 'component', 'v1', '1.2.0', fx.bundleDoc('component', 'v1'))
@@ -186,16 +205,13 @@ describe('assembleSite', () => {
 
   test('the examples page carries every example, verbatim, from the same ref', () => {
     const fx = fixture()
-    fx.writeFile('specifications/component/v1/spec.md', PROSE)
-    fx.writeFile(
-      'specifications/component/v1/examples/minimal.yaml',
-      'kind: COMPONENT # released\n',
-    )
+    fx.writeFile(COMPONENT.spec, PROSE)
+    fx.writeFile(`${COMPONENT.examples}/minimal.yaml`, 'kind: COMPONENT # released\n')
     release(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
 
     // Move both the example and add a second one on main.
-    fx.writeFile('specifications/component/v1/examples/minimal.yaml', 'kind: COMPONENT # on main\n')
-    fx.writeFile('specifications/component/v1/examples/extra.yaml', 'kind: COMPONENT # new\n')
+    fx.writeFile(`${COMPONENT.examples}/minimal.yaml`, 'kind: COMPONENT # on main\n')
+    fx.writeFile(`${COMPONENT.examples}/extra.yaml`, 'kind: COMPONENT # new\n')
     fx.commit('docs(component): revise the examples')
 
     assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site') })
@@ -211,7 +227,7 @@ describe('assembleSite', () => {
 
   test('a family with no examples gets no examples page and no link to one', () => {
     const fx = fixture()
-    fx.writeFile('specifications/component/v1/spec.md', PROSE)
+    fx.writeFile(COMPONENT.spec, PROSE)
     fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1'))
     fx.commit('feat(component): a family with no examples')
 
@@ -245,6 +261,31 @@ describe('assembleSite', () => {
     expect(readSite(fx, 'reference', 'component', 'v1', 'index.html')).not.toContain(
       'href="/reference/component/v1/spec/"',
     )
+  })
+
+  test('a release tag lacking examples/ fails loudly rather than rendering none', () => {
+    // Before the layout module, a moved examples directory read as "this
+    // release has no examples" and the site deployed without them.
+    const fx = fixture()
+    fx.writeFamilySkeleton('component', 'v1')
+    fx.remove(COMPONENT.examples)
+    cut(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
+
+    const error = thrown(() => assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site') }))
+    expect(error).toBeInstanceOf(LayoutError)
+    expect((error as Error).message).toContain('component/v1.0.0')
+    expect((error as Error).message).toContain(COMPONENT.examples)
+  })
+
+  test('a release tag lacking spec.md fails loudly rather than rendering no prose', () => {
+    const fx = fixture()
+    fx.writeFamilySkeleton('component', 'v1')
+    fx.remove(COMPONENT.spec)
+    cut(fx, 'component', 'v1', '1.0.0', fx.bundleDoc('component', 'v1'))
+
+    const error = thrown(() => assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site') }))
+    expect(error).toBeInstanceOf(LayoutError)
+    expect((error as Error).message).toContain(COMPONENT.spec)
   })
 
   test('a pinned path does not move when main moves', () => {
@@ -319,7 +360,7 @@ describe('assembleSite', () => {
   test('the alias serves the working tree while a major has no tags', () => {
     const fx = fixture()
     fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1', { description: 'pre-tag' }))
-    fx.setManifest({ 'specifications/component/v1': '0.0.0' })
+    fx.setManifest({ [COMPONENT.manifestKey]: '0.0.0' })
     fx.commit('feat(component): initial')
 
     const result = assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site') })
@@ -367,7 +408,7 @@ describe('assembleSite', () => {
 
     // The layout changes: the bundle moves. The ledger remembers where 1.0.0's
     // bytes lived, so its pinned path is unaffected.
-    const oldPath = 'specifications/component/v1/schemas/dist/component.schema.json'
+    const oldPath = COMPONENT.bundle
     const ledger = JSON.parse(readFileSync(join(fx.root, 'published.json'), 'utf8'))
     expect(ledger.releases['component/v1.0.0'].path).toBe(oldPath)
 
@@ -479,7 +520,7 @@ describe('assembleSite', () => {
   test('no GitHub Pages artifact is published', () => {
     const fx = fixture()
     fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1'))
-    fx.setManifest({ 'specifications/component/v1': '0.0.0' })
+    fx.setManifest({ [COMPONENT.manifestKey]: '0.0.0' })
     fx.commit('feat(component): initial')
 
     assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site') })
@@ -506,8 +547,8 @@ describe('assembleSite', () => {
     expect(index).toContain('href="/component/v1/component.schema.json"')
     expect(index).toContain('href="/listing/v1/listing.schema.json"')
     // The prose link resolves at the ref the alias actually serves.
-    expect(index).toContain('/blob/component/v1.0.0/specifications/component/v1/spec.md')
-    expect(index).toContain('/blob/main/specifications/listing/v1/spec.md')
+    expect(index).toContain(`/blob/component/v1.0.0/${COMPONENT.spec}`)
+    expect(index).toContain(`/blob/main/${familyPaths('listing', 'v1').spec}`)
   })
 
   test('a family index lists every published version with its checksum', () => {
@@ -529,7 +570,7 @@ describe('assembleSite', () => {
   test('a family index says plainly that an untagged family has released nothing', () => {
     const fx = fixture()
     fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1'))
-    fx.setManifest({ 'specifications/component/v1': '0.0.0' })
+    fx.setManifest({ [COMPONENT.manifestKey]: '0.0.0' })
     fx.commit('feat(component): initial')
 
     assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site') })
@@ -543,7 +584,7 @@ describe('assembleSite', () => {
   test('a not-found page is published', () => {
     const fx = fixture()
     fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1'))
-    fx.setManifest({ 'specifications/component/v1': '0.0.0' })
+    fx.setManifest({ [COMPONENT.manifestKey]: '0.0.0' })
     fx.commit('feat(component): initial')
 
     assembleSite({ repoRoot: fx.root, siteDir: join(fx.root, 'site') })

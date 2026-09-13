@@ -5,10 +5,12 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { Failures } from '../lib/layout.ts'
+import { Failures, familyPaths } from '../lib/layout.ts'
 import { FixtureRepo } from '../testing/fixture.ts'
 import { assertAppendOnly, record, sync } from './ledger.ts'
 import { EMPTY_LEDGER, type Ledger, readLedger } from './released.ts'
+
+const COMPONENT_KEY = familyPaths('component', 'v1').manifestKey
 
 let repo: FixtureRepo | null = null
 
@@ -38,7 +40,7 @@ describe('record', () => {
   test('is idempotent', () => {
     const fx = fixture()
     fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1'))
-    fx.setManifest({ 'specifications/component/v1': '1.0.0' })
+    fx.setManifest({ [COMPONENT_KEY]: '1.0.0' })
 
     const first = record(fx.root)
     expect(first.added).toEqual(['component/v1.0.0'])
@@ -55,7 +57,7 @@ describe('record', () => {
   test('ignores the 0.0.0 bootstrap placeholder', () => {
     const fx = fixture()
     fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1'))
-    fx.setManifest({ 'specifications/component/v1': '0.0.0' })
+    fx.setManifest({ [COMPONENT_KEY]: '0.0.0' })
 
     expect(record(fx.root).added).toEqual([])
   })
@@ -63,7 +65,7 @@ describe('record', () => {
   test('records the source and published hashes separately', () => {
     const fx = fixture()
     fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1'))
-    fx.setManifest({ 'specifications/component/v1': '1.0.0' })
+    fx.setManifest({ [COMPONENT_KEY]: '1.0.0' })
     record(fx.root)
 
     const entry = readLedger(fx.root).releases['component/v1.0.0']
@@ -77,7 +79,7 @@ describe('sync', () => {
   test('backfills a tag that was never recorded', () => {
     const fx = fixture()
     fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1'))
-    fx.setManifest({ 'specifications/component/v1': '1.0.0' })
+    fx.setManifest({ [COMPONENT_KEY]: '1.0.0' })
     fx.commit('chore: release without recording')
     fx.tag('component/v1.0.0')
 

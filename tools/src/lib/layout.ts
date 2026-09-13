@@ -1,24 +1,239 @@
 /**
- * Shared helpers for the specification tooling.
+ * Shared helpers for the specification tooling, and the one place a repository
+ * path is spelled.
+ *
+ * Every tool asks this module where a family's prose, schemas, examples, and
+ * conformance corpus live, rather than writing `specifications/…` itself. That
+ * is what lets the layout change in one commit: a path spelled in twenty places
+ * is a path that moves in nineteen of them, and the twentieth reads nothing and
+ * reports success. `layout.test.ts` fails the suite on a new literal.
  *
  * NON-NORMATIVE. Nothing in tools/ defines the contract; it only builds and
  * checks the artifacts that do.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, join, posix, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { listTreeFiles, readBlobAtRef } from './git.ts'
+
+// -----------------------------------------------------------------------------
+// Repository-relative paths. POSIX, because git names paths that way at a ref
+// and a published link must not carry a platform separator.
+// -----------------------------------------------------------------------------
+
+/** Where every family's tree lives. */
+export const SPECIFICATIONS_ROOT = 'specifications'
+/** Where every family's conformance corpus lives today. */
+const CONFORMANCE_ROOT = 'conformance'
+/** The conformance suite's own index of profiles and fixture format. */
+export const CONFORMANCE_README = `${CONFORMANCE_ROOT}/README.md`
+/** The publication ledger. See docs/adr/0006. */
+export const LEDGER_FILE = 'published.json'
+export const RELEASE_PLEASE_MANIFEST_FILE = '.github/release-please/manifest.json'
+export const RELEASE_PLEASE_CONFIG_FILE = '.github/release-please/config.json'
+/** The generated requirement traceability matrix. */
+export const TRACEABILITY_FILE = 'docs/traceability.md'
+/** The generated SchemaStore-compatible catalog. */
+export const CATALOG_FILE = 'catalog.json'
+
+/**
+ * The family whose diagnostics table the other families declare themselves
+ * deltas on: blueprint §7 and listing §7 both open "The codes in component §8
+ * apply. This family adds:".
+ */
+export const BASE_FAMILY = 'component'
+
+/** Every repository path belonging to one family version, repo-relative. */
+export interface FamilyPaths {
+  /** `specifications/<name>/<major>`. */
+  readonly dir: string
+  readonly spec: string
+  readonly src: string
+  readonly dist: string
+  readonly bundle: string
+  readonly examples: string
+  /** The family version's conformance corpus, whether or not it exists. */
+  readonly conformance: string
+  /** The key release-please's manifest and config use for this package. */
+  readonly manifestKey: string
+}
+
+export function familyPaths(name: string, major: string): FamilyPaths {
+  const dir = `${SPECIFICATIONS_ROOT}/${name}/${major}`
+  return {
+    dir,
+    spec: `${dir}/spec.md`,
+    src: `${dir}/schemas/src`,
+    dist: `${dir}/schemas/dist`,
+    bundle: `${dir}/schemas/dist/${name}.schema.json`,
+    examples: `${dir}/examples`,
+    conformance: `${CONFORMANCE_ROOT}/${name}/${major}`,
+    manifestKey: dir,
+  }
+}
+
+const FAMILY_SEGMENT = '[a-z][a-z0-9-]*'
+const MANIFEST_KEY = new RegExp(`^${SPECIFICATIONS_ROOT}/(${FAMILY_SEGMENT})/(v\\d+)$`)
+const SPEC_PATH = new RegExp(`^${SPECIFICATIONS_ROOT}/(${FAMILY_SEGMENT})/(v\\d+)/spec\\.md$`)
+
+/** The family version a release-please manifest key names, or null. */
+export function parseManifestKey(key: string): { name: string; major: string } | null {
+  const match = MANIFEST_KEY.exec(key)
+  return match?.[1] === undefined || match[2] === undefined
+    ? null
+    : { name: match[1], major: match[2] }
+}
+
+/** The family version whose prose a repo-relative path is, or null. */
+export function parseSpecPath(path: string): { name: string; major: string } | null {
+  const match = SPEC_PATH.exec(path)
+  return match?.[1] === undefined || match[2] === undefined
+    ? null
+    : { name: match[1], major: match[2] }
+}
+
+/** A relative link from a repo-relative directory to a repo-relative path. */
+export function repoLink(fromDir: string, path: string): string {
+  return posix.relative(fromDir, path)
+}
+
+/** A relative link from a repo-relative directory to one conformance case directory. */
+export function conformanceLink(
+  fromDir: string,
+  name: string,
+  major: string,
+  casePath: string,
+): string {
+  return `${repoLink(fromDir, `${familyPaths(name, major).conformance}/${casePath}`)}/`
+}
+
+/** The parts of a family version a released ref is expected to carry. */
+export type FamilyPart = 'spec' | 'examples' | 'conformance'
+
+/**
+ * Family versions that legitimately lack a part, keyed `<name>/<major>`.
+ *
+ * Empty: every family version today carries its prose, its examples, and its
+ * corpus. A part not listed here is required at every released ref, so a tool
+ * reading a moved or missing path fails instead of finding nothing and passing.
+ */
+const ABSENT_PARTS: { readonly [familyVersion: string]: readonly FamilyPart[] } = {}
+
+/** Whether the layout says this family version carries `part`. */
+export function hasPart(name: string, major: string, part: FamilyPart): boolean {
+  return !(ABSENT_PARTS[`${name}/${major}`] ?? []).includes(part)
+}
+
+/** A path the layout promised is not where it should be. */
+export class LayoutError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'LayoutError'
+  }
+}
+
+export type AtRef =
+  | { readonly type: 'blob'; readonly bytes: Buffer }
+  | { readonly type: 'tree'; readonly files: string[] }
+
+/**
+ * A blob's bytes or a tree's files as of a ref, or a `LayoutError` naming the
+ * ref and the path.
+ *
+ * `readBlobAtRef` and `listTreeFiles` answer absence with `null` and `[]`,
+ * which is right for a ref that may carry nothing — a base branch, or `main`
+ * before a family exists. At a released tag absence means the layout moved
+ * underneath the tool, and an empty answer would let it pass vacuously.
+ */
+export function requireAtRef(repoRoot: string, ref: string, relPath: string, what: string): AtRef {
+  const bytes = readBlobAtRef(repoRoot, ref, relPath)
+  if (bytes !== null) return { type: 'blob', bytes }
+  const files = listTreeFiles(repoRoot, ref, relPath)
+  if (files.length > 0) return { type: 'tree', files }
+  throw new LayoutError(
+    `${ref}: ${what} is expected at ${relPath}, and that ref carries nothing there. ` +
+      'If the layout changed after this release, teach tools/src/lib/layout.ts where it lived.',
+  )
+}
+
+/** `requireAtRef` for a path that must be a file. */
+export function requireFileAtRef(
+  repoRoot: string,
+  ref: string,
+  relPath: string,
+  what: string,
+): Buffer {
+  const found = requireAtRef(repoRoot, ref, relPath, what)
+  if (found.type === 'blob') return found.bytes
+  throw new LayoutError(`${ref}: ${what} is expected to be a file at ${relPath}, not a directory`)
+}
+
+/** `requireAtRef` for a path that must be a directory; returns its files, repo-relative. */
+export function requireTreeAtRef(
+  repoRoot: string,
+  ref: string,
+  relPath: string,
+  what: string,
+): string[] {
+  const found = requireAtRef(repoRoot, ref, relPath, what)
+  if (found.type === 'tree') return found.files
+  throw new LayoutError(`${ref}: ${what} is expected to be a directory at ${relPath}, not a file`)
+}
+
+/** A repo-relative POSIX path, made absolute under a repository root. */
+export function inRepo(repoRoot: string, relPath: string): string {
+  return join(repoRoot, ...relPath.split('/'))
+}
+
+/**
+ * A family version's `spec.md` at a released ref.
+ *
+ * Throws `LayoutError` when the ref lacks it. Null only where the layout says
+ * the family version carries no prose.
+ */
+export function releasedSpec(
+  repoRoot: string,
+  ref: string,
+  name: string,
+  major: string,
+): Buffer | null {
+  const path = familyPaths(name, major).spec
+  return hasPart(name, major, 'spec')
+    ? requireFileAtRef(repoRoot, ref, path, `${name}/${major} spec.md`)
+    : readBlobAtRef(repoRoot, ref, path)
+}
+
+/**
+ * Every file under a family version's examples or conformance corpus at a
+ * released ref, repo-relative.
+ *
+ * Throws `LayoutError` when the ref carries nothing there. Empty only where the
+ * layout says the family version has no such part.
+ */
+export function releasedPartFiles(
+  repoRoot: string,
+  ref: string,
+  name: string,
+  major: string,
+  part: 'examples' | 'conformance',
+): string[] {
+  const path = familyPaths(name, major)[part]
+  return hasPart(name, major, part)
+    ? requireTreeAtRef(repoRoot, ref, path, `${name}/${major} ${part}`)
+    : listTreeFiles(repoRoot, ref, path)
+}
 
 export const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
 // A wrong depth does not fail loudly on its own: family discovery finds no
 // `specifications/` to walk, returns nothing, and every tool reports success.
-if (!existsSync(join(REPO_ROOT, 'specifications'))) {
+if (!existsSync(join(REPO_ROOT, SPECIFICATIONS_ROOT))) {
   throw new Error(
     `REPO_ROOT resolved to ${REPO_ROOT}, which has no specifications/ directory. ` +
       'tools/src/lib/layout.ts derives it from its own location; if the file moved, fix the depth.',
   )
 }
-export const SPECIFICATIONS_DIR = join(REPO_ROOT, 'specifications')
-export const CONFORMANCE_DIR = join(REPO_ROOT, 'conformance')
+export const SPECIFICATIONS_DIR = join(REPO_ROOT, SPECIFICATIONS_ROOT)
+export const CONFORMANCE_DIR = join(REPO_ROOT, CONFORMANCE_ROOT)
 export const SITE_DIR = join(REPO_ROOT, 'site')
 
 /** The public hostname the published schemas are served from. */
@@ -45,7 +260,7 @@ export interface Family {
   readonly bundlePath: string
   /** Canonical publication URL of the bundle within its major-version alias. */
   readonly bundleUrl: string
-  /** Absolute path to `conformance/<name>/<major>`, whether or not it exists. */
+  /** Absolute path to the family version's conformance corpus, whether or not it exists. */
   readonly conformanceDir: string
 }
 
@@ -65,36 +280,47 @@ function listDirs(parent: string): string[] {
 /**
  * Discover every `specifications/<family>/v<major>` tree.
  *
- * Returns an empty array when nothing has been authored yet — every tool must
- * treat that as success, not as an error, so the harness stays green on a
- * freshly scaffolded family.
+ * Returns an empty array when no family tree has been authored yet. A
+ * `specifications/` that has children but yields no family is not that state:
+ * it is a layout this function no longer recognises, and answering "nothing to
+ * check" there would turn every tool green, so it throws.
  */
 export function discoverFamilies(repoRoot: string = REPO_ROOT): Family[] {
-  const specificationsDir = join(repoRoot, 'specifications')
-  const conformanceRoot = join(repoRoot, 'conformance')
+  const specificationsDir = inRepo(repoRoot, SPECIFICATIONS_ROOT)
   const families: Family[] = []
-  for (const name of listDirs(specificationsDir)) {
+  const names = listDirs(specificationsDir)
+  for (const name of names) {
     if (!DIR_NAME.test(name)) {
-      throw new Error(`specifications/${name}: family directory must be lowercase kebab-case`)
+      throw new Error(
+        `${SPECIFICATIONS_ROOT}/${name}: family directory must be lowercase kebab-case`,
+      )
     }
     for (const major of listDirs(join(specificationsDir, name))) {
       if (!MAJOR_DIR.test(major)) {
-        throw new Error(`specifications/${name}/${major}: version directory must match v<MAJOR>`)
+        throw new Error(
+          `${SPECIFICATIONS_ROOT}/${name}/${major}: version directory must match v<MAJOR>`,
+        )
       }
-      const dir = join(specificationsDir, name, major)
+      const paths = familyPaths(name, major)
       families.push({
         name,
         major,
-        dir,
-        srcDir: join(dir, 'schemas', 'src'),
-        distDir: join(dir, 'schemas', 'dist'),
-        examplesDir: join(dir, 'examples'),
-        specPath: join(dir, 'spec.md'),
-        bundlePath: join(dir, 'schemas', 'dist', `${name}.schema.json`),
+        dir: inRepo(repoRoot, paths.dir),
+        srcDir: inRepo(repoRoot, paths.src),
+        distDir: inRepo(repoRoot, paths.dist),
+        examplesDir: inRepo(repoRoot, paths.examples),
+        specPath: inRepo(repoRoot, paths.spec),
+        bundlePath: inRepo(repoRoot, paths.bundle),
         bundleUrl: `${SCHEMA_ORIGIN}/${name}/${major}/${name}.schema.json`,
-        conformanceDir: join(conformanceRoot, name, major),
+        conformanceDir: inRepo(repoRoot, paths.conformance),
       })
     }
+  }
+  if (families.length === 0 && names.length > 0) {
+    throw new LayoutError(
+      `${SPECIFICATIONS_ROOT}/ holds ${names.join(', ')} but no family version was found. ` +
+        `Expected ${SPECIFICATIONS_ROOT}/<family>/v<MAJOR>/.`,
+    )
   }
   return families
 }

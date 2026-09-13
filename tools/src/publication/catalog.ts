@@ -7,10 +7,16 @@
  * backward-compatible additions without a config change.
  */
 import { writeFileSync } from 'node:fs'
-import { join } from 'node:path'
-import { canonicalJson, discoverFamilies, type Json, REPO_ROOT } from '../lib/layout.ts'
+import {
+  CATALOG_FILE,
+  canonicalJson,
+  discoverFamilies,
+  inRepo,
+  type Json,
+  REPO_ROOT,
+} from '../lib/layout.ts'
 
-const CATALOG_PATH = join(REPO_ROOT, 'catalog.json')
+const CATALOG_PATH = inRepo(REPO_ROOT, CATALOG_FILE)
 
 /**
  * Glob patterns an editor uses to bind a family's schema to a file.
@@ -77,7 +83,7 @@ function main(): void {
   const catalog = buildCatalog()
   writeFileSync(CATALOG_PATH, canonicalJson(catalog), 'utf8')
   const count = ((catalog as { schemas: Json[] }).schemas ?? []).length
-  console.log(`  ✓ catalog.json (${count} schema(s))`)
+  console.log(`  ✓ ${CATALOG_FILE} (${count} schema(s))`)
 }
 
 if (import.meta.main) main()

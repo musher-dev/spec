@@ -26,10 +26,13 @@ import {
 import { tmpdir } from 'node:os'
 import { dirname, isAbsolute, join, normalize } from 'node:path'
 import {
+  BASE_FAMILY,
   canonicalJson,
   discoverFamilies,
   Failures,
   type Family,
+  familyPaths,
+  inRepo,
   isObject,
   type Json,
   REPO_ROOT,
@@ -120,14 +123,6 @@ export function profileFor(implemented: ReadonlySet<Phase>): string | null {
   return highest
 }
 
-/**
- * The family whose diagnostics table the other families declare themselves
- * deltas on: blueprint §7 and listing §7 both open "The codes in component §8
- * apply. This family adds:". The registry a fixture may draw on is therefore
- * its own family's table unioned with this one's.
- */
-const BASE_FAMILY = 'component'
-
 /** A row of a `| Code | Phase | Meaning |` table in a spec.md. */
 const DIAGNOSTIC_ROW = /^\|\s*`(ERR_[A-Z0-9_]+)`\s*\|\s*`([a-z]+)`\s*\|/
 /** A stable heading anchor, `## <a id="envelope"></a>2. Document envelope`. */
@@ -212,7 +207,9 @@ function requirementIndex(): Map<string, string> {
 /** Every diagnostic code a fixture in this family may legitimately declare. */
 function registryFor(family: Family): ReadonlyMap<string, Phase> {
   const own = specIndex(family.specPath) ?? EMPTY_INDEX
-  const base = specIndex(family.specPath.replace(`/${family.name}/`, `/${BASE_FAMILY}/`))
+  // The registry a fixture may draw on is its own family's table unioned with
+  // the base family's, which the other families declare themselves deltas on.
+  const base = specIndex(inRepo(REPO_ROOT, familyPaths(BASE_FAMILY, family.major).spec))
   return new Map([...(base ?? EMPTY_INDEX).codes, ...own.codes])
 }
 

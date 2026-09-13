@@ -8,10 +8,12 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { Failures } from '../lib/layout.ts'
+import { Failures, familyPaths } from '../lib/layout.ts'
 import { FixtureRepo } from '../testing/fixture.ts'
 import { record } from './ledger.ts'
 import { verifyPublications } from './released.ts'
+
+const COMPONENT_KEY = familyPaths('component', 'v1').manifestKey
 
 let repo: FixtureRepo | null = null
 
@@ -40,7 +42,7 @@ function problems(root: string): string[] {
 
 function release(fx: FixtureRepo, version: string, doc: unknown) {
   fx.writeBundle('component', 'v1', doc as never)
-  fx.setManifest({ 'specifications/component/v1': version })
+  fx.setManifest({ [COMPONENT_KEY]: version })
   record(fx.root)
   fx.commit(`chore: release component ${version}`)
   fx.tag(`component/v${version}`)
@@ -56,7 +58,7 @@ describe('verifyPublications', () => {
   test('a tag with no ledger entry fails', () => {
     const fx = fixture()
     fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1'))
-    fx.setManifest({ 'specifications/component/v1': '1.0.0' })
+    fx.setManifest({ [COMPONENT_KEY]: '1.0.0' })
     fx.commit('chore: release without recording')
     fx.tag('component/v1.0.0')
 
@@ -82,7 +84,7 @@ describe('verifyPublications', () => {
   test('a pending release — entry, no tag, manifest agrees — passes', () => {
     const fx = fixture()
     fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1'))
-    fx.setManifest({ 'specifications/component/v1': '1.0.0' })
+    fx.setManifest({ [COMPONENT_KEY]: '1.0.0' })
     record(fx.root)
     fx.commit('chore(main): release component 1.0.0')
     // No tag: this is the state of the release pull request before merge.
@@ -93,9 +95,9 @@ describe('verifyPublications', () => {
   test('a pending entry whose manifest disagrees fails', () => {
     const fx = fixture()
     fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1'))
-    fx.setManifest({ 'specifications/component/v1': '1.0.0' })
+    fx.setManifest({ [COMPONENT_KEY]: '1.0.0' })
     record(fx.root)
-    fx.setManifest({ 'specifications/component/v1': '1.2.0' })
+    fx.setManifest({ [COMPONENT_KEY]: '1.2.0' })
     fx.commit('chore: manifest moved out from under the entry')
 
     const found = problems(fx.root)
@@ -106,7 +108,7 @@ describe('verifyPublications', () => {
   test('a pending entry whose working-tree bytes changed fails', () => {
     const fx = fixture()
     fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1'))
-    fx.setManifest({ 'specifications/component/v1': '1.0.0' })
+    fx.setManifest({ [COMPONENT_KEY]: '1.0.0' })
     record(fx.root)
     fx.writeBundle('component', 'v1', fx.bundleDoc('component', 'v1', { description: 'changed' }))
     fx.commit('feat(component): edited after recording')

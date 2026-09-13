@@ -22,10 +22,10 @@ import { readBlobAtRef } from '../lib/git.ts'
 import {
   discoverFamilies,
   type Family,
+  familyPaths,
   isObject,
   type Json,
   REPO_ROOT,
-  relativeToRepo,
 } from '../lib/layout.ts'
 
 /** Constraints worth naming when they change. Anything else is wording. */
@@ -265,8 +265,7 @@ function section(title: string, changes: Change[]): string[] {
 }
 
 function reportFamily(family: Family, base: string): { lines: string[]; narrowing: number } {
-  const bundleRel = relativeToRepo(family.bundlePath)
-  const specRel = relativeToRepo(family.specPath)
+  const { bundle: bundleRel, spec: specRel } = familyPaths(family.name, family.major)
 
   const beforeBundle = readBlobAtRef(REPO_ROOT, base, bundleRel)
   const beforeSpec = readBlobAtRef(REPO_ROOT, base, specRel)

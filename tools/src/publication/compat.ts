@@ -19,7 +19,7 @@
  * NON-NORMATIVE, like everything under tools/.
  */
 
-import { listTreeFiles, readBlobAtRef } from '../lib/git.ts'
+import { readBlobAtRef } from '../lib/git.ts'
 import {
   discoverFamilies,
   Failures,
@@ -27,6 +27,7 @@ import {
   isObject,
   type Json,
   REPO_ROOT,
+  releasedPartFiles,
 } from '../lib/layout.ts'
 import { parseDocument } from '../validation/document.ts'
 import { compileFamily } from '../validation/validator.ts'
@@ -41,19 +42,33 @@ interface Subject {
 /**
  * Documents a release asserted were valid: its examples, and every conformance
  * case it declared `expected: "pass"`.
+ *
+ * Both are required at the tag. Reading an empty set there would replay nothing
+ * and report the release as not having regressed, which is the one answer this
+ * gate must never give by accident.
  */
 function subjectsAt(repoRoot: string, family: Family, release: Release): Subject[] {
   const subjects: Subject[] = []
-  const base = `specifications/${family.name}/${release.major}`
 
-  for (const path of listTreeFiles(repoRoot, release.tag, `${base}/examples`)) {
+  for (const path of releasedPartFiles(
+    repoRoot,
+    release.tag,
+    family.name,
+    release.major,
+    'examples',
+  )) {
     if (!path.endsWith('.yaml') && !path.endsWith('.yml')) continue
     const blob = readBlobAtRef(repoRoot, release.tag, path)
     if (blob !== null) subjects.push({ path, source: blob.toString('utf8') })
   }
 
-  const conformance = `conformance/${family.name}/${release.major}`
-  for (const path of listTreeFiles(repoRoot, release.tag, conformance)) {
+  for (const path of releasedPartFiles(
+    repoRoot,
+    release.tag,
+    family.name,
+    release.major,
+    'conformance',
+  )) {
     if (!path.endsWith('/metadata.json')) continue
     const blob = readBlobAtRef(repoRoot, release.tag, path)
     if (blob === null) continue

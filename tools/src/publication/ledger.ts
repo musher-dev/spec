@@ -16,7 +16,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { git } from '../lib/git.ts'
-import { Failures, isObject, REPO_ROOT, readJson } from '../lib/layout.ts'
+import { Failures, isObject, parseManifestKey, REPO_ROOT, readJson } from '../lib/layout.ts'
 import {
   defaultBundlePath,
   discoverReleases,
@@ -64,10 +64,9 @@ export function record(repoRoot: string): { added: string[]; changed: boolean } 
 
   for (const [key, version] of Object.entries(manifest)) {
     if (typeof version !== 'string' || version === '0.0.0') continue
-    const parts = key.split('/')
-    const family = parts[1]
-    const major = parts[2]
-    if (family === undefined || major === undefined) continue
+    const parsed = parseManifestKey(key)
+    if (parsed === null) continue
+    const { name: family, major } = parsed
 
     const tag = `${family}/v${version}`
     if (releases[tag] !== undefined) continue

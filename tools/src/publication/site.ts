@@ -26,15 +26,21 @@
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
-import { isShallow, listTreeFiles, readBlobAtRef } from '../lib/git.ts'
+import { isShallow, readBlobAtRef } from '../lib/git.ts'
 import {
+  CATALOG_FILE,
   canonicalJson,
   discoverFamilies,
+  familyPaths,
   type Json,
+  parseSpecPath,
   REPO_ROOT,
   REPO_URL,
   relativeToRepo,
+  releasedPartFiles,
+  releasedSpec,
   SITE_DIR,
+  SPECIFICATIONS_ROOT,
 } from '../lib/layout.ts'
 import { escapeHtml, link, page } from '../render/html.ts'
 import { type ProseContext, readOutline, renderProse } from '../render/prose.ts'
@@ -275,7 +281,7 @@ export function assembleSite(options: SiteOptions): SiteResult {
   ]) {
     if (name === RESERVED_PATH) {
       throw new Error(
-        `specifications/${RESERVED_PATH}/ would publish under /${RESERVED_PATH}/, which the ` +
+        `${SPECIFICATIONS_ROOT}/${RESERVED_PATH}/ would publish under /${RESERVED_PATH}/, which the ` +
           'generated reference already owns. A family cannot be named after a reserved ' +
           'top-level path. See docs/adr/0017.',
       )
@@ -303,7 +309,11 @@ export function assembleSite(options: SiteOptions): SiteResult {
   const references: ReferenceTarget[] = []
   let pinned = 0
 
-  /** `spec.md` as it stood at a ref, or null where that ref carries none. */
+  /**
+   * `spec.md` as it stood at a ref. On `main`, null where the working tree
+   * carries none. Every other ref is a released tag, where a missing file means
+   * the layout moved and throws rather than publishing a page with no prose.
+   */
   const specAt = (family: string, major: string, ref: string): string | null => {
     if (ref === 'main') {
       const local = discoverFamilies(repoRoot).find((f) => f.name === family && f.major === major)
@@ -311,7 +321,7 @@ export function assembleSite(options: SiteOptions): SiteResult {
         ? readFileSync(local.specPath, 'utf8')
         : null
     }
-    const blob = readBlobAtRef(repoRoot, ref, `specifications/${family}/${major}/spec.md`)
+    const blob = releasedSpec(repoRoot, ref, family, major)
     return blob === null ? null : blob.toString('utf8')
   }
 
@@ -334,8 +344,8 @@ export function assembleSite(options: SiteOptions): SiteResult {
         .sort()
         .map((name) => ({ name, body: readFileSync(join(local.examplesDir, name), 'utf8') }))
     }
-    const dir = `specifications/${family}/${major}/examples`
-    return listTreeFiles(repoRoot, ref, dir)
+    const dir = familyPaths(family, major).examples
+    return releasedPartFiles(repoRoot, ref, family, major, 'examples')
       .filter(isExample)
       .sort()
       .map((path) => {
@@ -466,9 +476,9 @@ export function assembleSite(options: SiteOptions): SiteResult {
 
   // Deliberately tag-independent: `catalog.json` is committed and CI checks it
   // is current on checkouts that may carry no tags at all.
-  emit('catalog.json', canonicalJson(buildCatalog(repoRoot)))
-  cacheRules.push({ source: '/catalog.json', headers: [REVALIDATE] })
-  console.log('  ✓ /catalog.json')
+  emit(CATALOG_FILE, canonicalJson(buildCatalog(repoRoot)))
+  cacheRules.push({ source: `/${CATALOG_FILE}`, headers: [REVALIDATE] })
+  console.log(`  ✓ /${CATALOG_FILE}`)
 
   // ---------------------------------------------------------------------------
   // The human entry point. Generated rather than committed for the reason
@@ -608,7 +618,8 @@ function linkResolver(
   target: ReferenceTarget,
   rendered: readonly ReferenceTarget[],
 ): (href: string) => string {
-  const from = `specifications/${target.family}/${target.major}`
+  const paths = familyPaths(target.family, target.major)
+  const from = paths.dir
   return (href: string): string => {
     if (href.startsWith('#') || /^[a-z][a-z0-9+.-]*:/i.test(href)) return href
 
@@ -617,14 +628,14 @@ function linkResolver(
     const suffix = fragment === undefined ? '' : `#${fragment}`
     if (resolved === null) {
       throw new Error(
-        `${from}/spec.md: link target ${href} escapes the repository and cannot be rewritten. ` +
+        `${paths.spec}: link target ${href} escapes the repository and cannot be rewritten. ` +
           'Add a case to linkResolver rather than publishing a link that goes nowhere.',
       )
     }
 
-    const sibling = /^specifications\/([a-z0-9-]+)\/(v\d+)\/spec\.md$/.exec(resolved)
+    const sibling = parseSpecPath(resolved)
     if (sibling !== null) {
-      const [, family = '', major = ''] = sibling
+      const { name: family, major } = sibling
       // The same version shape the reader is on: an exact release cites the
       // prose of its own moment, an alias cites the moving one.
       const peer =
@@ -719,7 +730,7 @@ function renderReferenceIndex(rendered: readonly ReferenceTarget[]): string {
 
 /** A `spec.md` on GitHub, at the ref the reader is actually looking at. */
 function proseUrl(family: string, major: string, ref: string): string {
-  return `${REPO_URL}/blob/${ref}/specifications/${family}/${major}/spec.md`
+  return `${REPO_URL}/blob/${ref}/${familyPaths(family, major).spec}`
 }
 
 function renderIndex(
