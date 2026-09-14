@@ -23,7 +23,7 @@
     "yaml": "2.9.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.12",
+    "@biomejs/biome": "2.5.13",
     "@sourcemeta/jsonschema": "^16.10.0",
     "@types/bun": "1.4.2",
     "@types/commonmark": "0.27.10",
