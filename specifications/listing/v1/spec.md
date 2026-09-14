@@ -14,7 +14,7 @@ appear in all capitals, as shown here.
 > **What is normative.** This document, together with the
 > [Musher Document Core Specification](../../core/v1/spec.md) it applies,
 > defines the complete behaviour of the specification. The JSON Schema bundle is its executable form for structural
-> validity, and the [conformance corpus](../../../conformance/README.md) is its
+> validity, and the [conformance corpus](../../../docs/conformance.md) is its
 > executable form for observable outcomes; both are normative, and neither is
 > permitted to disagree with this document or with the other. Schema
 > `description` fields, examples, generated documentation, and validator message
@@ -271,7 +271,7 @@ the same way: a publisher whose item fits nothing reaches for a new term, and no
 individual term is the one that does the damage. Adding a term is a minor
 release and removing one is a new major, so growth is cheap in every single case
 and irreversible in aggregate. The rule that governs it is editorial and lives
-in [GOVERNANCE.md](../../../GOVERNANCE.md) → *Changing a controlled vocabulary*,
+in [docs/governance.md](../../../docs/governance.md) → *Changing a controlled vocabulary*,
 because it is a process rule and that is where process rules live.
 
 **`lifecycleStage` is a closed progression**, and does not share that rule.
@@ -283,7 +283,7 @@ storefront sorts and filters on it, and a consumer that had to infer it from the
 names would be inventing contract.
 
 A new stage therefore changes what the storefront *means* rather than how it
-sorts, and GOVERNANCE.md gates one on an accepted ADR instead of the category
+sorts, and docs/governance.md gates one on an accepted ADR instead of the category
 admission test.
 
 **Neither field's terms are restated here.** The schema is where they live, and
@@ -443,7 +443,7 @@ behaviour: the permitted Markdown subset for `description`, now
 [§4.1](#description-markdown) and
 [ADR 0004](../../../docs/adr/0004-listing-description-trust-boundary.md); and
 the rule for admitting a `category` or `lifecycleStage` term, now
-[§4.2](#vocabularies) and GOVERNANCE.md.
+[§4.2](#vocabularies) and docs/governance.md.
 
 What remains is a gap rather than a silence, and each is recorded where it
 applies: media dimensions and file size are unbounded ([§5](#media)), a

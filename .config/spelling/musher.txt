@@ -52,6 +52,7 @@ nojekyll
 nosniff
 pycache
 quot
+rcfile
 subschema
 subschemas
 Taskfile
@@ -59,3 +60,4 @@ taskfiles
 unindexed
 unioned
 vendored
+worktrees

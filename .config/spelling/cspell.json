@@ -31,6 +31,9 @@
     "site/**",
     "tools/bun.lock",
     "dist/**",
+    ".git/**",
+    // Nested checkouts of this repository, not its prose.
+    ".claude/worktrees/**",
     // The dictionary itself, and a licence whose wording is not ours to edit.
     ".config/spelling/**",
     "LICENSE",

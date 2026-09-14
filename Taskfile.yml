@@ -99,7 +99,7 @@ tasks:
       - >-
         tools/node_modules/.bin/markdownlint-cli2 --fix
         --config .config/markdown/markdownlint.jsonc
-        "**/*.md" "#tools/node_modules" "#site" "#.github/pull_request_template.md"
+        "**/*.md" "#tools/node_modules" "#site" "#.claude/worktrees" "#.github/pull_request_template.md"
         "#specifications/*/v*/CHANGELOG.md"
 
   # ===========================================================================

@@ -20,13 +20,13 @@ below.
    SDK, so propose accordingly.
 2. **No behavioural change without conformance cases** that fail before the
    change and pass after it. [Which cases a change needs](#which-cases) says
-   which, and [conformance/README.md](../conformance/README.md) defines the
+   which, and [docs/conformance.md](../docs/conformance.md) defines the
    format.
 3. **Edit sources, never build output.** Bundles and the catalog are built, and
    nothing under `dist/` is committed.
 4. **Validation never becomes stricter within a major version.** The rule, and
    the one pre-publication exception, are in
-   [GOVERNANCE.md → Compatibility review](../GOVERNANCE.md#compatibility-review).
+   [Governance → Compatibility review](../docs/governance.md#compatibility-review).
 5. **Shared rules live in core.** A family cites the
    [core specification](../specifications/core/v1/spec.md). It does not restate
    core's rules. What core is, and why it has no schema, is in
@@ -96,7 +96,7 @@ correction needs the case that was wrong, fixed.
 A case is a `case.yaml` when the rule is decided by reading one document. It is a
 `tree/` when the rule is decided by reading the item the document sits in, such
 as a slug checked against its directory or a reference checked against a file.
-See [conformance/README.md](../conformance/README.md#case-trees).
+See [docs/conformance.md](../docs/conformance.md#case-trees).
 
 A case lives inside the family version it tests, at
 `specifications/<family>/v<N>/conformance/`. A commit that adds or corrects a
@@ -118,7 +118,7 @@ to approve such a pull request.
 That is a deliberate trade, not an oversight. It puts the weight on the checks,
 which is where it belongs for a repository whose contract can be verified by
 machine. [ADR 0015](../docs/adr/0015-selective-code-owner-review.md) explains
-it, and GOVERNANCE.md still asks for a maintainer's eyes on a change of
+it, and docs/governance.md still asks for a maintainer's eyes on a change of
 consequence even where nothing blocks the merge.
 
 `task check` runs every step CI runs except the
@@ -144,7 +144,7 @@ Scopes: `core`, `component`, `blueprint`, `listing`, `conformance`, `tools`,
 
 Use the family's own scope, such as `component`, for a change under
 `specifications/<family>/`, conformance cases included. `conformance` is for
-`conformance/README.md`, the fixture format, alone.
+`docs/conformance.md`, the fixture format, alone.
 
 `deps` and `deps-dev` are Dependabot's: a dependency update arrives as
 `build(deps):`, `build(deps-dev):`, or `ci(deps):`. See
@@ -228,7 +228,7 @@ matched on name alone. See
 ## Proposing a structural change
 
 Changes to the repository architecture, the release model, core, or the family
-taxonomy need an ADR. [GOVERNANCE.md](../GOVERNANCE.md#decision-process) lists
+taxonomy need an ADR. [docs/governance.md](../docs/governance.md#decision-process) lists
 what counts as structural. [docs/adr/README.md](../docs/adr/README.md) covers
 the format and how to add an ADR. Open the ADR as a pull request on its own,
 and get it accepted before writing the implementation.

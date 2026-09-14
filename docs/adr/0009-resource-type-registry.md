@@ -31,7 +31,7 @@ refused on taste. Protocols, vendors, resource classes, and wire formats are all
 plausible members of a list whose only stated criterion is "backing service the
 value addresses".
 
-**It only grows.** [GOVERNANCE.md](../../GOVERNANCE.md) §Changing a controlled
+**It only grows.** [GOVERNANCE.md](../governance.md) §Changing a controlled
 vocabulary is explicit about the asymmetry — adding a term is a minor release,
 removing one is a new major — and names it "the whole problem". Seven members is
 a vocabulary; forty is a list, and there is no mechanism that stops the second

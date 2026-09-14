@@ -43,7 +43,7 @@ the corpus, miss one spelling in `compat.ts`, and the compatibility gate stays
 green at every future tag while checking nothing.
 
 Two governance rules also collide once anything moves.
-[GOVERNANCE.md](../../GOVERNANCE.md#decision-process) says ADRs are "immutable
+[GOVERNANCE.md](../governance.md#decision-process) says ADRs are "immutable
 once accepted — supersede, never rewrite", and `task check:links` fails the build
 on any relative link or anchor that does not resolve, ADRs included. The core
 specification ([ADR 0022](0022-the-musher-document-core-specification.md)) moves
@@ -149,7 +149,7 @@ By convention, the commit making such a change says so in its subject.
 `check:adr` does not read commit subjects; what it enforces is only that the diff
 is link-target-only.
 
-This refines [GOVERNANCE.md](../../GOVERNANCE.md#decision-process), which gains a
+This refines [GOVERNANCE.md](../governance.md#decision-process), which gains a
 sentence pointing here, without relaxing it. What an ADR decided, and the words
 it decided it in, are as fixed as before. A citation reading "component §6.1"
 keeps saying so after the clause moves to core, because that is where the rule

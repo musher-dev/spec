@@ -172,7 +172,7 @@ tasks:
       - >-
         tools/node_modules/.bin/markdownlint-cli2
         --config .config/markdown/markdownlint.jsonc
-        "**/*.md" "#tools/node_modules" "#site" "#.github/pull_request_template.md"
+        "**/*.md" "#tools/node_modules" "#site" "#.claude/worktrees" "#.github/pull_request_template.md"
         "#specifications/*/v*/CHANGELOG.md"
 
   spelling:
@@ -180,7 +180,7 @@ tasks:
     dir: '{{.ROOT_DIR}}'
     cmds:
       - >-
-        tools/node_modules/.bin/cspell --no-progress --no-summary --unique
+        tools/node_modules/.bin/cspell --dot --no-progress --no-summary --unique
         --config .config/spelling/cspell.json "**/*.md" "tools/src/**/*.ts" "**/*.schema.json"
 
   shell:

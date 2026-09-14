@@ -532,7 +532,7 @@ function schemeIsPermitted(destination: string): boolean {
  * Listing §4.1 — the three rules the description profile carries. Every
  * diagnostic anchors at `/spec/description`: the field is one scalar, so there
  * is no finer pointer to give, and the offending destination rides in the
- * message instead. Message text is not normative (conformance/README.md).
+ * message instead. Message text is not normative (docs/conformance.md).
  */
 function checkDescriptionMarkdown(document: Json, out: Diagnostic[]): void {
   const ast = descriptionAst(document)

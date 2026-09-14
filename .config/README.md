@@ -6,7 +6,7 @@ container, it goes in here.
 
 Policy and rationale:
 [`docs/adr/0011-tooling-configuration-layout.md`](../docs/adr/0011-tooling-configuration-layout.md).
-Enforcement: `task check:config` (CFG-01..CFG-08), implemented in
+Enforcement: `task check:config` (CFG-01..CFG-08, and CFG-09 for the repository root), implemented in
 [`tools/src/policy/config.ts`](../tools/src/policy/config.ts).
 
 The convention is shared with `musher-dev/development-container` and
@@ -57,7 +57,7 @@ which is not pinned and can differ from the container's.
 6. **Configuration only.** No executables. A build asset belongs beside what
    builds it; a repo-level runner belongs in `tools/src/`.
 
-Adding a config? Verify the flag is live: point the tool at a nonexistent path
+Adding a config? Verify the flag is live: point the tool at a path that does not exist
 and confirm it fails. A silently-ignored `--config` is the failure mode this
 whole directory exists to prevent, and it is one command to rule out.
 
@@ -67,7 +67,7 @@ whole directory exists to prevent, and it is one command to rule out.
 | --- | --- | --- |
 | `Taskfile.yml` | Repo root | Task only discovers `Taskfile.*` at the root; `--taskfile` would break bare `task <name>` |
 | `.gitignore`, `.gitattributes` | Repo root | Git reads these from the root only |
-| `.editorconfig` | Repo root | EditorConfig walks up from the file being edited; no config-path flag exists. It is the *single* source for whitespace, line endings and encoding — `devcontainer.json` deliberately does not restate them |
+| `.claude/CLAUDE.md` | `.claude/` | Claude Code reads project instructions there. An agent brief, not tool configuration; editor whitespace lives in `devcontainer.json` (docs/adr/0024) |
 | `LICENSE`, `NOTICE` | Repo root | GitHub detects a licence at the root only, and Apache-2.0 expects NOTICE to travel with the work |
 | `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md` | `.github/` | Community health files, which GitHub resolves from there |
 | `biome.json`, `tsconfig.json` | `tools/` | They belong to the `tools/` package and are resolved by it — a package's own config, not a repo-level one |

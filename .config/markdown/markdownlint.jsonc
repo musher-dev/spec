@@ -30,7 +30,7 @@
   "MD024": { "siblings_only": true },
 
   // A bold lead-in opening a paragraph -- "**Positive.** ..." in every ADR,
-  // "**In scope**" in GOVERNANCE -- is this repository's house style, and it is
+  // "**In scope**" in docs/governance.md -- is this repository's house style, and it is
   // a lead-in rather than a heading: the text continues on the same line and
   // the sections it sits inside already have real headings.
   "MD036": false,

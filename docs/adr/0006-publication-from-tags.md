@@ -8,7 +8,7 @@
 
 [README](../../README.md) tells automation that
 `https://schemas.musher.dev/component/v1.2.0/component.schema.json` is
-"Immutable forever", and [GOVERNANCE](../../GOVERNANCE.md) says a flawed release
+"Immutable forever", and [GOVERNANCE](../governance.md) says a flawed release
 is "superseded, never overwritten". The publication pipeline could not keep
 either promise.
 

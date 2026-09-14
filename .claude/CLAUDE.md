@@ -22,7 +22,7 @@ The CLI, the platform API and every SDK implement what is defined here.
 4. **Shared rules live in core.** A family cites `CORE-*` requirements and core
    clauses. It never restates an envelope, YAML-profile, validation-phase or
    shared-diagnostic rule. What core is:
-   [How the families relate](specifications/README.md#how-the-families-relate).
+   [How the families relate](../specifications/README.md#how-the-families-relate).
    See docs/adr/0022.
 5. **Validation never becomes stricter inside a major version.** A breaking
    change needs a new `v<N>` directory, *except* inside ADR 0005 §1's
@@ -31,7 +31,7 @@ The CLI, the platform API and every SDK implement what is defined here.
    `git tag -l '<family>/*'` decides which case applies, and `task check:compat`
    guards every released version.
 6. **Released bytes never change.** `published.json`, the
-   [ledger](docs/publication.md#the-ledger) (version 2), is append-only. The
+   [ledger](../docs/publication.md#the-ledger) (version 2), is append-only. The
    release pull request writes it through `task release:record`. That nobody
    edits it by hand is a convention, not a check, but `task check:published`
    fails a pending entry that differs from a fresh derivation, and
@@ -40,15 +40,16 @@ The CLI, the platform API and every SDK implement what is defined here.
    release assets, never `main` (`task check:published`, `task site:fetch`).
    See docs/adr/0006 and docs/adr/0023.
 7. **Data artifacts only.** No executables and no generated language bindings.
-   See GOVERNANCE.md → Binary policy.
+   See docs/governance.md → Binary policy.
 8. **Paths come from `tools/src/lib/layout.ts`.** No other tool spells a
    repository path, and a guard test in `tools/src/lib/layout.test.ts` fails if
    one does. A tool reading a released ref fails, rather than returning nothing,
    when a path the layout names is absent. See docs/adr/0021 §3.
 9. **Tool configuration lives in `.config/<concern>/`, passed by path.** Never
    add a config to the repo root when the tool accepts a config flag, and never
-   rely on default discovery. `task check:config` enforces this (CFG-01..CFG-08).
-   See docs/adr/0011.
+   rely on default discovery. `task check:config` enforces this (CFG-01..CFG-08),
+   and CFG-09 holds the repository root to `ROOT_ENTRIES` in
+   `tools/src/lib/layout.ts`. See docs/adr/0011 and docs/adr/0024.
 10. **Review is a code-owner gate, not a blanket approval.** A pull request
     touching no path in `.github/CODEOWNERS` merges on green CI. The two halves
     are `required_approving_review_count: 0` plus
@@ -69,26 +70,26 @@ The CLI, the platform API and every SDK implement what is defined here.
     squash-merges under the pull request title, so a pull request carrying more
     than one type of change lists them in a `BEGIN_COMMIT_OVERRIDE` block, with
     one exception for `specifications/core/`:
-    [CONTRIBUTING → Squash merges and overrides](.github/CONTRIBUTING.md#squash-merges-and-overrides).
+    [CONTRIBUTING → Squash merges and overrides](../.github/CONTRIBUTING.md#squash-merges-and-overrides).
 
 `spec.md` states the definitive rule. Schema `description` text, examples and
 the generated `/reference/` pages are informative; see
-[What is normative](specifications/README.md#what-is-normative).
+[What is normative](../specifications/README.md#what-is-normative).
 
 ## Where things are
 
-- [Anatomy of a family version](specifications/README.md#anatomy): what
+- [Anatomy of a family version](../specifications/README.md#anatomy): what
   `specifications/<family>/v<N>/` holds
-- [Repository conventions](docs/conventions.md): naming for directories,
+- [Repository conventions](../docs/conventions.md): naming for directories,
   modules, `$id`s and case IDs. Field and value naming is
-  [ADR 0007](docs/adr/0007-naming-conventions.md)
-- [Contributing](.github/CONTRIBUTING.md): making a change, commit types, sign-off
-- [Tools](tools/README.md): what each `task check` step enforces
-- [Publication](docs/publication.md): releases, the ledger, the core gate and
+  [ADR 0007](../docs/adr/0007-naming-conventions.md)
+- [Contributing](../.github/CONTRIBUTING.md): making a change, commit types, sign-off
+- [Tools](../tools/README.md): what each `task check` step enforces
+- [Publication](../docs/publication.md): releases, the ledger, the core gate and
   cache policy
-- [Fixture format](conformance/README.md), shared by every corpus
-- [Governance](GOVERNANCE.md): compatibility, release and binary policy
-- [Decision records](docs/adr/README.md)
+- [Fixture format](../docs/conformance.md), shared by every corpus
+- [Governance](../docs/governance.md): compatibility, release and binary policy
+- [Decision records](../docs/adr/README.md)
 
 ## Commits
 
@@ -99,4 +100,4 @@ git commit -s -m "feat(component): add restartPolicy"
 ```
 
 Types, scopes, and how a commit reaches a release are covered in
-[CONTRIBUTING → Commit messages](.github/CONTRIBUTING.md#commit-messages).
+[CONTRIBUTING → Commit messages](../.github/CONTRIBUTING.md#commit-messages).

@@ -16,7 +16,7 @@
  *
  * A kind family stages `<family>.schema.json` and `<family>-v<X.Y.Z>.tar.gz`.
  * The archive's root `<family>-v<major>/` holds the bundle, `spec.md`,
- * `examples/`, `conformance/` with the fixture contract `conformance/README.md`,
+ * `examples/`, `conformance/` with the fixture format as `conformance/README.md`,
  * `core/spec.md` and `core/conformance/` read from `core/v<requires.core>` —
  * not from the family tag, which may differ by non-releasable core commits —
  * `LICENSE`, `NOTICE`, and `release.json`. Core stages only its archive.
@@ -44,7 +44,8 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { listTreeFiles, readBlobAtRef, tagCommit, tagExists, treeId } from '../lib/git.ts'
 import {
-  CONFORMANCE_README,
+  CONFORMANCE_FORMAT_ARCHIVE_PATH,
+  CONFORMANCE_FORMAT_FILE,
   CORE_FAMILY,
   canonicalJson,
   Failures,
@@ -295,7 +296,12 @@ export function stageRelease(
 
     requireFile(repoRoot, tag, dir.spec, join(root, 'spec.md'))
     requireTree(repoRoot, tag, dir.conformance, join(root, 'conformance'))
-    requireFile(repoRoot, tag, CONFORMANCE_README, join(root, ...CONFORMANCE_README.split('/')))
+    requireFile(
+      repoRoot,
+      tag,
+      CONFORMANCE_FORMAT_FILE,
+      join(root, ...CONFORMANCE_FORMAT_ARCHIVE_PATH.split('/')),
+    )
     requireFile(repoRoot, tag, LICENSE_FILE, join(root, LICENSE_FILE))
     requireFile(repoRoot, tag, NOTICE_FILE, join(root, NOTICE_FILE))
 

@@ -117,9 +117,6 @@
   "customizations": {
     "vscode": {
       "extensions": [
-        // VS Code does not read .editorconfig on its own, and .editorconfig is
-        // this repository's single source for whitespace and line endings.
-        "editorconfig.editorconfig",
         "redhat.vscode-yaml",
         "biomejs.biome",
         "timonwong.shellcheck",
@@ -132,11 +129,22 @@
         "editor.formatOnSave": true,
         "editor.rulers": [80, 100],
 
-        // Whitespace, line endings and encoding are NOT set here. .editorconfig
-        // states them once, for every editor, and the EditorConfig extension
-        // above applies them inside the container. Restating them made VS Code
-        // trim trailing whitespace from Markdown, where two trailing spaces are
-        // a hard line break and .editorconfig deliberately preserves them.
+        // Whitespace, line endings and encoding. This block is the only place
+        // editor intent is stated; there is deliberately no .editorconfig, since
+        // a second statement of the same rules drifts (docs/adr/0024 §2).
+        // Outside the container, .gitattributes enforces LF in git and
+        // markdownlint enforces trailing spaces and final newlines in prose.
+        "editor.tabSize": 2,
+        "editor.insertSpaces": true,
+        // A file's existing indentation must not override the rule above.
+        "editor.detectIndentation": false,
+        "files.eol": "\n",
+        "files.encoding": "utf8",
+        "files.trimTrailingWhitespace": true,
+        "files.insertFinalNewline": true,
+        // Two trailing spaces are a hard line break in Markdown, so trimming
+        // them would silently change how the prose renders.
+        "[markdown]": { "files.trimTrailingWhitespace": false },
 
         "terminal.integrated.defaultProfile.linux": "zsh",
         "terminal.integrated.profiles.linux": {

@@ -47,7 +47,7 @@ merges.
 | Task | What it enforces | Script | Rule IDs |
 |---|---|---|---|
 | `check:format` | Biome formatting and lint of `tools/` | `biome ci .` | — |
-| `check:config` | The `.config/` layout: every file indexed, reachable, and passed by path | `src/policy/config.ts` | CFG-01..CFG-08 |
+| `check:config` | The `.config/` layout: every file indexed, reachable, and passed by path; and the repository root holds only `ROOT_ENTRIES` | `src/policy/config.ts` | CFG-01..CFG-09 |
 | `check:rulesets` | The two halves of the review gate agree, and no required status check can hang a pull request | `src/policy/rulesets.ts` | RUL-01..RUL-09 |
 | `check:types` | TypeScript typecheck of `tools/` | `tsc --noEmit` | — |
 | `check:schema` | Every source module is valid JSON Schema 2020-12, `$id`s are unique and canonical, no `$ref` is remote, and repository naming holds | `src/schema/lint.ts` | — |

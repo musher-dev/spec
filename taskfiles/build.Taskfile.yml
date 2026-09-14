@@ -67,7 +67,7 @@ tasks:
     # The lockfile-pinned binary rather than `bunx wrangler`. This is the one
     # tool here that holds a credential, so the version that receives it is
     # decided by a reviewed lockfile change, not by whatever `latest` resolves
-    # to at deploy time. See GOVERNANCE.md -> Tooling dependencies.
+    # to at deploy time. See docs/governance.md -> Tooling dependencies.
     dir: '{{.ROOT_DIR}}'
     vars:
       # The Pages project keeps its old name until infrastructure renames it.

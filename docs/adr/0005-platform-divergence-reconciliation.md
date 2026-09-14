@@ -42,7 +42,7 @@ moment rather than later.
 `git tag -l` is empty, `.github/release-please/manifest.json` reads `0.0.0` for all
 three families, and the three `1.0.0` release pull requests are still open. Two of
 the four decisions below reject documents that validate today, which
-[GOVERNANCE.md § Compatibility review](../../GOVERNANCE.md) makes a breaking change
+[GOVERNANCE.md § Compatibility review](../governance.md) makes a breaking change
 requiring a new `v<N>` directory and a migration note.
 
 ## Decision

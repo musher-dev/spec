@@ -26,17 +26,17 @@ contracts** and nothing else.
 
 **Maintainers** review and merge changes, cut releases, and arbitrate
 specification disputes. Current maintainers are listed in
-[`.github/CODEOWNERS`](.github/CODEOWNERS).
+[`.github/CODEOWNERS`](../.github/CODEOWNERS).
 
 **Contributors** are anyone opening an issue or pull request. No agreement
-beyond the [DCO](.github/CONTRIBUTING.md#sign-your-work) is required.
+beyond the [DCO](../.github/CONTRIBUTING.md#sign-your-work) is required.
 
 ## Decision process
 
 Ordinary changes — a new optional field, a corrected description, an additional
 conformance fixture — need green CI. Green CI is the whole of the mechanical
 gate: review is required only on the paths listed in
-[`.github/CODEOWNERS`](.github/CODEOWNERS), which are the review gate's own two
+[`.github/CODEOWNERS`](../.github/CODEOWNERS), which are the review gate's own two
 configuration files and nothing else.
 
 Maintainer approval is still expected on a change of consequence, and this
@@ -44,7 +44,7 @@ document still requires it where it says so below. What changed is that it is
 requested rather than enforced. A blanket approval requirement was tried and
 measured: with one maintainer it blocked every pull request that maintainer opened,
 and was merged past with an administrator bypass every time, which enforced nothing and
-taught the bypass. [ADR 0015](docs/adr/0015-selective-code-owner-review.md)
+taught the bypass. [ADR 0015](adr/0015-selective-code-owner-review.md)
 records the reasoning and what it costs.
 
 Structural changes need an accepted ADR first. That covers:
@@ -54,13 +54,13 @@ Structural changes need an accepted ADR first. That covers:
 - Any change requiring a new major version
 - Changing the conformance fixture contract
 - Changing core — admitting a rule to the
-  [core specification](specifications/core/v1/spec.md), moving one out of it, or
+  [core specification](../specifications/core/v1/spec.md), moving one out of it, or
   changing what a family takes from it
 
-ADRs live in [`docs/adr/`](docs/adr/README.md), are numbered sequentially, and are
+ADRs live in [`docs/adr/`](adr/README.md), are numbered sequentially, and are
 immutable once accepted — supersede, never rewrite. The one edit an accepted ADR
 admits is retargeting a relative link whose target moved, as
-[ADR 0021 §4](docs/adr/0021-repository-organized-around-the-family-version.md)
+[ADR 0021 §4](adr/0021-repository-organized-around-the-family-version.md)
 sets out. `task check:adr` compares each accepted ADR with only its relative
 link targets blanked, and absolute URLs compared verbatim, so it fails any other
 edit. It cannot tell whether a retargeted link's target really moved; confirming
@@ -81,13 +81,13 @@ conformance corpus, is deliberately unowned, so a breaking change is not blocked
 awaiting a review. What *is* enforced on every pull request is the machinery
 that detects the breakage — `check:compat`, `check:published`, and the
 conformance suite, all required. See
-[ADR 0015 §4](docs/adr/0015-selective-code-owner-review.md).
+[ADR 0015 §4](adr/0015-selective-code-owner-review.md).
 
 Adding a required field, narrowing an enum, tightening a pattern, and removing
 a field are all breaking. Adding an optional field is not.
 
 One narrow exception applies before a family's first release.
-[ADR 0005](docs/adr/0005-platform-divergence-reconciliation.md) §1 sets it out:
+[ADR 0005](adr/0005-platform-divergence-reconciliation.md) §1 sets it out:
 while a family has no published version, requirements 2 and 3 do not apply,
 because the compatibility guarantee is stated against a released version and
 there is none to run from. Requirement 1 still applies, as does declaring the
@@ -97,7 +97,7 @@ is created.
 ## Changing a controlled vocabulary
 
 A field whose value comes from a closed `enum` is a controlled vocabulary this
-repository decides — [ADR 0003](docs/adr/0003-controlled-vocabulary-placement.md)
+repository decides — [ADR 0003](adr/0003-controlled-vocabulary-placement.md)
 §1 calls it placement one. Adding a term is a minor release; removing one is
 breaking, and therefore a new major.
 
@@ -151,13 +151,13 @@ Releases are automated, one release line per family version, core included.
 Merging a Conventional Commit to `main` makes release-please, running as the
 release GitHub App, open a release PR. The App's permissions and credentials are
 listed in
-[Publication → Prerequisites](docs/publication.md#prerequisites-before-the-first-tag).
+[Publication → Prerequisites](publication.md#prerequisites-before-the-first-tag).
 That PR records the pending version in the
-[ledger](docs/publication.md#the-ledger), [`published.json`](published.json),
+[ledger](publication.md#the-ledger), [`published.json`](../published.json),
 and merging it tags `<family>/v<MAJOR>.<MINOR>.<PATCH>`. The schema and a release archive
 are then attached, with SLSA provenance, to a GitHub Release published as
 immutable, and `https://specifications.musher.dev/` is deployed from the
-verified assets. [docs/publication.md](docs/publication.md) describes every step,
+verified assets. [docs/publication.md](publication.md) describes every step,
 the ledger, the core gate, and recovery from a failed release.
 
 Released versions are **immutable**. Tag deletion and update are blocked by
@@ -168,10 +168,10 @@ altering a URL documented as permanent. A flawed release is corrected by publish
 superseding patch, and the flawed version is marked with `deprecated: true`.
 HTTP `Deprecation` and `Sunset` headers pointing at the migration guide are
 planned, not generated yet
-([ADR 0012](docs/adr/0012-cloudflare-pages-publication.md), follow-up 1).
+([ADR 0012](adr/0012-cloudflare-pages-publication.md), follow-up 1).
 
-[ADR 0006](docs/adr/0006-publication-from-tags.md) sets out why the ledger
-exists, and [ADR 0023](docs/adr/0023-published-bytes-are-immutable-release-assets.md)
+[ADR 0006](adr/0006-publication-from-tags.md) sets out why the ledger
+exists, and [ADR 0023](adr/0023-published-bytes-are-immutable-release-assets.md)
 makes released bytes immutable release assets.
 
 ## Deprecation and retirement
@@ -193,7 +193,7 @@ The generated pages at `https://specifications.musher.dev/` — the index pages 
 `/reference/` tree — are a rendering of those artifacts rather than a fourth
 kind. They are informative, they are regenerated on every deploy, and no release
 archive carries them: a tagged release ships the Markdown, never the HTML. See
-[ADR 0017](docs/adr/0017-generated-field-reference.md).
+[ADR 0017](adr/0017-generated-field-reference.md).
 
 It deliberately does not publish a reference validator binary, a shared
 validation library, WebAssembly modules, or generated language packages. A
@@ -235,13 +235,13 @@ the code that receives the token changes only through a diff someone opened
 deliberately — never through a resolution that moved on its own. `tools/` is not a CODEOWNERS path, so that
 diff is not gated on a review; the exact pin plus the lockfile is what carries
 the guarantee. For the same reason it is excluded from the grouped Dependabot
-update in [`.github/dependabot.yml`](.github/dependabot.yml): folded into four
+update in [`.github/dependabot.yml`](../.github/dependabot.yml): folded into four
 other packages' lockfile churn it would arrive as a diff nobody opened *for
 it*, which is not the deliberate one this paragraph promises. It always comes
 as its own pull request. See
-[ADR 0016](docs/adr/0016-dependency-update-policy.md). Nothing published derives
+[ADR 0016](adr/0016-dependency-update-policy.md). Nothing published derives
 from wrangler.
 
 ## Security
 
-See [SECURITY.md](.github/SECURITY.md).
+See [SECURITY.md](../.github/SECURITY.md).

@@ -7,7 +7,7 @@
 
 ## Context
 
-[CLAUDE.md](../../CLAUDE.md) carries a naming table, and `tools/src/lint.ts`
+[CLAUDE.md](../../.claude/CLAUDE.md) carries a naming table, and `tools/src/lint.ts`
 enforces the half of it that is mechanical — directory case, module filenames,
 bundle filenames, `$defs` keys, `title` placement. What neither says is how to
 name a **field**, how to spell a **value**, or what a **key** in a user-authored

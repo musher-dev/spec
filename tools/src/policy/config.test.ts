@@ -145,12 +145,43 @@ describe('CFG-07 — placement', () => {
   })
 
   test('leaves root-only configs alone', () => {
-    // Git, Task and EditorConfig have no config-path flag, so the root is the
-    // only place they can be. Flagging them would make the gate impossible to pass.
+    // Git and Task have no config-path flag, so the root is the only place they
+    // can be. Flagging them would make the gate impossible to pass.
     const fx = intact()
-    for (const name of ['.gitignore', '.gitattributes', '.editorconfig']) {
+    for (const name of ['.gitignore', '.gitattributes']) {
       fx.writeFile(name, '\n')
     }
+    expect(configViolations(fx.root)).toEqual([])
+  })
+})
+
+describe('CFG-09: the root allowlist', () => {
+  test('fires on a root file ROOT_ENTRIES does not name', () => {
+    const fx = intact()
+    fx.writeFile('NOTES.md', '# Notes\n')
+    expect(codes(fx.root)).toEqual(['CFG-09'])
+  })
+
+  test('fires on a root directory ROOT_ENTRIES does not name', () => {
+    // The shape of the leftover it exists to catch: a directory emptied by a
+    // move down to one README.
+    const fx = intact()
+    fx.writeFile('leftovers/README.md', '# Leftovers\n')
+    expect(codes(fx.root)).toEqual(['CFG-09'])
+  })
+
+  test('accepts every entry ROOT_ENTRIES names', () => {
+    const fx = intact()
+    for (const path of ['.claude/CLAUDE.md', 'docs/README.md', 'LICENSE', 'published.json']) {
+      fx.writeFile(path, '\n')
+    }
+    expect(configViolations(fx.root)).toEqual([])
+  })
+
+  test('ignores gitignored build output', () => {
+    const fx = intact()
+    fx.writeFile('.gitignore', '/dist/\n')
+    fx.writeFile('dist/component/v1/component.schema.json', '{}\n')
     expect(configViolations(fx.root)).toEqual([])
   })
 })

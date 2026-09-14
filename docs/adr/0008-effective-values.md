@@ -106,7 +106,7 @@ The map is normative; whether an implementation reaches the value by storing it
 or by computing it is not.
 
 This changes the conformance fixture contract, which
-[GOVERNANCE.md](../../GOVERNANCE.md) §Decision process reserves for an ADR. This
+[GOVERNANCE.md](../governance.md) §Decision process reserves for an ADR. This
 is that ADR, as ADR 0002 was for `tree/`.
 
 ### 6. The runner checks the map against the bundle, not against itself

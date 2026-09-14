@@ -15,6 +15,12 @@ node_modules/
 # Dev container local state
 .devcontainer/.env
 
+# Claude Code local state. .claude/CLAUDE.md is tracked; a worktree checked out
+# under .claude/worktrees/ is a nested repository and must never be staged.
+.claude/worktrees/
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+
 # Editor / OS
 .DS_Store
 Thumbs.db

@@ -47,7 +47,7 @@ updates:
         patterns:
           - '*'
         # wrangler is the only dependency in this repository handed a
-        # credential, and GOVERNANCE.md -> Tooling dependencies rests its
+        # credential, and docs/governance.md -> Tooling dependencies rests its
         # guarantee on that pin moving only through a diff someone opened
         # deliberately. Inside the group it would arrive folded into somebody
         # else's lockfile churn, so it is kept out and reviewed on its own.

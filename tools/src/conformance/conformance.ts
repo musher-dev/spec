@@ -113,7 +113,7 @@ const PHASES: readonly Phase[] = ['parser', 'structural', 'semantic', 'capabilit
 const IMPLEMENTED_PHASES = new Set<Phase>(['parser', 'structural', 'semantic'])
 
 /**
- * The profiles conformance/README.md defines, cumulative and in order.
+ * The profiles docs/conformance.md defines, cumulative and in order.
  *
  * Naming them here rather than only in prose is what stops the two drifting: if
  * a phase is added to `IMPLEMENTED_PHASES`, the profile this runner reports
@@ -520,7 +520,7 @@ function parseClause(repoRoot: string, clause: string): Clause {
  * resolves to a declaration — and both can pass while the case says two
  * different things: twelve parser cases once cited `#envelope` while pinning a
  * YAML-profile rule declared somewhere else. For a case in corpus F, with D the
- * specs declaring its requirements (conformance/README.md, the `clause` row):
+ * specs declaring its requirements (docs/conformance.md, the `clause` row):
  *
  * - (a) every spec in D is F's own, core's, or a normative dependency F's §2
  *   declares — a corpus pins only rules its family applies;

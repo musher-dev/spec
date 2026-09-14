@@ -62,7 +62,7 @@ control is derived, so a derivation that is not written down does not leave `ui`
 minimal — it leaves it incomplete.
 
 **It carries no requirement identifier**, and this is the part most likely to be
-got wrong. [conformance/README.md](../../conformance/README.md#requirements):
+got wrong. [conformance/README.md](../conformance.md#requirements):
 
 > **An ID names a rule a document can violate.** … Rules about what an
 > *implementation* does rather than what a document contains … are normative

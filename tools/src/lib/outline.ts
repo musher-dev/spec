@@ -42,7 +42,7 @@ const ANCHOR = /<a id="([^"]+)"><\/a>/g
  * Both namespaces live in one file and neither is derivable from the other — a
  * section anchor is kebab-case and names a heading, a requirement id names a
  * single rule and is stable across a heading rename. That is exactly why both
- * exist; see `conformance/README.md`.
+ * exist; see `docs/conformance.md`.
  */
 export function readOutline(markdown: string): Outline {
   const sections: Section[] = []

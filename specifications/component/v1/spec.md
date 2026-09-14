@@ -14,7 +14,7 @@ appear in all capitals, as shown here.
 > **What is normative.** This document, together with the
 > [Musher Document Core Specification](../../core/v1/spec.md) it applies,
 > defines the complete behaviour of the specification. The JSON Schema bundle is its executable form for structural
-> validity, and the [conformance corpus](../../../conformance/README.md) is its
+> validity, and the [conformance corpus](../../../docs/conformance.md) is its
 > executable form for observable outcomes; both are normative, and neither is
 > permitted to disagree with this document or with the other. Schema
 > `description` fields, examples, generated documentation, and validator message
@@ -1105,7 +1105,7 @@ contract but an incomplete one, and leaves two conforming implementations free
 to render one document differently with neither of them defective.
 
 **It carries no requirement identifier.** No document can violate it, and
-[conformance/README.md](../../../conformance/README.md#requirements) reserves an
+[docs/conformance.md](../../../docs/conformance.md#requirements) reserves an
 identifier for a rule one can. What the corpus holds down instead is the rules
 that make the derivation total —
 [`COMP-UI-001`](#inputs) through [`COMP-UI-005`](#install-form) and

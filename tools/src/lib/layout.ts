@@ -24,11 +24,17 @@ import { listTreeFiles, readBlobAtRef } from './git.ts'
 /** Where every family's tree lives. */
 export const SPECIFICATIONS_ROOT = 'specifications'
 /**
- * The conformance suite's own index of profiles and fixture format. It stays at
- * the root because every family's corpus follows it; each corpus itself lives
- * inside its family version (see docs/adr/0021 §2).
+ * The fixture format and the profiles every family's corpus follows. Each corpus
+ * itself lives inside its family version (docs/adr/0021 §2); the format they
+ * share lives in docs/ (docs/adr/0024 §5).
  */
-export const CONFORMANCE_README = 'conformance/README.md'
+export const CONFORMANCE_FORMAT_FILE = 'docs/conformance.md'
+/**
+ * Where a release archive carries the fixture format. Deliberately not the
+ * repository path: an adapter reading a vendored release finds it beside the
+ * corpus, and that member name outlives any move in this tree (docs/adr/0023 §6).
+ */
+export const CONFORMANCE_FORMAT_ARCHIVE_PATH = 'conformance/README.md'
 /** The publication ledger. See docs/adr/0006. */
 export const LEDGER_FILE = 'published.json'
 export const RELEASE_PLEASE_MANIFEST_FILE = '.github/release-please/manifest.json'
@@ -46,6 +52,11 @@ export const ADR_INDEX_FILE = `${ADR_DIR}/README.md`
 export const DIST_DIR = 'dist'
 /** Tool caches, never tracked. */
 export const CACHE_DIR = '.cache'
+/**
+ * Where Claude Code checks out worktrees: nested copies of this repository,
+ * gitignored, whose Markdown is not this tree's prose to check.
+ */
+export const CLAUDE_WORKTREES_DIR = '.claude/worktrees'
 /** Verified release assets, one directory per release tag, as `task site:fetch` writes them. */
 export const RELEASE_CACHE_DIR = `${CACHE_DIR}/releases`
 /** Where `task release:stage` writes the files a release attaches (docs/adr/0023). */
@@ -70,6 +81,31 @@ export const GENERATED_PATH_PATTERNS: readonly string[] = [
   `${DIST_DIR}/`,
   `:(glob)${SPECIFICATIONS_ROOT}/**/schemas/dist/**`,
   `:(top,literal)${CATALOG_NAME}`,
+]
+
+/**
+ * Every entry the repository root may hold, which `task check:config` enforces
+ * as CFG-09 (docs/adr/0024 §1). Visible entries are content a contributor edits
+ * or a file a tool or GitHub reads only from the root; dotted entries are the
+ * machinery that operates on them. Build output never appears here, because it
+ * is gitignored rather than allowed.
+ */
+export const ROOT_ENTRIES: readonly string[] = [
+  '.claude',
+  '.config',
+  '.devcontainer',
+  '.gitattributes',
+  '.github',
+  '.gitignore',
+  'README.md',
+  'Taskfile.yml',
+  LEDGER_FILE,
+  LICENSE_FILE,
+  NOTICE_FILE,
+  'docs',
+  SPECIFICATIONS_ROOT,
+  'taskfiles',
+  'tools',
 ]
 
 /**
