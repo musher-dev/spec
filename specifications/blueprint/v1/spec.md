@@ -203,7 +203,12 @@ document's `metadata.revision`, so a second revision here could contradict it
 with no rule saying which wins.
 
 **Published.** The reference is the component's UUID, and `revision`
-MUST be present.
+MUST be present. The UUID names the component across every revision it has, not
+any one of them: it identifies the lineage that
+[component §4](../../component/v1/spec.md#metadata) orders, and `revision`
+selects the position in it that the node deploys. A tool MUST NOT treat the UUID
+as the identity of a single revision. What a published node deploys is the UUID
+and the `revision` together.
 
 ```yaml
 db:
