@@ -1,0 +1,10 @@
+{
+  "id": "structural-003-unknown-field",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/core/v1/spec.md#envelope",
+  "requirements": [
+    "CORE-ENV-005"
+  ],
+  "summary": "An undefined top-level property is rejected rather than ignored."
+}

@@ -7,6 +7,12 @@
 # Keep min_version in step with .devcontainer/mise.toml.
 min_version: 2.1.10
 
+# Standard `**` semantics. Under the default gobwas matcher `**/*.md` needs at
+# least one directory, so a root README.md or tools/biome.json never matched
+# the globs below. With doublestar, `*` stops at `/`: a glob meant for any
+# depth says `**/`.
+glob_matcher: doublestar
+
 pre-commit:
   parallel: true
   jobs:
@@ -42,12 +48,8 @@ pre-commit:
       glob: '**/*.md'
       run: task check:md
 
-    - name: drift
-      glob: 'specifications/**/*.schema.json'
-      run: task check:drift
-
     - name: shell
-      glob: '*.sh'
+      glob: '**/*.sh'
       run: task check:shell:files -- {staged_files}
 
     - name: workflow
@@ -71,11 +73,11 @@ commit-msg:
           printf "  Got:      %s\n" "$first_line" >&2
           printf "%s\n" "" >&2
           printf "%s\n" "  Types:  feat, fix, chore, docs, style, refactor, perf, test, ci, build, revert" >&2
-          printf "%s\n" "  Scopes: component, blueprint, listing, conformance, tools, ci," >&2
-          printf "%s\n" "          devcontainer, docs, repo, deps" >&2
+          printf "%s\n" "  Scopes: core, component, blueprint, listing, conformance, tools, ci," >&2
+          printf "%s\n" "          devcontainer, docs, repo, deps, deps-dev" >&2
           printf "%s\n" "" >&2
-          printf "%s\n" "  The scope drives release-please. feat(component): cuts component/v1.x.0;" >&2
-          printf "%s\n" "  an unscoped feat: releases nothing." >&2
+          printf "%s\n" "  release-please picks the release from the paths a commit changes, not" >&2
+          printf "%s\n" "  its scope: feat/fix/docs under specifications/<family>/ releases it." >&2
           exit 1
         fi
         ' -- {1}

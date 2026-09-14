@@ -53,9 +53,18 @@ Structural changes need an accepted ADR first. That covers:
 - Changing the release, versioning, or publication model
 - Any change requiring a new major version
 - Changing the conformance fixture contract
+- Changing core — admitting a rule to the
+  [core specification](specifications/core/v1/spec.md), moving one out of it, or
+  changing what a family takes from it
 
-ADRs live in [`docs/adr/`](docs/adr/), are numbered sequentially, and are
-immutable once accepted — supersede, never rewrite.
+ADRs live in [`docs/adr/`](docs/adr/README.md), are numbered sequentially, and are
+immutable once accepted — supersede, never rewrite. The one edit an accepted ADR
+admits is retargeting a relative link whose target moved, as
+[ADR 0021 §4](docs/adr/0021-repository-organized-around-the-family-version.md)
+sets out. `task check:adr` compares each accepted ADR with only its relative
+link targets blanked, and absolute URLs compared verbatim, so it fails any other
+edit. It cannot tell whether a retargeted link's target really moved; confirming
+that is a review obligation.
 
 ## Compatibility review
 
@@ -67,10 +76,11 @@ Any change that would cause a previously valid document to fail validation is a
 3. A migration note in the new major's `spec.md`
 
 Requirement 1 is an obligation on the maintainer, not a gate the repository
-enforces: `specifications/` and `conformance/` are deliberately unowned, so a
-breaking change is not blocked awaiting a review. What *is* enforced on every
-pull request is the machinery that detects the breakage — `check:drift`,
-`check:compat`, `check:published`, and the conformance suite, all required. See
+enforces: `specifications/`, which holds every family's prose, schemas and
+conformance corpus, is deliberately unowned, so a breaking change is not blocked
+awaiting a review. What *is* enforced on every pull request is the machinery
+that detects the breakage — `check:compat`, `check:published`, and the
+conformance suite, all required. See
 [ADR 0015 §4](docs/adr/0015-selective-code-owner-review.md).
 
 Adding a required field, narrowing an enum, tightening a pattern, and removing
@@ -137,37 +147,40 @@ of any other vocabulary of this shape.
 
 ## Release process
 
-Releases are automated. Merging a Conventional Commit to `main` opens a
-release-please PR; merging that PR tags the release and triggers publication.
-
-1. The release pull request records the pending version in
-   [`published.json`](published.json) — its path and the checksums of the bytes
-   about to be tagged
-2. Tag `<family>/v<MAJOR>.<MINOR>.<PATCH>` is created
-3. A `.tar.gz` of the bundle, prose, and conformance suite is built with
-   SHA-256 checksums and a SLSA provenance attestation
-4. The archive is attached to a GitHub Release
-5. The schema is published to `https://schemas.musher.dev/<family>/…`, rebuilt
-   from the tag rather than from `main`, with the cache policy for its path
-   generated alongside it
-6. `catalog.json` is regenerated for editor discovery
+Releases are automated, one release line per family version, core included.
+Merging a Conventional Commit to `main` makes release-please, running as the
+release GitHub App, open a release PR. The App's permissions and credentials are
+listed in
+[Publication → Prerequisites](docs/publication.md#prerequisites-before-the-first-tag).
+That PR records the pending version in the
+[ledger](docs/publication.md#the-ledger), [`published.json`](published.json),
+and merging it tags `<family>/v<MAJOR>.<MINOR>.<PATCH>`. The schema and a release archive
+are then attached, with SLSA provenance, to a GitHub Release published as
+immutable, and `https://specifications.musher.dev/` is deployed from the
+verified assets. [docs/publication.md](docs/publication.md) describes every step,
+the ledger, the core gate, and recovery from a failed release.
 
 Released versions are **immutable**. Tag deletion and update are blocked by
-repository ruleset, and `published.json` is append-only — a rewritten tag or an
-edited entry fails CI and stops the deploy rather than silently altering a URL
-documented as permanent. A flawed release is corrected by publishing a
-superseding patch, and the flawed version is marked with `deprecated: true` plus
-HTTP `Deprecation` and `Sunset` headers pointing at the migration guide.
+repository ruleset, a published release's assets cannot change, and
+`published.json` is append-only — a rewritten tag, a changed asset, or an
+edited entry fails verification and stops the deploy rather than silently
+altering a URL documented as permanent. A flawed release is corrected by publishing a
+superseding patch, and the flawed version is marked with `deprecated: true`.
+HTTP `Deprecation` and `Sunset` headers pointing at the migration guide are
+planned, not generated yet
+([ADR 0012](docs/adr/0012-cloudflare-pages-publication.md), follow-up 1).
 
-[ADR 0006](docs/adr/0006-publication-from-tags.md) sets out the publication
-model and why the ledger exists.
+[ADR 0006](docs/adr/0006-publication-from-tags.md) sets out why the ledger
+exists, and [ADR 0023](docs/adr/0023-published-bytes-are-immutable-release-assets.md)
+makes released bytes immutable release assets.
 
 ## Deprecation and retirement
 
 1. **Deprecate** — the field or version is annotated `deprecated: true`. Editors
    and the CLI surface a warning. It keeps working.
-2. **Sunset** — a removal date is published via the `Sunset` header. Minimum
-   six months from deprecation.
+2. **Sunset** — a removal date is published, planned to be carried by a
+   `Sunset` header that is not generated yet (ADR 0012 follow-up 1). Minimum six
+   months from deprecation.
 3. **Retire** — removal happens only in a new major version. Migration rules
    ship alongside it.
 
@@ -176,7 +189,7 @@ model and why the ledger exists.
 This repository publishes **data artifacts only**: JSON Schema documents,
 Markdown prose, and conformance fixture archives.
 
-The generated pages at `https://schemas.musher.dev/` — the index pages and the
+The generated pages at `https://specifications.musher.dev/` — the index pages and the
 `/reference/` tree — are a rendering of those artifacts rather than a fourth
 kind. They are informative, they are regenerated on every deploy, and no release
 archive carries them: a tagged release ships the Markdown, never the HTML. See
@@ -206,23 +219,28 @@ gate and fail in the SDKs.
 Using it as a CI tool does not place this repository's schemas or prose under
 the AGPL, and no artifact this repository publishes derives from it. A
 contributor without it sees the checks report themselves as skipped rather than
-passed.
+passed. In CI, where `CI=true`, a missing CLI fails them instead.
 
 One more is worth naming, for a different reason.
 [`wrangler`](https://github.com/cloudflare/workers-sdk) uploads the publication
-tree to Cloudflare Pages, which makes it the only dependency here that is handed
-a credential. It is pinned to an exact version in `tools/package.json` and the
-lockfile rather than fetched at deploy time, so the code that receives the token
-changes only through a diff someone opened deliberately — never through a
-resolution that moved on its own. `tools/` is not a CODEOWNERS path, so that
+tree to Cloudflare Pages, and is handed the Cloudflare deploy token, which can
+replace everything the site serves. It is not the only code that runs with a
+credential. Every CI job runs the locked dependencies with a `GITHUB_TOKEN`, and
+the release artifacts job runs `bun install` and the tag's own tooling while
+holding `contents: write` and `id-token: write`. That is why the whole of
+`tools/` is installed from the lockfile, never resolved at run time. wrangler is
+named because its token reaches outside GitHub. It is pinned to an exact version
+in `tools/package.json` and the lockfile rather than fetched at deploy time, so
+the code that receives the token changes only through a diff someone opened
+deliberately — never through a resolution that moved on its own. `tools/` is not a CODEOWNERS path, so that
 diff is not gated on a review; the exact pin plus the lockfile is what carries
 the guarantee. For the same reason it is excluded from the grouped Dependabot
 update in [`.github/dependabot.yml`](.github/dependabot.yml): folded into four
 other packages' lockfile churn it would arrive as a diff nobody opened *for
 it*, which is not the deliberate one this paragraph promises. It always comes
 as its own pull request. See
-[ADR 0016](docs/adr/0016-dependency-update-policy.md). Nothing else in `tools/` holds a secret, and nothing published
-derives from wrangler either.
+[ADR 0016](docs/adr/0016-dependency-update-policy.md). Nothing published derives
+from wrangler.
 
 ## Security
 

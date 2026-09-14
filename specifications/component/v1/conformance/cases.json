@@ -1,0 +1,471 @@
+{
+  "family": "component",
+  "specVersion": "v1",
+  "cases": [
+    {
+      "id": "parser-001-reject-duplicate-keys",
+      "phase": "parser",
+      "path": "parser/001-reject-duplicate-keys"
+    },
+    {
+      "id": "structural-001-minimal-valid",
+      "phase": "structural",
+      "path": "structural/001-minimal-valid"
+    },
+    {
+      "id": "structural-002-wrong-kind",
+      "phase": "structural",
+      "path": "structural/002-wrong-kind"
+    },
+    {
+      "id": "structural-003-unknown-field",
+      "phase": "structural",
+      "path": "structural/003-unknown-field"
+    },
+    {
+      "id": "structural-004-unsupported-spec-version",
+      "phase": "structural",
+      "path": "structural/004-unsupported-spec-version"
+    },
+    {
+      "id": "structural-005-nested-unknown-field",
+      "phase": "structural",
+      "path": "structural/005-nested-unknown-field"
+    },
+    {
+      "id": "structural-006-non-service-with-endpoints",
+      "phase": "structural",
+      "path": "structural/006-non-service-with-endpoints"
+    },
+    {
+      "id": "structural-007-non-service-with-empty-endpoints",
+      "phase": "structural",
+      "path": "structural/007-non-service-with-empty-endpoints"
+    },
+    {
+      "id": "structural-008-job-without-command",
+      "phase": "structural",
+      "path": "structural/008-job-without-command"
+    },
+    {
+      "id": "structural-009-cron-workload",
+      "phase": "structural",
+      "path": "structural/009-cron-workload"
+    },
+    {
+      "id": "structural-010-cron-without-schedule",
+      "phase": "structural",
+      "path": "structural/010-cron-without-schedule"
+    },
+    {
+      "id": "structural-011-schedule-on-service",
+      "phase": "structural",
+      "path": "structural/011-schedule-on-service"
+    },
+    {
+      "id": "structural-012-unpinned-image-reference",
+      "phase": "structural",
+      "path": "structural/012-unpinned-image-reference"
+    },
+    {
+      "id": "structural-013-digest-pinned-image-reference",
+      "phase": "structural",
+      "path": "structural/013-digest-pinned-image-reference"
+    },
+    {
+      "id": "structural-014-git-source-without-build",
+      "phase": "structural",
+      "path": "structural/014-git-source-without-build"
+    },
+    {
+      "id": "structural-015-public-service-without-readiness",
+      "phase": "structural",
+      "path": "structural/015-public-service-without-readiness"
+    },
+    {
+      "id": "structural-016-private-service-without-readiness",
+      "phase": "structural",
+      "path": "structural/016-private-service-without-readiness"
+    },
+    {
+      "id": "structural-017-relative-mount-path",
+      "phase": "structural",
+      "path": "structural/017-relative-mount-path"
+    },
+    {
+      "id": "structural-018-generated-input-not-sensitive",
+      "phase": "structural",
+      "path": "structural/018-generated-input-not-sensitive"
+    },
+    {
+      "id": "structural-019-connection-input-with-ui",
+      "phase": "structural",
+      "path": "structural/019-connection-input-with-ui"
+    },
+    {
+      "id": "structural-020-user-input-without-ui",
+      "phase": "structural",
+      "path": "structural/020-user-input-without-ui"
+    },
+    {
+      "id": "structural-021-derived-output-with-value",
+      "phase": "structural",
+      "path": "structural/021-derived-output-with-value"
+    },
+    {
+      "id": "structural-022-contract-both-output-forms",
+      "phase": "structural",
+      "path": "structural/022-contract-both-output-forms"
+    },
+    {
+      "id": "structural-023-field-from-newer-release",
+      "phase": "structural",
+      "path": "structural/023-field-from-newer-release"
+    },
+    {
+      "id": "structural-024-container-port-below-range",
+      "phase": "structural",
+      "path": "structural/024-container-port-below-range"
+    },
+    {
+      "id": "structural-025-container-port-above-range",
+      "phase": "structural",
+      "path": "structural/025-container-port-above-range"
+    },
+    {
+      "id": "structural-026-privileged-container-port",
+      "phase": "structural",
+      "path": "structural/026-privileged-container-port"
+    },
+    {
+      "id": "structural-027-public-tcp-endpoint",
+      "phase": "structural",
+      "path": "structural/027-public-tcp-endpoint"
+    },
+    {
+      "id": "structural-028-public-grpc-endpoint",
+      "phase": "structural",
+      "path": "structural/028-public-grpc-endpoint"
+    },
+    {
+      "id": "structural-029-endpoint-name-not-a-slug",
+      "phase": "structural",
+      "path": "structural/029-endpoint-name-not-a-slug"
+    },
+    {
+      "id": "structural-030-two-public-endpoints",
+      "phase": "structural",
+      "path": "structural/030-two-public-endpoints"
+    },
+    {
+      "id": "structural-031-endpoint-name-with-a-hyphen",
+      "phase": "structural",
+      "path": "structural/031-endpoint-name-with-a-hyphen"
+    },
+    {
+      "id": "structural-032-env-var-key-not-uppercase",
+      "phase": "structural",
+      "path": "structural/032-env-var-key-not-uppercase"
+    },
+    {
+      "id": "structural-033-service-without-endpoints",
+      "phase": "structural",
+      "path": "structural/033-service-without-endpoints"
+    },
+    {
+      "id": "structural-034-service-with-empty-endpoints",
+      "phase": "structural",
+      "path": "structural/034-service-with-empty-endpoints"
+    },
+    {
+      "id": "structural-035-public-address-default",
+      "phase": "structural",
+      "path": "structural/035-public-address-default"
+    },
+    {
+      "id": "structural-036-public-port-on-udp-endpoint",
+      "phase": "structural",
+      "path": "structural/036-public-port-on-udp-endpoint"
+    },
+    {
+      "id": "structural-037-public-hostname-default",
+      "phase": "structural",
+      "path": "structural/037-public-hostname-default"
+    },
+    {
+      "id": "structural-038-probe-defaults-are-effective",
+      "phase": "structural",
+      "path": "structural/038-probe-defaults-are-effective"
+    },
+    {
+      "id": "structural-039-integer-value-type",
+      "phase": "structural",
+      "path": "structural/039-integer-value-type"
+    },
+    {
+      "id": "structural-040-number-value-type",
+      "phase": "structural",
+      "path": "structural/040-number-value-type"
+    },
+    {
+      "id": "structural-041-json-value-type",
+      "phase": "structural",
+      "path": "structural/041-json-value-type"
+    },
+    {
+      "id": "structural-042-json-value-with-pattern",
+      "phase": "structural",
+      "path": "structural/042-json-value-with-pattern"
+    },
+    {
+      "id": "structural-043-json-value-with-enum",
+      "phase": "structural",
+      "path": "structural/043-json-value-with-enum"
+    },
+    {
+      "id": "structural-044-format-on-a-non-string-value",
+      "phase": "structural",
+      "path": "structural/044-format-on-a-non-string-value"
+    },
+    {
+      "id": "structural-045-timezone-format-value",
+      "phase": "structural",
+      "path": "structural/045-timezone-format-value"
+    },
+    {
+      "id": "structural-046-format-outside-the-vocabulary",
+      "phase": "structural",
+      "path": "structural/046-format-outside-the-vocabulary"
+    },
+    {
+      "id": "structural-047-install-form-presentation",
+      "phase": "structural",
+      "path": "structural/047-install-form-presentation"
+    },
+    {
+      "id": "structural-048-ui-declares-a-control",
+      "phase": "structural",
+      "path": "structural/048-ui-declares-a-control"
+    },
+    {
+      "id": "structural-049-prominence-outside-the-vocabulary",
+      "phase": "structural",
+      "path": "structural/049-prominence-outside-the-vocabulary"
+    },
+    {
+      "id": "structural-050-platform-default-without-a-kind",
+      "phase": "structural",
+      "path": "structural/050-platform-default-without-a-kind"
+    },
+    {
+      "id": "structural-051-connection-input-with-platform-default",
+      "phase": "structural",
+      "path": "structural/051-connection-input-with-platform-default"
+    },
+    {
+      "id": "structural-052-generated-input-with-platform-default",
+      "phase": "structural",
+      "path": "structural/052-generated-input-with-platform-default"
+    },
+    {
+      "id": "structural-053-input-name-outside-the-grammar",
+      "phase": "structural",
+      "path": "structural/053-input-name-outside-the-grammar"
+    },
+    {
+      "id": "structural-054-output-name-outside-the-grammar",
+      "phase": "structural",
+      "path": "structural/054-output-name-outside-the-grammar"
+    },
+    {
+      "id": "structural-055-volume-name-outside-the-grammar",
+      "phase": "structural",
+      "path": "structural/055-volume-name-outside-the-grammar"
+    },
+    {
+      "id": "structural-056-build-argument-name-outside-the-grammar",
+      "phase": "structural",
+      "path": "structural/056-build-argument-name-outside-the-grammar"
+    },
+    {
+      "id": "structural-057-optional-field-written-null",
+      "phase": "structural",
+      "path": "structural/057-optional-field-written-null"
+    },
+    {
+      "id": "structural-058-resource-type-on-a-value",
+      "phase": "structural",
+      "path": "structural/058-resource-type-on-a-value"
+    },
+    {
+      "id": "structural-059-resource-type-outside-the-grammar",
+      "phase": "structural",
+      "path": "structural/059-resource-type-outside-the-grammar"
+    },
+    {
+      "id": "structural-060-external-component",
+      "phase": "structural",
+      "path": "structural/060-external-component"
+    },
+    {
+      "id": "structural-061-external-beside-a-workload",
+      "phase": "structural",
+      "path": "structural/061-external-beside-a-workload"
+    },
+    {
+      "id": "structural-062-component-with-neither-shape",
+      "phase": "structural",
+      "path": "structural/062-component-with-neither-shape"
+    },
+    {
+      "id": "structural-063-external-without-a-resource-type",
+      "phase": "structural",
+      "path": "structural/063-external-without-a-resource-type"
+    },
+    {
+      "id": "structural-064-external-publishing-nothing",
+      "phase": "structural",
+      "path": "structural/064-external-publishing-nothing"
+    },
+    {
+      "id": "structural-065-external-output-derived",
+      "phase": "structural",
+      "path": "structural/065-external-output-derived"
+    },
+    {
+      "id": "structural-066-external-input-with-a-platform-default",
+      "phase": "structural",
+      "path": "structural/066-external-input-with-a-platform-default"
+    },
+    {
+      "id": "structural-067-input-output-on-a-workload",
+      "phase": "structural",
+      "path": "structural/067-input-output-on-a-workload"
+    },
+    {
+      "id": "structural-068-input-output-without-a-name",
+      "phase": "structural",
+      "path": "structural/068-input-output-without-a-name"
+    },
+    {
+      "id": "structural-069-input-named-on-a-declared-output",
+      "phase": "structural",
+      "path": "structural/069-input-named-on-a-declared-output"
+    },
+    {
+      "id": "structural-070-string-list-value",
+      "phase": "structural",
+      "path": "structural/070-string-list-value"
+    },
+    {
+      "id": "structural-071-string-list-without-an-enum",
+      "phase": "structural",
+      "path": "structural/071-string-list-without-an-enum"
+    },
+    {
+      "id": "structural-072-string-list-with-an-empty-enum",
+      "phase": "structural",
+      "path": "structural/072-string-list-with-an-empty-enum"
+    },
+    {
+      "id": "structural-073-string-list-with-a-pattern",
+      "phase": "structural",
+      "path": "structural/073-string-list-with-a-pattern"
+    },
+    {
+      "id": "structural-074-string-list-with-a-format",
+      "phase": "structural",
+      "path": "structural/074-string-list-with-a-format"
+    },
+    {
+      "id": "semantic-001-floating-tag-image-reference",
+      "phase": "semantic",
+      "path": "semantic/001-floating-tag-image-reference"
+    },
+    {
+      "id": "semantic-002-probe-names-unknown-endpoint",
+      "phase": "semantic",
+      "path": "semantic/002-probe-names-unknown-endpoint"
+    },
+    {
+      "id": "semantic-003-platform-default-names-unknown-endpoint",
+      "phase": "semantic",
+      "path": "semantic/003-platform-default-names-unknown-endpoint"
+    },
+    {
+      "id": "semantic-004-platform-default-names-private-endpoint",
+      "phase": "semantic",
+      "path": "semantic/004-platform-default-names-private-endpoint"
+    },
+    {
+      "id": "semantic-005-no-primary-endpoint-elected",
+      "phase": "semantic",
+      "path": "semantic/005-no-primary-endpoint-elected"
+    },
+    {
+      "id": "semantic-006-primary-endpoint-elected",
+      "phase": "semantic",
+      "path": "semantic/006-primary-endpoint-elected"
+    },
+    {
+      "id": "semantic-007-probe-on-endpointless-workload",
+      "phase": "semantic",
+      "path": "semantic/007-probe-on-endpointless-workload"
+    },
+    {
+      "id": "semantic-008-probe-on-tcp-endpoint",
+      "phase": "semantic",
+      "path": "semantic/008-probe-on-tcp-endpoint"
+    },
+    {
+      "id": "semantic-009-platform-default-on-tcp-endpoint",
+      "phase": "semantic",
+      "path": "semantic/009-platform-default-on-tcp-endpoint"
+    },
+    {
+      "id": "semantic-010-duplicate-env-var-key",
+      "phase": "semantic",
+      "path": "semantic/010-duplicate-env-var-key"
+    },
+    {
+      "id": "semantic-011-env-key-claimed-twice",
+      "phase": "semantic",
+      "path": "semantic/011-env-key-claimed-twice"
+    },
+    {
+      "id": "semantic-012-public-address-on-http-endpoint",
+      "phase": "semantic",
+      "path": "semantic/012-public-address-on-http-endpoint"
+    },
+    {
+      "id": "semantic-013-platform-default-elects-primary",
+      "phase": "semantic",
+      "path": "semantic/013-platform-default-elects-primary"
+    },
+    {
+      "id": "semantic-014-enum-label-names-no-member",
+      "phase": "semantic",
+      "path": "semantic/014-enum-label-names-no-member"
+    },
+    {
+      "id": "semantic-015-enum-labels-cover-some-members",
+      "phase": "semantic",
+      "path": "semantic/015-enum-labels-cover-some-members"
+    },
+    {
+      "id": "semantic-016-output-reads-a-user-input",
+      "phase": "semantic",
+      "path": "semantic/016-output-reads-a-user-input"
+    },
+    {
+      "id": "semantic-017-output-input-names-no-input",
+      "phase": "semantic",
+      "path": "semantic/017-output-input-names-no-input"
+    },
+    {
+      "id": "semantic-018-output-reads-a-connection-input",
+      "phase": "semantic",
+      "path": "semantic/018-output-reads-a-connection-input"
+    }
+  ]
+}

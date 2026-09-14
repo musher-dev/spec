@@ -5,7 +5,15 @@
   "include-component-in-tag": true,
   "include-v-in-tag": true,
   "tag-separator": "/",
+  "draft": true,
+  "force-tag-creation": true,
+  "pull-request-title-pattern": "chore(repo): release${component} ${version}",
+  "signoff": "RELEASE_APP_SLUG[bot] <RELEASE_APP_BOT_USER_ID+RELEASE_APP_SLUG[bot]@users.noreply.github.com>",
   "packages": {
+    "specifications/core/v1": {
+      "component": "core",
+      "initial-version": "1.0.0"
+    },
     "specifications/component/v1": {
       "component": "component",
       "initial-version": "1.0.0"

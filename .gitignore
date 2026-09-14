@@ -1,6 +1,12 @@
 # Generated publication tree — assembled by `task site:build`, deployed by CI.
 /site/
 
+# Build output — schema bundles and the catalog, written by `task bundle`.
+# Never tracked: `task check:generated` fails if git holds any. See docs/adr/0023.
+/dist/
+# Downloaded release assets and other tool caches.
+/.cache/
+
 # Tooling
 tools/node_modules/
 node_modules/

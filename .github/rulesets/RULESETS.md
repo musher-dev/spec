@@ -14,18 +14,18 @@ notably immutable tags.
 ## Applying
 
 ```sh
-gh api -X POST repos/musher-dev/spec/rulesets \
+gh api -X POST repos/musher-dev/specifications/rulesets \
   --input .github/rulesets/main-branch.json
 
-gh api -X POST repos/musher-dev/spec/rulesets \
+gh api -X POST repos/musher-dev/specifications/rulesets \
   --input .github/rulesets/release-tags.json
 ```
 
 To update an existing ruleset, find its id and `PUT` instead:
 
 ```sh
-gh api repos/musher-dev/spec/rulesets --jq '.[] | "\(.id)\t\(.name)"'
-gh api -X PUT repos/musher-dev/spec/rulesets/<id> \
+gh api repos/musher-dev/specifications/rulesets --jq '.[] | "\(.id)\t\(.name)"'
+gh api -X PUT repos/musher-dev/specifications/rulesets/<id> \
   --input .github/rulesets/main-branch.json
 ```
 
@@ -40,9 +40,13 @@ Protects the default branch:
   as a sequence of deliberate changes.
 - **Required status checks**: `Lint`, `Schema`, `Site Build`, `Signed off`,
   each pinned to `integration_id: 15368` so only the GitHub Actions app can
-  satisfy them. `Schema` is the one that matters most — it carries the bundle
-  drift gate. `Site Build` carries the publication-ledger gates. `Signed off`
-  is the DCO check CONTRIBUTING.md requires.
+  satisfy them. This is the one list of the required checks; other pages link
+  here. `Lint` carries the repository policy checks, and on a pull request it
+  also enforces the Conventional Commits title (`task check:title`). `Schema` is
+  the one that matters most — it carries the conformance, compatibility and
+  build-output gates. `Site Build` carries the publication-ledger gates and
+  verifies every published release asset. `Signed off` is the DCO check
+  CONTRIBUTING.md requires.
 - **Deletion and force-push blocked.**
 
 ### The selective code-owner review gate
@@ -60,38 +64,46 @@ thread resolved. `0` is GitHub's sanctioned "no blanket reviewers" value, and
 the code-owner requirement is evaluated per changed file.
 [ADR 0015](../../docs/adr/0015-selective-code-owner-review.md) says why.
 
-Seven invariants keep the mechanism working. Each one breaks it *silently* — the
-first four are checked by `task check:rulesets` (RUL-05..RUL-09); the last three
-are only visible against live GitHub state:
+Seven invariants keep the mechanism working. Each one breaks it *silently*. The
+first four are checked by `task check:rulesets`, within the limits each states;
+the last three are only visible against live GitHub state. Separately, RUL-01
+to RUL-04 check each ruleset file's shape: valid JSON with the required keys, a
+known `target` and `enforcement`, no server-side field, and a non-empty `rules`
+array. RUL-07 checks the gate's two values above.
 
 1. **No `*` catch-all in `.github/CODEOWNERS`.** It makes every pull request
-   code-owned, which is the blanket gate again wearing a different hat.
+   code-owned, which is the blanket gate again wearing a different hat. RUL-05.
 2. **`require_last_push_approval` stays `false`.** With zero required approvals
-   it produces a self-contradictory, unmergeable state.
+   it produces a self-contradictory, unmergeable state. RUL-08.
 3. **Every required context must name a job some workflow publishes**, and that
    workflow must not filter on `paths:`. Either mistake yields a context that
-   never reports and a pull request that hangs forever. This is why the
-   validator runs inside the existing `Lint` job rather than as a workflow of
-   its own.
+   never reports and a pull request that hangs forever. RUL-09. This is why the
+   validator, and the title check, run inside the existing `Lint` job rather
+   than as workflows of their own.
 4. **Every root-anchored CODEOWNERS pattern must resolve to a real path.**
    CODEOWNERS fails open: a stale entry reads as ownership and grants none. So
-   does an owner without explicit write access, or an invisible team.
+   does an owner without explicit write access, or an invisible team. RUL-06
+   checks only that a root-anchored literal path exists and that each owner is
+   written `@user` or `@org/team`. It cannot see a glob that matches nothing,
+   whether an owner has write access, or whether a team is visible.
 5. **No classic branch protection rule may coexist on `main`.** Classic rules
    and rulesets aggregate most-restrictive, so a leftover rule requiring one
    approval silently restores blanket review. `gh api
-   repos/musher-dev/spec/branches/main/protection` must return `404`.
+   repos/musher-dev/specifications/branches/main/protection` must return `404`.
 6. **No org-level ruleset may impose an approval count on this repository.**
-   Same aggregation. `spec` is deliberately absent from the org `pr-workflow`
+   Same aggregation. `specifications` is deliberately absent from the org `pr-workflow`
    ruleset's include list; do not add it.
 7. **`squash_merge_commit_title` stays `PR_TITLE`.** It is a repository setting,
    not a ruleset field, so nothing in this directory can carry it. Under the
    default `COMMIT_OR_PR_TITLE`, a pull request with exactly one commit lands
-   *that commit's* subject rather than the title `Conventional PR title`
-   validated — so a subject no CI check ever read reaches `main`. It already
-   has: #67 was validated as `build(deps-dev): bump the tooling group …` and
-   landed as `Bump …`. Verify with `gh api repos/musher-dev/spec --jq
-   .squash_merge_commit_title`. See
-   [ADR 0016](../../docs/adr/0016-dependency-update-policy.md).
+   *that commit's* subject rather than the title `task check:title` validated —
+   so a subject no CI check ever read reaches `main`. It already has: #67 was
+   validated, by the title check then in use, as
+   `build(deps-dev): bump the tooling group …` and landed as `Bump …`. Verify
+   with `gh api repos/musher-dev/specifications --jq .squash_merge_commit_title`.
+   See [ADR 0016](../../docs/adr/0016-dependency-update-policy.md). Its companion
+   setting, `squash_merge_commit_message`, is covered with it in
+   [Publication → Prerequisites](../../docs/publication.md#prerequisites-before-the-first-tag).
 
 **An owner's own pull requests are exempt.** GitHub cannot request a review from
 the author, so authorship waives the requirement for the patterns that author
@@ -105,9 +117,9 @@ The aggregation traps in invariants 5 and 6 are undetectable offline, so a
 change to the `pull_request` rule runs this sequence rather than just an apply:
 
 1. Reconcile any drift first (see below); do not layer a change on top of one.
-2. `gh api repos/musher-dev/spec/branches/main/protection` — a `404` is the
+2. `gh api repos/musher-dev/specifications/branches/main/protection` — a `404` is the
    desired answer.
-3. `gh api repos/musher-dev/spec/rules/branches/main` lists every rule that
+3. `gh api repos/musher-dev/specifications/rules/branches/main` lists every rule that
    actually applies, whatever its source. Confirm no org-sourced `pull_request`
    rule carries a nonzero `required_approving_review_count`.
 4. Apply via the `PUT` recipe above.
@@ -120,15 +132,20 @@ change to the `pull_request` rule runs this sequence rather than just an apply:
 ### Detecting drift
 
 Drift is the live ruleset diverging from these files because someone edited it
-in the UI. `task check:rulesets` cannot see it: the default `GITHUB_TOKEN` lacks
-`administration: read`, so a workflow-based detector would need a long-lived
-secret or would fail open. It is an operator check — run it during a security
-review, or whenever review behaviour surprises you:
+in the UI. `task check:rulesets` reads only the files, so it cannot see drift.
+`GITHUB_TOKEN` cannot be granted `administration: read`. The release GitHub App
+does hold it, which the release job uses to confirm immutable releases are
+enabled, so a workflow could mint an App token and read the live rulesets. None
+does yet. A scheduled job holding the App's private key is the kind of
+token-holding workflow [ADR 0023](../../docs/adr/0023-published-bytes-are-immutable-release-assets.md)
+declined to add for a reconciler, and it would fail quietly in a week nobody
+looks. Until someone decides otherwise, drift detection is an operator check —
+run it during a security review, or whenever review behaviour surprises you:
 
 ```sh
 for pair in "20585885:main-branch.json" "20585889:release-tags.json"; do
   id="${pair%%:*}"; file=".github/rulesets/${pair##*:}"
-  diff -u     <(jq -S '{name,target,enforcement,bypass_actors,conditions,rules}' "$file")     <(gh api "repos/musher-dev/spec/rulesets/$id"         --jq '{name,target,enforcement,bypass_actors,conditions,rules}' | jq -S .)     && echo "in step: $file" || echo "DRIFT: $file"
+  diff -u     <(jq -S '{name,target,enforcement,bypass_actors,conditions,rules}' "$file")     <(gh api "repos/musher-dev/specifications/rulesets/$id"         --jq '{name,target,enforcement,bypass_actors,conditions,rules}' | jq -S .)     && echo "in step: $file" || echo "DRIFT: $file"
 done
 ```
 
@@ -144,8 +161,8 @@ from the repository is a ruleset nobody reviews.
 
 Makes releases immutable:
 
-- Applies to `refs/tags/component/**`, `refs/tags/blueprint/**`, and
-  `refs/tags/listing/**`.
+- Applies to `refs/tags/core/**`, `refs/tags/component/**`,
+  `refs/tags/blueprint/**`, and `refs/tags/listing/**`.
 - **Blocks tag deletion, tag update, and any non-fast-forward move.** A
   published schema version can never be silently altered — a flaw is corrected
   by superseding it with a new patch, never by moving a tag.

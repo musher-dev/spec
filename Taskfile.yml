@@ -30,7 +30,7 @@ includes:
     flatten: true
   check: taskfiles/check.Taskfile.yml
   ci: taskfiles/ci.Taskfile.yml
-  ledger: taskfiles/release.Taskfile.yml
+  release: taskfiles/release.Taskfile.yml
 
 tasks:
   default:
@@ -62,16 +62,19 @@ tasks:
       - task: check:rulesets
       - task: check:types
       - task: check:schema
-      - task: check:drift
+      - task: check:generated
       - task: check:examples
       - task: check:conformance
       - task: check:standards
       - task: check:parity
       - task: check:published
+      - task: check:editions
       - task: check:compat
       - task: check:test
       - task: check:commits
+      - task: check:docs
       - task: check:links
+      - task: check:adr
       - task: check:md
       - task: check:spelling
       - task: check:shell
@@ -90,10 +93,14 @@ tasks:
   fmt:md:
     desc: Apply the Markdown fixes markdownlint can make itself
     cmds:
+      # The exclusions check:md makes, for its reasons: release-please's
+      # CHANGELOG.md is generated, and rewriting it would only be undone by the
+      # next release pull request.
       - >-
         tools/node_modules/.bin/markdownlint-cli2 --fix
         --config .config/markdown/markdownlint.jsonc
         "**/*.md" "#tools/node_modules" "#site" "#.github/pull_request_template.md"
+        "#specifications/*/v*/CHANGELOG.md"
 
   # ===========================================================================
   # Environment
@@ -131,4 +138,5 @@ tasks:
     desc: Remove generated output
     cmds:
       - rm -rf {{.SITE_DIR}}
+      - rm -rf dist .cache
       - rm -rf {{.TOOLS_DIR}}/node_modules

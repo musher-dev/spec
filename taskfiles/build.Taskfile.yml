@@ -10,39 +10,57 @@ version: '3'
 
 tasks:
   bundle:
-    desc: Compile schemas/src into the published schemas/dist bundles
+    desc: Build every schema bundle and the catalog into dist/, and regenerate the generated docs
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/bundle.ts
-      - bun run src/catalog.ts
-      - bun run src/traceability.ts
+      # Writes dist/<family>/<major>/<family>.schema.json and dist/catalog.json.
+      # Nothing else needs this first: every check and site:build builds the
+      # bundles in memory. It is for reading, vendoring, and editor bindings.
+      - bun run src/schema/bundle.ts
+      - task: docs
 
-  traceability:
-    desc: Regenerate the requirement traceability matrix
+  docs:
+    desc: Regenerate docs/traceability.md and the ADR index in docs/adr/README.md
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/traceability.ts
+      # Both are committed, and `task check:docs` fails when either is stale.
+      - bun run src/render/traceability.ts
+      - bun run src/render/adr-index.ts
 
   catalog:
-    desc: Regenerate the SchemaStore catalog index
+    desc: Regenerate the SchemaStore catalog index into dist/
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/catalog.ts
+      - bun run src/publication/catalog.ts
 
   changes:
-    desc: Report what this branch does to the published contract (BASE=origin/main)
+    desc: Report what this branch does to the published contract (BASE=origin/main; -- --diff adds bundle diffs)
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/changes.ts {{.BASE | default "origin/main"}}
+      - bun run src/publication/changes.ts {{.BASE | default "origin/main"}} {{.CLI_ARGS}}
+
+  site:fetch:
+    desc: Verify every tagged release on GitHub and cache its bundle in .cache/releases
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      # Reads GITHUB_TOKEN, else `gh auth token`, else goes unauthenticated;
+      # GITHUB_REPOSITORY overrides the repository derived from REPO_URL. A
+      # cached bundle that still hashes to the ledger skips its download.
+      - bun run src/publication/fetch.ts
 
   site:build:
-    desc: Assemble the publication tree served at schemas.musher.dev
+    desc: Assemble the publication tree served at specifications.musher.dev
+    # Pinned paths come only from what site:fetch verified, so it runs first —
+    # but only when the ledger has a tagged entry. With none, nothing is pinned
+    # and the build works offline. Untagged majors are built in memory.
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/site.ts
+      - task: site:fetch
+        if: bun run src/publication/ledger.ts has-tagged
+      - bun run src/publication/site.ts
 
   site:deploy:
-    desc: Deploy the assembled publication tree to Cloudflare Pages
+    desc: Deploy the assembled publication tree to Cloudflare Pages (PAGES_PROJECT=musher-schemas)
     # Run from the repo root, not tools/: the tree being uploaded is at the
     # root, and wrangler resolves --project-name's asset directory from cwd.
     #
@@ -51,6 +69,9 @@ tasks:
     # decided by a reviewed lockfile change, not by whatever `latest` resolves
     # to at deploy time. See GOVERNANCE.md -> Tooling dependencies.
     dir: '{{.ROOT_DIR}}'
+    vars:
+      # The Pages project keeps its old name until infrastructure renames it.
+      PAGES_PROJECT: '{{.PAGES_PROJECT | default "musher-schemas"}}'
     # A precondition rather than `requires: vars:`. GitHub Actions defines an
     # `env:` key whose secret is unset -- as an empty string -- and Task counts
     # empty as set, so `requires` passes in the one environment this guard
@@ -60,8 +81,15 @@ tasks:
         msg: >-
           CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID must both be set and
           non-empty. In CI they are repository secrets; see
-          .github/workflows/pages.yml.
+          .github/workflows/deploy.yml.
     cmds:
       - >-
         {{.TOOLS_DIR}}/node_modules/.bin/wrangler pages deploy {{.SITE_DIR}}
-        --project-name=musher-schemas --branch=main
+        --project-name={{.PAGES_PROJECT}} --branch=main
+
+  site:verify-live:
+    desc: GET every pinned URL and alias on the origin and compare hashes (ORIGIN=https://specifications.musher.dev)
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      # ORIGIN, else SITE_ORIGIN in the environment, else the production host.
+      - bun run src/render/verify-live.ts {{if .ORIGIN}}'--origin={{.ORIGIN}}'{{end}}

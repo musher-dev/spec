@@ -1,0 +1,10 @@
+{
+  "id": "structural-005-nested-unknown-field",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/core/v1/spec.md#envelope",
+  "requirements": [
+    "CORE-ENV-005"
+  ],
+  "summary": "An undefined property nested below the envelope is rejected, not silently dropped."
+}

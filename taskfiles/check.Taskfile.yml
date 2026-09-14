@@ -31,13 +31,13 @@ tasks:
     desc: Verify the .config/ layout (CFG-01..CFG-08)
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/config.ts
+      - bun run src/policy/config.ts
 
   rulesets:
     desc: Verify the review gate holds together (RUL-01..RUL-09)
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/rulesets.ts
+      - bun run src/policy/rulesets.ts
 
   # --- The normative gates ---------------------------------------------------
 
@@ -45,37 +45,37 @@ tasks:
     desc: Meta-validate schema modules, $id uniqueness, and $ref locality
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/lint.ts
+      - bun run src/schema/lint.ts
 
-  drift:
-    desc: Fail if a committed bundle does not match a fresh compile
+  generated:
+    desc: Fail if git tracks any build output (dist/, schemas/dist, a root catalog.json)
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/drift.ts
+      - bun run src/policy/generated.ts
 
   examples:
     desc: Validate every example document against its family bundle
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/examples.ts
+      - bun run src/conformance/examples.ts
 
   conformance:
     desc: Execute the conformance corpus
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/conformance.ts
+      - bun run src/conformance/conformance.ts
 
   standards:
     desc: Meta-validate schemas with an independent JSON Schema toolchain
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/standards.ts
+      - bun run src/schema/standards.ts
 
   parity:
     desc: Require Ajv and Blaze to agree on every structural verdict
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/parity.ts
+      - bun run src/conformance/parity.ts
 
   test:
     desc: Run the tooling test suite
@@ -86,22 +86,40 @@ tasks:
   # --- The publication record ------------------------------------------------
 
   published:
-    desc: Verify every released version against the publication ledger
+    desc: Verify every recorded release against git and the ledger, offline (docs/adr/0023 §4)
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/published.ts
+      # Tagged entries by tree id and the tag's own ledger, never rebuilt;
+      # pending entries against HEAD and a fresh pinned build. Needs full history
+      # and tags: a shallow clone with a non-empty ledger fails.
+      - bun run src/publication/verify.ts
+
+  published:online:
+    desc: Verify every tagged release's GitHub release and assets, without caching
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      # Reads GITHUB_TOKEN, else `gh auth token`, else goes unauthenticated;
+      # GITHUB_REPOSITORY overrides the repository derived from REPO_URL.
+      - bun run src/publication/fetch.ts --verify-only
 
   ledger:
-    desc: Fail if published.json changed anything already recorded
+    desc: Fail if published.json changed anything already recorded (BASE_REF=<ref>)
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/ledger.ts check
+      # Compares against BASE_REF; without it only parses the ledger.
+      - bun run src/publication/ledger.ts check
+
+  editions:
+    desc: Report where core stands and gate every pending kind family release on it
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      - bun run src/publication/core-gate.ts
 
   compat:
     desc: Replay every released version's accepted documents against the candidate schema
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/compat.ts
+      - bun run src/publication/compat.ts
 
   # --- Prose, workflows, and shell -------------------------------------------
 
@@ -109,13 +127,35 @@ tasks:
     desc: Hold the Conventional Commits vocabulary in step across all five of its copies
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/commits.ts
+      - bun run src/policy/commits.ts
+
+  title:
+    desc: Validate a pull request title against .github/conventional-commits.yaml (PR_TITLE=<title>)
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      # CI only, on pull requests: not part of `task check`, which has no title.
+      # PR_TITLE is read from the environment and fails when unset.
+      - bun run src/policy/title.ts
+
+  docs:
+    desc: Fail if docs/traceability.md or the ADR index differs from a fresh generation
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      # Regenerates both in memory and writes nothing; `task docs` is the fix.
+      - bun run src/policy/docs.ts
 
   links:
     desc: Resolve every internal Markdown link and anchor
     dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
     cmds:
-      - bun run src/links.ts
+      - bun run src/policy/links.ts
+
+  adr:
+    desc: Verify ADR numbering and relations, and hold accepted ADRs to link-target-only edits (ADR-01..ADR-04)
+    dir: '{{.ROOT_DIR}}/{{.TOOLS_DIR}}'
+    cmds:
+      # ADR-04 compares against BASE_REF when set, else origin/main, else skips.
+      - bun run src/policy/adr.ts
 
   md:
     desc: Lint Markdown against .config/markdown/markdownlint.jsonc
@@ -124,10 +164,16 @@ tasks:
       # pull_request_template.md is excluded because it is a form fragment, not
       # a document: GitHub renders it into a textarea, so it has no title and
       # MD041 would be asking it to grow one.
+      #
+      # release-please writes specifications/*/v*/CHANGELOG.md. It is generated,
+      # its blank-line style (two blank lines before a `###` section) violates
+      # MD012, and a fix here would be overwritten by the next release pull
+      # request — so it is excluded rather than linted.
       - >-
         tools/node_modules/.bin/markdownlint-cli2
         --config .config/markdown/markdownlint.jsonc
         "**/*.md" "#tools/node_modules" "#site" "#.github/pull_request_template.md"
+        "#specifications/*/v*/CHANGELOG.md"
 
   spelling:
     desc: Spell-check prose, tooling sources, and schema descriptions

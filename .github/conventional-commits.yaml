@@ -1,11 +1,13 @@
 # Single source of truth for the Conventional Commits vocabulary.
 #
-# Nothing reads this file at runtime and nothing can: the lint-pr.yml action
-# takes static YAML inputs, and the lefthook commit-msg hook is a POSIX regex.
-# Both therefore inline these lists. What makes this file the source of truth
-# rather than a third copy is `task check:commits`, which fails when any of the
-# three disagree — the enforced form of the "keep them in step" this comment
-# used to ask for politely.
+# `task check:title` reads this file to validate a pull request title. The other
+# copies cannot read it: the lint-pr.yml action takes static YAML inputs, the
+# lefthook commit-msg hook is a POSIX regex, dependabot.yml writes fixed commit
+# prefixes, and CONTRIBUTING.md prints the lists for a reader. They inline these
+# lists instead. What makes this file the source of truth rather than one more
+# copy is `task check:commits`, which fails when any of the five disagree — the
+# enforced form of the "keep them in step" this comment used to ask for
+# politely.
 types:
   - feat
   - fix
@@ -19,10 +21,11 @@ types:
   - style
   - revert
 
-# The scope selects which release train a change belongs to. The three
-# specification families release independently, so an unscoped `feat:` will
-# not produce a release.
+# The scope labels the area a change touches. It does not select a release
+# train: release-please assigns a commit to a package by the paths the commit
+# changes (.github/release-please/config.json), whatever its scope says.
 scopes:
+  - core
   - component
   - blueprint
   - listing

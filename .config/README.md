@@ -7,7 +7,7 @@ container, it goes in here.
 Policy and rationale:
 [`docs/adr/0011-tooling-configuration-layout.md`](../docs/adr/0011-tooling-configuration-layout.md).
 Enforcement: `task check:config` (CFG-01..CFG-08), implemented in
-[`tools/src/config.ts`](../tools/src/config.ts).
+[`tools/src/policy/config.ts`](../tools/src/policy/config.ts).
 
 The convention is shared with `musher-dev/development-container` and
 `musher-dev/platform`. Keeping the three aligned is the point: a contributor
@@ -31,9 +31,11 @@ Call sites are [`Taskfile.yml`](../Taskfile.yml), [`taskfiles/`](../taskfiles/),
 `.config/lefthook.yml`, and [`.github/workflows/`](../.github/workflows/).
 Tool versions are pinned in
 [`tools/package.json`](../tools/package.json) for anything installed by Bun,
-and in [`.devcontainer/mise.toml`](../.devcontainer/mise.toml) for the rest —
-with the CI workflow mirroring the same version, because CI is not a mise host
-and does not read that file.
+and in [`.devcontainer/mise.toml`](../.devcontainer/mise.toml) for the rest.
+CI is not a mise host and does not read that file. The CI workflows pin the
+tools they install themselves, Task and actionlint, to the same versions.
+ShellCheck is the exception: CI uses the copy preinstalled on the runner image,
+which is not pinned and can differ from the container's.
 
 ## Rules
 
@@ -69,7 +71,7 @@ whole directory exists to prevent, and it is one command to rule out.
 | `LICENSE`, `NOTICE` | Repo root | GitHub detects a licence at the root only, and Apache-2.0 expects NOTICE to travel with the work |
 | `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md` | `.github/` | Community health files, which GitHub resolves from there |
 | `biome.json`, `tsconfig.json` | `tools/` | They belong to the `tools/` package and are resolved by it — a package's own config, not a repo-level one |
-| `catalog.json`, `published.json` | Repo root | Published data artifacts, not tool configuration |
+| `published.json` | Repo root | A published data artifact, not tool configuration. The catalog is build output under `dist/`, never tracked |
 | `mise.toml`, `devcontainer.json` | `.devcontainer/` | They provision the environment rather than checking the code |
 | `dependabot.yml`, `release-please/`, `rulesets/`, `workflows/` | `.github/` | GitHub reads these from fixed locations |
 

@@ -59,6 +59,23 @@ install_spec_tools() {
   }
 }
 
+# Builds the schema bundles into dist/, which the editor's yaml.schemas
+# bindings in devcontainer.json point at. Bundles are build output and not
+# tracked, so a fresh container has none until this runs. Best-effort: a
+# failure leaves the container usable, and `task bundle` recovers.
+#
+# Outputs:
+#   Writes progress to stderr via log()
+build_schema_bundles() {
+  command -v task >/dev/null 2>&1 || return 0
+  command -v bun >/dev/null 2>&1 || return 0
+  log "Building schema bundles (task bundle)..."
+  (cd "${SCRIPT_DIR}/../.." && task bundle >/dev/null) || {
+    log "WARNING: task bundle failed; run it once the container is up"
+    return 0
+  }
+}
+
 # Entry point: runs the full post-create setup sequence.
 #
 # Arguments:
@@ -75,6 +92,7 @@ main() {
   install_lefthook_hooks
   # --- Repo-specific setup ---
   install_spec_tools
+  build_schema_bundles
   if ((status != 0)); then
     log "Post-create setup completed with MISSING TOOLS (see the ✗ lines above)"
     return "${status}"

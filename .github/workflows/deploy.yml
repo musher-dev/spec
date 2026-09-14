@@ -1,0 +1,117 @@
+name: Deploy
+
+# The one path by which the published origin changes. No `push` trigger:
+# release.yml runs on every push to main and calls this as its last job, after
+# any release that push cut has been published as an immutable GitHub Release.
+# A push trigger here would start at the same moment as release-please and race
+# it, deploying a tree without the version being released. See
+# docs/adr/0023-published-bytes-are-immutable-release-assets.md §8.
+#
+# Dispatch it by hand only to redeploy the current state of main, for example
+# after an edge-side incident. A failed release is recovered by dispatching
+# release.yml with its tag, which deploys when it is done.
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Publish specifications.musher.dev
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Job-level, not workflow-level. A workflow-level group would be held by the
+    # calling workflow while this job waited for the same group, which
+    # deadlocks; and only a job-level group serialises across both the dispatch
+    # and the workflow_call path. Never cancel in flight — an interrupted deploy
+    # would leave the published origin in an indeterminate state.
+    concurrency:
+      group: pages-deploy
+      cancel-in-progress: false
+    # No `pages: write` or `id-token: write`: the origin is Cloudflare Pages, and
+    # the credential that reaches it is a repository secret rather than a
+    # workflow token. `contents: read` is also what site:fetch needs to read
+    # published releases. See docs/adr/0012.
+    permissions:
+      contents: read
+    steps:
+      # Only main is deployed. A dispatch from another branch would publish that
+      # branch's working tree as the alias of every unreleased major. Under
+      # workflow_call, github.ref is the caller's, which release.yml holds to
+      # main as well.
+      - name: Dispatched from main
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          if [ "$REF" != 'refs/heads/main' ]; then
+            echo "::error::Deploy runs only from refs/heads/main, not ${REF}. Dispatch it from main." >&2
+            exit 1
+          fi
+
+      # Full history and every tag: check:published proves each tagged ledger
+      # entry against `<tag>:<path>`, and a shallow clone holding a non-empty
+      # ledger but no tags is refused outright.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: tools/.bun-version
+
+      - uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e # v2.2.0
+        with:
+          version: 3.52.0
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install tooling dependencies
+        working-directory: tools
+        run: bun install --frozen-lockfile
+
+      # Offline: every tagged entry in published.json still names the tree its
+      # tag holds, and every tag has an entry. A rewritten tag or an edited
+      # ledger stops the deploy here.
+      - name: Verify published versions
+        run: task check:published
+
+      # Online: every tagged entry is a published, immutable GitHub Release whose
+      # asset digests and downloaded bytes match the ledger. The verified bytes
+      # land in .cache/releases/, the only place site:build reads pinned paths
+      # from. A release left in draft by a failed run fails here, which is what
+      # keeps a deploy from silently dropping a pinned path.
+      - name: Fetch and verify release assets
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: task site:fetch
+
+      # `_headers` is assembled here too, from the same enumeration that writes
+      # the tree. The cache contract is therefore reviewed in this repository
+      # rather than configured at an edge this repository cannot see.
+      # site:build re-runs site:fetch when the ledger has a tagged entry, so it
+      # holds the same token: no fetch goes out unauthenticated. No
+      # ALLOW_PENDING_RELEASES here — a deploy without a tagged release's
+      # published assets would drop its pinned path, so it fails instead.
+      - name: Assemble publication tree
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: task site:build
+
+      # The token is scoped to the Cloudflare Pages project. `task site:deploy`
+      # refuses to run unless both are set and non-empty, so a missing secret
+      # fails the job instead of deploying anonymously -- an unset secret
+      # arrives here as an empty value, not as an absent one, which is why the
+      # guard tests for emptiness rather than for definedness.
+      - name: Deploy to Cloudflare Pages
+        run: task site:deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      # What the origin now serves at every pinned URL and alias must hash to
+      # what was verified above. A deploy that reports success but serves other
+      # bytes is caught on this run, not by a consumer.
+      - name: Verify the live origin
+        run: task site:verify-live

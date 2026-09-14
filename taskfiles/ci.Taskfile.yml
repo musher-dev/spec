@@ -20,7 +20,9 @@ tasks:
       - task: :check:config
       - task: :check:rulesets
       - task: :check:commits
+      - task: :check:docs
       - task: :check:links
+      - task: :check:adr
       - task: :check:md
       - task: :check:spelling
       - task: :check:shell
@@ -30,10 +32,11 @@ tasks:
     desc: Schema and conformance suite as run in CI
     cmds:
       - task: :check:schema
-      - task: :check:drift
+      - task: :check:generated
       - task: :check:examples
       - task: :check:conformance
       - task: :check:standards
       - task: :check:parity
+      - task: :check:editions
       - task: :check:compat
       - task: :check:test

@@ -1,4 +1,4 @@
-// musher-dev/spec dev container.
+// musher-dev/specifications dev container.
 //
 // Trimmed from the musher-dev/development-container template. This repository
 // bundles and validates JSON — it builds no images, runs no services, and needs
@@ -9,7 +9,7 @@
 // Kept: Bun and Node for tools/, Task as the runner, shellcheck for the
 // devcontainer scripts, gh for release work.
 {
-  "name": "Musher Specification",
+  "name": "Musher Specifications",
 
   // Pinned to the LTS, not the floating :ubuntu tag — that one rolls to interim
   // releases some upstream Features do not support.
@@ -145,19 +145,21 @@
         },
 
         // Authoring aid: bind the LOCAL bundles, not the published URLs, so
-        // examples and fixtures are checked against the working tree.
+        // examples and fixtures are checked against the working tree. They are
+        // build output under dist/: post-create runs `task bundle`, and so
+        // must you after editing schemas/src.
         "yaml.schemas": {
-          "./specifications/component/v1/schemas/dist/component.schema.json": [
+          "./dist/component/v1/component.schema.json": [
             "specifications/component/v1/examples/*.yaml",
-            "conformance/component/v1/**/case.yaml"
+            "specifications/component/v1/conformance/**/case.yaml"
           ],
-          "./specifications/blueprint/v1/schemas/dist/blueprint.schema.json": [
+          "./dist/blueprint/v1/blueprint.schema.json": [
             "specifications/blueprint/v1/examples/*.yaml",
-            "conformance/blueprint/v1/**/case.yaml"
+            "specifications/blueprint/v1/conformance/**/case.yaml"
           ],
-          "./specifications/listing/v1/schemas/dist/listing.schema.json": [
+          "./dist/listing/v1/listing.schema.json": [
             "specifications/listing/v1/examples/*.yaml",
-            "conformance/listing/v1/**/case.yaml"
+            "specifications/listing/v1/conformance/**/case.yaml"
           ]
         },
 

@@ -1,0 +1,10 @@
+{
+  "id": "parser-008-explicit-tag",
+  "phase": "parser",
+  "expected": "fail",
+  "clause": "specifications/core/v1/spec.md#yaml-profile",
+  "requirements": [
+    "CORE-YAML-009"
+  ],
+  "summary": "A node carrying an explicit YAML tag is rejected."
+}

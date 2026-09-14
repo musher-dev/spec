@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://schemas.musher.dev/component/v1/component.schema.json
+# yaml-language-server: $schema=https://specifications.musher.dev/component/v1/component.schema.json
 #
 # A node this platform does not run. §5.6 gives it `spec.external` instead of
 # `spec.workload`: there is no image, no compute and no address of its own, and

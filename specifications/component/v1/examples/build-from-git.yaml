@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://schemas.musher.dev/component/v1/component.schema.json
+# yaml-language-server: $schema=https://specifications.musher.dev/component/v1/component.schema.json
 #
 # A component built from source rather than pulled as a prebuilt image, with a
 # public HTTP endpoint and a readiness probe.

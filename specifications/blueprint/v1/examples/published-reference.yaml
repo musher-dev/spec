@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://schemas.musher.dev/blueprint/v1/blueprint.schema.json
+# yaml-language-server: $schema=https://specifications.musher.dev/blueprint/v1/blueprint.schema.json
 #
 # The published reference form. `componentRef` is the UUID of a component the
 # platform already holds, and `revision` pins the lineage version to

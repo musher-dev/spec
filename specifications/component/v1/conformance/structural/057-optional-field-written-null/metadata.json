@@ -1,0 +1,8 @@
+{
+  "id": "structural-057-optional-field-written-null",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/core/v1/spec.md#envelope",
+  "requirements": ["CORE-ENV-007"],
+  "summary": "An optional field written null is rejected; it is omitted instead."
+}

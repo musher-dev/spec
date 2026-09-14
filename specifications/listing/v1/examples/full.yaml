@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://schemas.musher.dev/listing/v1/listing.schema.json
+# yaml-language-server: $schema=https://specifications.musher.dev/listing/v1/listing.schema.json
 #
 # A storefront entry using the full descriptive surface. Media paths begin at
 # `media/` and resolve inside the item root (§5). The description stays inside

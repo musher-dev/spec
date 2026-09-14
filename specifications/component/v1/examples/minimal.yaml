@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://schemas.musher.dev/component/v1/component.schema.json
+# yaml-language-server: $schema=https://specifications.musher.dev/component/v1/component.schema.json
 #
 # The smallest component that validates: a service running a pinned image and
 # serving one private port. §5 requires the endpoint — a SERVICE that exposes
