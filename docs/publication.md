@@ -376,9 +376,11 @@ starting with core, is tagged:
 4. **Create the release GitHub App.** Grant it Contents read and write, Pull
    requests read and write, and Administration read, which the release job uses
    to confirm immutable releases are enabled before it publishes. GitHub adds
-   Metadata read to every App. Install it on this repository, then record its id
-   as the repository variable `RELEASE_APP_ID` and its private key as the
-   repository secret `RELEASE_APP_PRIVATE_KEY`.
+   Metadata read to every App. Install it on this repository, then record its
+   client ID, shown on the App's settings page, as the repository variable
+   `RELEASE_APP_CLIENT_ID`, and its private key as the repository secret
+   `RELEASE_APP_PRIVATE_KEY`. The numeric App ID is not what the token action
+   reads.
 5. **Set the release sign-off.** The `signoff` in
    `.github/release-please/config.json` holds a placeholder:
 
