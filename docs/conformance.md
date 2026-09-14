@@ -131,7 +131,7 @@ a validator MUST NOT reach the network, MUST NOT echo a value in a diagnostic �
 are normative prose and carry no ID, because an identifier whose permanent
 state is "excused" documents nothing.
 
-[`docs/traceability.md`](../docs/traceability.md) is generated from these and
+[`docs/traceability.md`](traceability.md) is generated from these and
 shows every requirement against the clause stating it and the cases pinning it.
 
 ## <a id="case-trees"></a>Case trees
@@ -187,7 +187,7 @@ An adapter that cannot materialise a tree SKIPs those cases. It MUST NOT report
 them as passed.
 
 The contract is set by
-[ADR 0002](../docs/adr/0002-conformance-case-trees.md).
+[ADR 0002](adr/0002-conformance-case-trees.md).
 
 ## `diagnostics.json`
 
@@ -221,7 +221,7 @@ identical corpus.
 ## <a id="effective-values"></a>Effective values
 
 A case declares whether a document is **accepted**. That is not the whole of
-what a document means, and [ADR 0008](../docs/adr/0008-effective-values.md) is
+what a document means, and [ADR 0008](adr/0008-effective-values.md) is
 about the rest of it.
 
 `default` in JSON Schema is an annotation. Validators do not insert it, so two
@@ -343,7 +343,7 @@ exceptions, all `capability`:
 | `ERR_VERSION_NOT_MONOTONIC` | `capability` — comparing a version against the lineage it extends needs the catalog, and a fixture is one document with no previous release to be greater than |
 | `ERR_COMPONENT_NOT_PUBLISHED` | `capability` — only the registry holds publication state, and a fixture is a tree of files none of which has one |
 | `ERR_UNKNOWN_COMPUTE_PROFILE` | `capability` — the slug grammar is fixtured, but which profiles are offered changes when the platform gains hardware to back a tier, not when this repository releases |
-| `ERR_UNKNOWN_RESOURCE_TYPE` | `capability` — the grammar is fixtured, but membership is a registry [ADR 0009](../docs/adr/0009-resource-type-registry.md) §2 puts outside this repository, and its §3 forbids an offline client from reporting the code at all |
+| `ERR_UNKNOWN_RESOURCE_TYPE` | `capability` — the grammar is fixtured, but membership is a registry [ADR 0009](adr/0009-resource-type-registry.md) §2 puts outside this repository, and its §3 forbids an offline client from reporting the code at all |
 
 That table is a copy, and it can go stale; the list that counts is the runner's
 `UNCOVERED`. What `task check:conformance` enforces is the rule behind it: every

@@ -55,7 +55,7 @@ specifications/<family>/
     spec.md             normative prose
     schemas/src/        authored JSON Schema modules (kind families only)
     examples/           example documents, validated in CI (kind families only)
-    conformance/        the corpus, in the format conformance/README.md defines
+    conformance/        the corpus, in the format docs/conformance.md defines
     CHANGELOG.md        written by release-please, from the first release on
 ```
 
@@ -77,7 +77,7 @@ family's complete behaviour. Each has executable forms:
   envelope rules for that family's documents. Core publishes no schema.
 - **The conformance corpus** is the executable form for observable outcomes. A
   family release is covered by its own corpus together with the core corpus.
-- **The fixture format**, [conformance/README.md](../conformance/README.md),
+- **The fixture format**, [docs/conformance.md](../docs/conformance.md),
   defines how every corpus is read: the case layout, what `metadata.json` and
   `diagnostics.json` declare, and the profiles an implementation claims. This
   page does not restate it; a corpus means what that page says it means.
@@ -94,7 +94,7 @@ reference on the site and [docs/traceability.md](../docs/traceability.md)
 included), and human-readable validator messages are informative.
 
 What within a single conformance case is normative is set out in
-[conformance/README.md](../conformance/README.md#what-is-normative).
+[docs/conformance.md](../docs/conformance.md#what-is-normative).
 
 ## <a id="implementing"></a>Implementing a family
 
@@ -113,7 +113,7 @@ What within a single conformance case is normative is set out in
    Before a family's first release there is no recorded edition: use core as it
    stands on `main`. Core cases run through the parser
    alone. Declare the profile you claim, as
-   [conformance/README.md](../conformance/README.md#profiles) describes.
+   [docs/conformance.md](../docs/conformance.md#profiles) describes.
 3. **Trace what you cover.** [docs/traceability.md](../docs/traceability.md)
    maps every requirement ID to the clause stating it and the cases pinning it.
 

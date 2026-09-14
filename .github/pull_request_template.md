@@ -16,7 +16,7 @@
 - [ ] **Breaking** — a previously valid document now fails.
 
 A breaking change requires maintainer approval (an obligation, not a gate — see
-[GOVERNANCE](../GOVERNANCE.md#compatibility-review)), a new `v<N>` directory, and a
+[Governance](../docs/governance.md#compatibility-review)), a new `v<N>` directory, and a
 migration note. Validation must never become stricter inside a major version.
 
 ## Checklist

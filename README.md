@@ -30,10 +30,10 @@ which of its parts are normative in
 | I want to… | Start at |
 |---|---|
 | validate a document, or bind a schema in my editor | [Using the schemas](docs/using-schemas.md) |
-| implement a parser or validator | [Implementing a family](specifications/README.md#implementing), then the [fixture format](conformance/README.md) |
+| implement a parser or validator | [Implementing a family](specifications/README.md#implementing), then the [fixture format](docs/conformance.md) |
 | look up a rule by its requirement ID | [Requirement traceability](docs/traceability.md) |
 | know whether a version is released | [Draft or released](docs/publication.md#draft-or-released) |
-| know what counts as a breaking change | [Compatibility review](GOVERNANCE.md#compatibility-review) |
+| know what counts as a breaking change | [Compatibility review](docs/governance.md#compatibility-review) |
 | change a specification | [Contributing](.github/CONTRIBUTING.md) |
 | understand why something was decided | [Architecture decision records](docs/adr/README.md) |
 | report a vulnerability | [Security policy](.github/SECURITY.md) |
@@ -43,10 +43,10 @@ which of its parts are normative in
 
 ```
 specifications/   one directory per family; each major version, v<N>/, releases on its own tag line
-conformance/      the fixture format every corpus follows
-docs/             guides, conventions, traceability, and decision records
+docs/             guides, governance, the fixture format, traceability, and decisions
 tools/            non-normative build and check scripts (Bun and TypeScript)
 taskfiles/        the tasks behind `task check`
+.claude/          the agent brief, CLAUDE.md, for Claude Code
 .config/          every linter, formatter, and hook configuration
 .github/          contributing, security, rulesets, and workflows
 published.json    append-only ledger of every release (docs/publication.md#the-ledger)
@@ -61,7 +61,7 @@ task check   # run every check CI runs, except the CI-only steps
 
 Read [CONTRIBUTING.md](.github/CONTRIBUTING.md) before opening a pull request,
 [docs/conventions.md](docs/conventions.md) for how repository artifacts are
-named, and [GOVERNANCE.md](GOVERNANCE.md) for how decisions are made.
+named, and [docs/governance.md](docs/governance.md) for how decisions are made.
 
 ## License
 

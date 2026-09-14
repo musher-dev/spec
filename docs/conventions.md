@@ -42,4 +42,4 @@ These rules are checked, so do not work around them.
 A case ID leads with its phase, and the rest of it names the case's directory
 inside that phase's directory. How a case
 is laid out, indexed, and declared is defined in the
-[conformance suite's fixture format](../conformance/README.md).
+[conformance suite's fixture format](conformance.md).

@@ -5,7 +5,7 @@ How a change on `main` becomes a released, immutable family version served at
 and [Release assets](#release-assets) are for anyone reading or consuming a
 version. The rest describes the pipeline as it runs, for maintainers. The policy
 it implements lives in
-[GOVERNANCE.md → Release process](../GOVERNANCE.md#release-process), and the
+[Governance → Release process](governance.md#release-process), and the
 reasoning behind it lives in
 [ADR 0006](adr/0006-publication-from-tags.md) and
 [ADR 0023](adr/0023-published-bytes-are-immutable-release-assets.md).
@@ -92,8 +92,8 @@ as `component-v1/`. A kind family archive's directory holds:
 
 A core archive's directory holds `spec.md`, `conformance/`, `LICENSE`, `NOTICE`
 and `release.json`. In both archives, `conformance/` carries the fixture format,
-`conformance/README.md`, beside the corpus. Archives are deterministic: fixed tar
-ordering, owner and mtime, and `gzip -n`.
+[docs/conformance.md](conformance.md), as `conformance/README.md` beside the corpus.
+Archives are deterministic: fixed tar ordering, owner and mtime, and `gzip -n`.
 
 How to check an asset's digest and provenance is in
 [SECURITY.md → Verifying a release](../.github/SECURITY.md#verifying-a-release).
@@ -317,7 +317,7 @@ cannot change, and its ledger entry cannot be edited. Correct it forward:
 1. **Supersede.** Fix the defect on `main` with a `fix` commit, and release the
    patch through the normal flow.
 2. **Deprecate.** Mark the flawed version as
-   [GOVERNANCE.md → Deprecation and retirement](../GOVERNANCE.md#deprecation-and-retirement)
+   [Governance → Deprecation and retirement](governance.md#deprecation-and-retirement)
    describes, and point at the superseding version.
 
 There is no `withdrawn` state, so a published version keeps serving

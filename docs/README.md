@@ -16,8 +16,9 @@ every guide by who it is for.
   and [what is normative](../specifications/README.md#what-is-normative).
 - [Implementing a family](../specifications/README.md#implementing): the reading
   order and the corpora a conformance claim covers.
-- [Conformance suite](../conformance/README.md): the fixture format every
-  corpus follows, and the profiles an implementation claims.
+- [Conformance suite](conformance.md): the fixture format every
+  corpus follows, and the profiles an implementation claims. Normative, unlike
+  the guides on this page.
 - [Requirement traceability](traceability.md): every requirement ID, its clause,
   and its cases. Generated.
 
@@ -29,14 +30,14 @@ every guide by who it is for.
 - [Tools](../tools/README.md): what each `task check` step enforces, the script
   behind it, and how the tooling is organized.
 - [ADR 0007](adr/0007-naming-conventions.md): how fields and values are named.
-- [Compatibility review](../GOVERNANCE.md#compatibility-review): what counts as
+- [Compatibility review](governance.md#compatibility-review): what counts as
   a breaking change.
 
 ## Maintainers: releasing and operating
 
 - [Publication](publication.md): from tag to release assets to the site, cache
   policy, and the ledger.
-- [Governance](../GOVERNANCE.md): roles, decision process, and release policy.
+- [Governance](governance.md): roles, decision process, and release policy.
 - [Repository rulesets](../.github/rulesets/RULESETS.md): branch and tag
   protection, and the code-owner review gate.
 - [Tool configuration](../.config/README.md): where every linter, formatter and

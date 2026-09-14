@@ -17,7 +17,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { git } from '../lib/git.ts'
 import {
-  CONFORMANCE_README,
+  CONFORMANCE_FORMAT_FILE,
   CORE_FAMILY,
   canonicalJson,
   familyPaths,
@@ -158,7 +158,7 @@ export class FixtureRepo {
   writeRepositoryFiles(): void {
     this.writeFile(LICENSE_FILE, 'Apache License 2.0 (fixture)\n')
     this.writeFile(NOTICE_FILE, 'Fixture notice\n')
-    this.writeFile(CONFORMANCE_README, '# Conformance (fixture)\n')
+    this.writeFile(CONFORMANCE_FORMAT_FILE, '# Conformance (fixture)\n')
     this.writeReleaseConfig()
   }
 

@@ -11,7 +11,7 @@
  * So each structural subject is validated twice: once by Ajv, once by Blaze
  * through the Sourcemeta CLI, which is a separate implementation of 2020-12 in
  * a different language. Only the verdict is compared. Diagnostic text is not
- * normative (conformance/README.md), and Blaze does not emit Musher codes —
+ * normative (docs/conformance.md), and Blaze does not emit Musher codes —
  * requiring it to would be requiring a second implementation to be the first.
  *
  * Skipped rather than failed when the CLI is absent, so a contributor without

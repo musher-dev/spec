@@ -22,7 +22,7 @@
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
-import { Failures, REPO_ROOT, relativeToRepo } from '../lib/layout.ts'
+import { CLAUDE_WORKTREES_DIR, Failures, REPO_ROOT, relativeToRepo } from '../lib/layout.ts'
 
 /** `[text](target)`, skipping image embeds and reference definitions. */
 const MARKDOWN_LINK = /\[(?:[^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g
@@ -35,10 +35,12 @@ const SKIP_DIRS = new Set(['node_modules', '.git', 'site', '.task'])
 
 function markdownFiles(root: string): string[] {
   const found: string[] = []
+  const worktrees = join(root, CLAUDE_WORKTREES_DIR)
   const walk = (dir: string): void => {
     for (const entry of readdirSync(dir).sort()) {
       if (SKIP_DIRS.has(entry)) continue
       const path = join(dir, entry)
+      if (path === worktrees) continue
       if (statSync(path).isDirectory()) walk(path)
       else if (entry.endsWith('.md')) found.push(path)
     }

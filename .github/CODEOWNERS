@@ -42,7 +42,7 @@
 #
 # What is deliberately NOT owned: `specifications/` carries the normative
 # contract, every family's prose, schemas and conformance corpus, and
-# `conformance/` holds only the fixture-format README. GOVERNANCE.md still
+# `docs/conformance.md` holds the fixture format. docs/governance.md still
 # requires maintainer approval for a breaking change. That obligation is social
 # rather than mechanical — ADR 0015 records the trade and why it was accepted.
 

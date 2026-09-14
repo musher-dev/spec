@@ -19,11 +19,16 @@
  * `musher-dev/platform`, which run the same rules from a Python CLI. Three
  * repositories, one convention, one vocabulary for reporting a breach of it.
  *
+ * CFG-09 is this repository's own: the root holds only the entries
+ * `ROOT_ENTRIES` names (docs/adr/0024), so a leftover or a stray file fails
+ * rather than accreting one commit at a time.
+ *
  * NON-NORMATIVE, like everything under tools/.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
-import { Failures, REPO_ROOT } from '../lib/layout.ts'
+import { git } from '../lib/git.ts'
+import { Failures, REPO_ROOT, ROOT_ENTRIES } from '../lib/layout.ts'
 
 const CONFIG_DIR = '.config'
 
@@ -71,7 +76,7 @@ const SHADOWING = [
 /**
  * Tool configs that belong in `.config/` and must never reappear at the root.
  *
- * Git, Task and EditorConfig files are deliberately absent: they are root-only
+ * Git and Task files are deliberately absent: they are root-only
  * by their own tools' rules, with no flag that could point elsewhere. So are
  * `tools/biome.json` and `tools/tsconfig.json`, which belong to the `tools/`
  * package and are resolved by it.
@@ -260,13 +265,42 @@ export function configViolations(repoRoot: string = REPO_ROOT): string[] {
     )
   }
 
+  // A file CFG-06 or CFG-07 already names is not reported a second time: the
+  // finding that says where it belongs is the one worth reading.
+  const named = new Set([...SHADOWING, ...STRAY_ROOT_CONFIGS])
+  for (const name of rootEntries(repoRoot)) {
+    if (ROOT_ENTRIES.includes(name) || named.has(name)) continue
+    problems.push(
+      `CFG-09: ${name} at the repo root is not in ROOT_ENTRIES (tools/src/lib/layout.ts). ` +
+        'Move it under the directory that owns its concern, or gitignore it if it is ' +
+        'build output. See docs/adr/0024.',
+    )
+  }
+
   return problems
+}
+
+/**
+ * The top-level names of every path git tracks, staged ones included.
+ *
+ * Untracked paths do not count. The allowlist governs what the repository
+ * holds, and a checkout also holds what runs in it: CI downloads actionlint's
+ * archive into the workspace root before it lints, and local build output sits
+ * there until `task clean`. Counting those failed a clean tree in CI.
+ */
+function rootEntries(repoRoot: string): string[] {
+  const listing = git(repoRoot, ['ls-files', '-z', '--cached'])
+  const names = listing
+    .split('\0')
+    .filter((path) => path !== '')
+    .map((path) => path.split('/')[0] as string)
+  return [...new Set(names)].sort()
 }
 
 function main(): void {
   const failures = new Failures()
   for (const problem of configViolations()) failures.add(problem)
-  failures.report(`${CONFIG_DIR}/ layout is intact (CFG-01..CFG-08).`)
+  failures.report(`${CONFIG_DIR}/ layout and the repository root are intact (CFG-01..CFG-09).`)
 }
 
 if (import.meta.main) main()

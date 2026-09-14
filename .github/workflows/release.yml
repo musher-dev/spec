@@ -195,7 +195,7 @@ jobs:
   # to the draft, publish it, and prove GitHub holds it immutably.
   #
   # Data artifacts only — no binaries, no generated language bindings. See
-  # GOVERNANCE.md → Binary policy.
+  # docs/governance.md → Binary policy.
   # ---------------------------------------------------------------------------
   artifacts:
     name: Release artifacts

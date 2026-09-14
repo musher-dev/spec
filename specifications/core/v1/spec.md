@@ -14,7 +14,7 @@ appear in all capitals, as shown here.
 > document family shares. It publishes no JSON Schema of its own
 > ([§10](#known-debt)): each family's bundle is the executable form of that
 > family's structural validity, and states this document's envelope rules for
-> that family's documents. The [conformance corpus](../../../conformance/README.md)
+> that family's documents. The [conformance corpus](../../../docs/conformance.md)
 > — this document's own, and each family's — is the executable form for
 > observable outcomes. This document, the corpora, and each family schema where
 > it states a rule of this document are normative, and none is permitted to
@@ -473,7 +473,7 @@ single claim: `capability` needs an account, a region, and a quota, so an
 implementation a user runs locally cannot reach it, and an editor integration
 that checks structure is a useful thing to be without being a control plane.
 The profiles, and the report shape a claim should take, are defined in
-[conformance/README.md](../../../conformance/README.md#profiles).
+[docs/conformance.md](../../../docs/conformance.md#profiles).
 
 A skipped case is never a passed one. An implementation MUST NOT claim a
 profile while skipping any case in a phase that profile requires.
@@ -593,7 +593,7 @@ point anywhere the process can read, so an implementation MUST resolve links
 before testing containment, and MUST treat a dangling link resolving outside the
 root as an escape — containment is a property of the resolved location, not of
 whether the target happens to exist. The conformance corpus fixtures this
-directly; see [conformance/README.md](../../../conformance/README.md#case-trees).
+directly; see [docs/conformance.md](../../../docs/conformance.md#case-trees).
 
 An implementation MUST NOT follow a path outside the item root even when the
 resulting file would be readable and would parse. The rule is about what a

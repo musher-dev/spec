@@ -25,7 +25,7 @@ anything this repository can observe.
 
 Committing the catalog here would make it a second source of truth, and the one
 that is wrong: a released artifact is immutable
-([GOVERNANCE.md](../../GOVERNANCE.md) §Release process), so a list frozen at
+([GOVERNANCE.md](../governance.md) §Release process), so a list frozen at
 release time drifts the moment the offering changes, and a reader who trusted it
 would be told a tier exists that cannot be deployed, or told one does not exist
 that can.

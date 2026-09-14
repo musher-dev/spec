@@ -28,7 +28,7 @@ which of them decided wrong from a disclosure report.
 
 Two things force the timing. First, constraining the subset rejects listings
 that validate today, which
-[GOVERNANCE.md § Compatibility review](../../GOVERNANCE.md) makes a breaking
+[GOVERNANCE.md § Compatibility review](../governance.md) makes a breaking
 change requiring a new `v<N>` directory. Second, no tag exists yet and the
 `1.0.0` release PRs are still open, so the change is free now and expensive
 immediately afterwards. Of the two `TODO`s this repository still carried, this
