@@ -9,19 +9,41 @@
  * NON-NORMATIVE, like everything under tools/.
  */
 import { spawnSync } from 'node:child_process'
+import { resolve } from 'node:path'
 
 /**
- * Git invoked with the environment neutralised.
+ * The environment every git call runs in.
  *
  * A developer's global config, commit signing, or hook path must not change
  * what the tooling reads, and in a test it must not change what the fixture
  * repository does. `GIT_CONFIG_GLOBAL=/dev/null` is the documented way to say
- * "ignore ~/.gitconfig" without mutating anything.
+ * "ignore ~/.gitconfig" without mutating anything, and `GIT_CONFIG_SYSTEM` does
+ * the same for /etc/gitconfig.
+ *
+ * Ignoring both also discards any `safe.directory` exception they hold, and git
+ * refuses to read a repository owned by another user without one. A dev
+ * container whose workspace is owned by root is exactly that case: every check
+ * that reads git failed there while passing in CI. So the one repository the
+ * call names is trusted in command scope, which git accepts for
+ * `safe.directory`. Nothing else is trusted, and an inherited
+ * `GIT_CONFIG_COUNT` is replaced rather than extended.
  */
+export function gitEnvironment(repoRoot: string): NodeJS.ProcessEnv {
+  return {
+    ...process.env,
+    GIT_CONFIG_GLOBAL: '/dev/null',
+    GIT_CONFIG_SYSTEM: '/dev/null',
+    GIT_CONFIG_COUNT: '1',
+    GIT_CONFIG_KEY_0: 'safe.directory',
+    GIT_CONFIG_VALUE_0: resolve(repoRoot),
+  }
+}
+
+/** Git invoked in the neutralised environment `gitEnvironment` describes. */
 function run(repoRoot: string, args: string[]): { status: number; stdout: Buffer; stderr: string } {
   const result = spawnSync('git', args, {
     cwd: repoRoot,
-    env: { ...process.env, GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_SYSTEM: '/dev/null' },
+    env: gitEnvironment(repoRoot),
     maxBuffer: 64 * 1024 * 1024,
   })
   if (result.error !== undefined) {
