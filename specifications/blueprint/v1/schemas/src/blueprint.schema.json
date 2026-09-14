@@ -202,7 +202,7 @@
             }
           ],
           "$comment": "Both patterns are lookahead-free so they compile under RE2 as well as ECMA-262. A path segment must begin with a letter or digit, which is how `.` and `..` are excluded as interior segments without a negative lookahead; that leaves one spelling per target and keeps the containment check in the semantic phase from having to normalise first.",
-          "description": "Reference to the component document this node deploys, in one of two forms. A repo-local reference begins ./ or ../ and ends .yaml or .yml, and resolves relative to the directory holding this blueprint document; its version is the referenced document's metadata.revision. A published reference is the component's UUID and requires revision. The relative-path prefix is what tells the two apart — a bare slug is not distinguishable from a UUID.",
+          "description": "Reference to the component document this node deploys, in one of two forms. A repo-local reference begins ./ or ../ and ends .yaml or .yml, and resolves relative to the directory holding this blueprint document; its version is the referenced document's metadata.revision. A published reference is the component's UUID, which names the component across all its revisions, and requires revision to select the one deployed. The relative-path prefix is what tells the two apart — a bare slug is not distinguishable from a UUID.",
           "maxLength": 256,
           "type": "string"
         },
