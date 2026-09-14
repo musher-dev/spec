@@ -281,12 +281,15 @@ export function configViolations(repoRoot: string = REPO_ROOT): string[] {
 }
 
 /**
- * The top-level names git would commit: tracked paths, plus untracked paths it
- * does not ignore. Untracked ones count so that a stray root file fails before
- * it is ever staged; ignored ones do not, because build output is gitignored.
+ * The top-level names of every path git tracks, staged ones included.
+ *
+ * Untracked paths do not count. The allowlist governs what the repository
+ * holds, and a checkout also holds what runs in it: CI downloads actionlint's
+ * archive into the workspace root before it lints, and local build output sits
+ * there until `task clean`. Counting those failed a clean tree in CI.
  */
 function rootEntries(repoRoot: string): string[] {
-  const listing = git(repoRoot, ['ls-files', '-z', '--cached', '--others', '--exclude-standard'])
+  const listing = git(repoRoot, ['ls-files', '-z', '--cached'])
   const names = listing
     .split('\0')
     .filter((path) => path !== '')

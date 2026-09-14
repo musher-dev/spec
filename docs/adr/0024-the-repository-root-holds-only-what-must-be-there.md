@@ -59,9 +59,10 @@ The repository root holds exactly these entries.
 Visible entries are content, or a file some tool or GitHub reads only from the
 root. Dotted entries are machinery. `ROOT_ENTRIES` in `tools/src/lib/layout.ts`
 holds the list, and `task check:config` fails with CFG-09 on any other top-level
-entry git would commit, tracked or not. Build output is gitignored, so it never
-reaches the check. Adding an entry is a change to `ROOT_ENTRIES`, and the pull
-request making it says why the entry cannot live anywhere else.
+entry git tracks. Untracked files do not count: a checkout also holds what runs
+in it, such as the linter CI downloads before it lints, or local build output.
+Adding an entry is a change to `ROOT_ENTRIES`, and the pull request making it
+says why the entry cannot live anywhere else.
 
 ### 2. Editor intent is stated once, in `devcontainer.json`
 

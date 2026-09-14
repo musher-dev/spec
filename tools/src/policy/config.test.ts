@@ -156,17 +156,19 @@ describe('CFG-07 — placement', () => {
 })
 
 describe('CFG-09: the root allowlist', () => {
-  test('fires on a root file ROOT_ENTRIES does not name', () => {
+  test('fires on a tracked root file ROOT_ENTRIES does not name', () => {
     const fx = intact()
     fx.writeFile('NOTES.md', '# Notes\n')
+    fx.commit('add a stray root file')
     expect(codes(fx.root)).toEqual(['CFG-09'])
   })
 
-  test('fires on a root directory ROOT_ENTRIES does not name', () => {
+  test('fires on a tracked root directory ROOT_ENTRIES does not name', () => {
     // The shape of the leftover it exists to catch: a directory emptied by a
     // move down to one README.
     const fx = intact()
     fx.writeFile('leftovers/README.md', '# Leftovers\n')
+    fx.commit('add a leftover directory')
     expect(codes(fx.root)).toEqual(['CFG-09'])
   })
 
@@ -175,13 +177,17 @@ describe('CFG-09: the root allowlist', () => {
     for (const path of ['.claude/CLAUDE.md', 'docs/README.md', 'LICENSE', 'published.json']) {
       fx.writeFile(path, '\n')
     }
+    fx.commit('add allowed entries')
     expect(configViolations(fx.root)).toEqual([])
   })
 
-  test('ignores gitignored build output', () => {
+  test('ignores untracked files in the checkout', () => {
+    // CI unpacks actionlint into the workspace root before linting. A file the
+    // repository does not hold is not the repository's layout.
     const fx = intact()
-    fx.writeFile('.gitignore', '/dist/\n')
-    fx.writeFile('dist/component/v1/component.schema.json', '{}\n')
+    fx.commit('an intact tree')
+    fx.writeFile('actionlint_1.7.11_linux_amd64.tar.gz', 'archive\n')
+    fx.writeFile('actionlint', 'binary\n')
     expect(configViolations(fx.root)).toEqual([])
   })
 })
