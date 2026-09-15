@@ -1,0 +1,13 @@
+# The storefront says this item is a composition and the directory holds no
+# `blueprint.yaml`. Nothing here can be installed as a composition, and left
+# unchecked the claim is what a storefront would render.
+specVersion: v1
+kind: LISTING
+metadata:
+  slug: acme-wiki
+spec:
+  itemType: BLUEPRINT
+  displayName: Acme Wiki
+  summary: A wiki for Acme.
+  category: PRODUCTIVITY
+  lifecycleStage: STABLE

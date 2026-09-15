@@ -35,13 +35,8 @@
   "$defs": {
     "ListingMetadata": {
       "additionalProperties": false,
-      "description": "Identity block of a listing document. The same shape carries on the sibling blueprint document, and the two must agree.",
+      "description": "Identity block of a listing document. A listing names the item it presents and carries no revision of its own; the item's revision is the blueprint's. See spec.md §3.",
       "properties": {
-        "revision": {
-          "description": "Item revision — must agree between blueprint.yaml and listing.yaml.",
-          "minimum": 1,
-          "type": "integer"
-        },
         "slug": {
           "description": "Item slug — must equal the item's directory name.",
           "pattern": "^[a-z][a-z0-9-]{0,61}[a-z0-9]$",
@@ -49,7 +44,6 @@
         }
       },
       "required": [
-        "revision",
         "slug"
       ],
       "type": "object"
@@ -79,7 +73,7 @@
     },
     "ListingSpec": {
       "additionalProperties": false,
-      "description": "The ``spec`` block of a listing document — how the item is presented,\ncategorised, and discovered on the storefront.\n\nIdentity lives in ``metadata``, not here. ``icon`` and\n``screenshots[].file`` are media paths, resolved inside the item root and\nrequired to begin with ``media/``.",
+      "description": "The `spec` block of a listing document — how the item is presented,\ncategorised, and discovered on the storefront.\n\nIdentity lives in `metadata`, not here. `icon` and `screenshots[].file` are\nmedia paths, resolved inside the item root and required to begin with\n`media/`.",
       "properties": {
         "category": {
           "description": "Storefront category the listing is browsed under.",
@@ -110,7 +104,7 @@
           "minLength": 1,
           "type": "string"
         },
-        "homepageUrl": {
+        "homepageURL": {
           "description": "Project homepage URL. Omitted when none. Must use the https, http, or mailto scheme, in any case.",
           "$comment": "Anchored and lookahead-free, so it compiles under RE2 as well as ECMA-262 and cannot be driven to backtrack. The scheme set is spec.md §4.1's, applied to a field that carries a URL directly rather than inside Markdown. The scheme alternation is spelled in character classes because a JSON Schema pattern carries no case-insensitive flag, and RFC 3986 §3.1 makes the scheme case-insensitive — the same reason the media path alternation is spelled that way. Without it this pattern would reject an upper-case scheme the description half of the same rule accepts.",
           "maxLength": 2048,
@@ -124,9 +118,20 @@
           "pattern": "^media/(?:[A-Za-z0-9][A-Za-z0-9._-]*/)*[A-Za-z0-9][A-Za-z0-9._-]*\\.(?:[Pp][Nn][Gg]|[Jj][Pp][Gg]|[Jj][Pp][Ee][Gg]|[Ww][Ee][Bb][Pp])$",
           "type": "string"
         },
+        "itemType": {
+          "$comment": "spec.md §3. BLUEPRINT if and only if the item root holds blueprint.yaml — a semantic rule, because it reads the item root rather than the document.",
+          "description": "Shape of the catalog item this listing presents: BLUEPRINT (a composition) or COMPONENT (a single building block).",
+          "enum": [
+            "BLUEPRINT",
+            "COMPONENT"
+          ],
+          "type": "string"
+        },
         "license": {
-          "description": "License identifier for the listed software. Omitted when unspecified.",
+          "$comment": "spec.md §4 / ADR 0003 §2 and §4. The shape is this contract's and the membership is SPDX's, published at https://spdx.org/licenses/ and deliberately not restated. Flat: a parenthesised expression is outside this grammar, which spec.md §9 records. Anchored and lookahead-free, so it compiles under RE2 as well as ECMA-262.",
+          "description": "SPDX licence expression for the listed software, such as MIT or Apache-2.0 WITH LLVM-exception. Omitted when unspecified.",
           "maxLength": 256,
+          "pattern": "^[A-Za-z0-9.+-]{1,64}(?: (?:WITH|AND|OR) [A-Za-z0-9.+-]{1,64}){0,8}$",
           "type": "string"
         },
         "lifecycleStage": {
@@ -139,24 +144,17 @@
           ],
           "type": "string"
         },
-        "listingKind": {
-          "description": "Storefront classification: BLUEPRINT (curated composition) or COMPONENT (single building block).",
-          "enum": [
-            "BLUEPRINT",
-            "COMPONENT"
-          ],
-          "type": "string"
-        },
         "screenshots": {
-          "description": "Storefront screenshots in display order, declared as media paths.",
+          "description": "Storefront screenshots in display order, declared as media paths. At most twelve.",
           "items": {
             "$ref": "#/$defs/ListingScreenshot"
           },
+          "maxItems": 12,
           "type": "array"
         },
-        "sourceRepoUrl": {
+        "sourceRepoURL": {
           "description": "Source repository URL. Omitted when none. Must use the https, http, or mailto scheme, in any case.",
-          "$comment": "The same grammar homepageUrl carries; see the note there.",
+          "$comment": "The same grammar homepageURL carries; see the note there.",
           "maxLength": 2048,
           "pattern": "^(?:[Hh][Tt][Tt][Pp][Ss]?://|[Mm][Aa][Ii][Ll][Tt][Oo]:)[^\\s]+$",
           "type": "string"
@@ -167,26 +165,28 @@
           "minLength": 1,
           "type": "string"
         },
-        "supportUrl": {
+        "supportURL": {
           "description": "Support or documentation URL. Omitted when none. Must use the https, http, or mailto scheme, in any case.",
-          "$comment": "The same grammar homepageUrl carries; see the note there. mailto: is in the set for this field in particular — a support address is a plausible value.",
+          "$comment": "The same grammar homepageURL carries; see the note there. mailto: is in the set for this field in particular — a support address is a plausible value.",
           "maxLength": 2048,
           "pattern": "^(?:[Hh][Tt][Tt][Pp][Ss]?://|[Mm][Aa][Ii][Ll][Tt][Oo]:)[^\\s]+$",
           "type": "string"
         },
         "tags": {
-          "description": "Free-form discovery tags applied to the listing.",
+          "description": "Free-form discovery tags applied to the listing. At most sixteen, and a tag may not repeat.",
           "items": {
             "$comment": "spec.md §4 / ADR 0007 §4. A tag is lowercase kebab and is compared after normalisation, so the grammar is what makes two spellings of one tag impossible rather than merely discouraged.",
             "maxLength": 40,
             "pattern": "^[a-z0-9][a-z0-9-]{0,38}[a-z0-9]$",
             "type": "string"
           },
-          "type": "array"
+          "maxItems": 16,
+          "type": "array",
+          "uniqueItems": true
         }
       },
       "required": [
-        "listingKind",
+        "itemType",
         "displayName",
         "summary",
         "category",

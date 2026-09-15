@@ -1,0 +1,11 @@
+{
+  "id": "semantic-016-item-type-denies-the-blueprint-beside-it",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/listing/v1/spec.md#identity",
+  "requirements": [
+    "LIST-ITEM-001"
+  ],
+  "summary": "itemType COMPONENT in an item holding a blueprint.yaml is rejected.",
+  "document": "acme-wiki/listing.yaml"
+}

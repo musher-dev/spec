@@ -1,6 +1,6 @@
 [
   {
     "code": "ERR_INVALID_VALUE",
-    "path": "/spec/homepageUrl"
+    "path": "/spec/homepageURL"
   }
 ]

@@ -249,7 +249,7 @@
           "description": "Branch or commit to build from. Omitted when unpinned.",
           "$ref": "#/$defs/ComponentGitRef"
         },
-        "repositoryUrl": {
+        "repositoryURL": {
           "description": "Git repository URL the platform builds into an image.",
           "type": "string"
         },
@@ -261,7 +261,7 @@
       },
       "required": [
         "type",
-        "repositoryUrl",
+        "repositoryURL",
         "build"
       ],
       "type": "object"

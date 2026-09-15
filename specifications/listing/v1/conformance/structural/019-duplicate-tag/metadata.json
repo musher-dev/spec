@@ -1,0 +1,7 @@
+{
+  "id": "structural-019-duplicate-tag",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/listing/v1/spec.md#presentation",
+  "summary": "A tags member listed twice is rejected."
+}

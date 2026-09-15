@@ -9,9 +9,8 @@ specVersion: v1
 kind: LISTING
 metadata:
   slug: openclaw
-  revision: 1
 spec:
-  listingKind: COMPONENT
+  itemType: COMPONENT
   displayName: OpenClaw
   summary: A self-hosted assistant that runs scheduled tasks and tools on your own infrastructure
   category: AGENTS

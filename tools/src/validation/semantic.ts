@@ -706,38 +706,42 @@ function readDocument(path: string): Json | undefined {
 }
 
 /**
- * Blueprint §3 and listing §3 — `metadata.slug` MUST equal the item directory
- * name, and `metadata.revision` MUST equal the sibling document's.
+ * Core §4.2 — an item document's `metadata.slug` MUST equal the item directory
+ * name. Blueprint §3 and listing §3 are where each family cites it.
  */
-function checkIdentity(family: Family, document: Json, itemRoot: string, out: Diagnostic[]): void {
-  const metadata = child(document, 'metadata')
-  const slug = asString(child(metadata, 'slug'))
+function checkSlug(document: Json, itemRoot: string, out: Diagnostic[]): void {
+  const slug = asString(child(child(document, 'metadata'), 'slug'))
   const directory = basename(itemRoot)
-  if (slug !== undefined && slug !== directory) {
-    out.push({
-      code: 'ERR_SLUG_MISMATCH',
-      path: '/metadata/slug',
-      message: `slug "${slug}" disagrees with the item directory "${directory}"`,
-    })
-  }
+  if (slug === undefined || slug === directory) return
+  out.push({
+    code: 'ERR_SLUG_MISMATCH',
+    path: '/metadata/slug',
+    message: `slug "${slug}" disagrees with the item directory "${directory}"`,
+  })
+}
 
-  // The sibling is the other half of the item. Listing §3 conditions the rule
-  // on there being one: a `listingKind: COMPONENT` item need not hold a
-  // blueprint, and where there is none the rule has nothing to compare.
-  const siblingName = family.name === 'blueprint' ? 'listing.yaml' : 'blueprint.yaml'
-  const siblingPath = join(itemRoot, siblingName)
-  if (!existsSync(siblingPath)) return
-
-  const sibling = readDocument(siblingPath)
-  const version = child(metadata, 'revision')
-  const siblingVersion = child(child(sibling, 'metadata'), 'revision')
-  if (sibling !== undefined && version !== siblingVersion) {
-    out.push({
-      code: 'ERR_VERSION_MISMATCH',
-      path: '/metadata/revision',
-      message: `version ${String(version)} disagrees with ${siblingName}'s ${String(siblingVersion)}`,
-    })
-  }
+/**
+ * `LIST-ITEM-001` — listing §3. `spec.itemType` is `BLUEPRINT` if and only if
+ * the item root holds `blueprint.yaml`.
+ *
+ * The rule reads the directory rather than the document, which is what makes it
+ * `semantic` rather than something the bundle could state. An item root is
+ * required to decide it at all; the caller has already returned where there is
+ * none, as core §4.1 requires.
+ */
+function checkItemType(document: Json, itemRoot: string, out: Diagnostic[]): void {
+  const declared = asString(child(child(document, 'spec'), 'itemType'))
+  if (declared === undefined) return
+  const holdsBlueprint = existsSync(join(itemRoot, 'blueprint.yaml'))
+  const actual = holdsBlueprint ? 'BLUEPRINT' : 'COMPONENT'
+  if (declared === actual) return
+  out.push({
+    code: 'ERR_ITEM_TYPE_MISMATCH',
+    path: '/spec/itemType',
+    message: holdsBlueprint
+      ? `itemType is ${declared}, but the item root holds a blueprint.yaml`
+      : `itemType is ${declared}, but the item root holds no blueprint.yaml`,
+  })
 }
 
 /**
@@ -1327,12 +1331,13 @@ export function semanticDiagnostics(
     join(itemRoot, family.name === 'blueprint' ? 'blueprint.yaml' : 'listing.yaml')
 
   if (family.name === 'blueprint' || family.name === 'listing') {
-    checkIdentity(family, document, itemRoot, out)
+    checkSlug(document, itemRoot, out)
   }
   if (family.name === 'blueprint') {
     checkGraphAgainstItem(document, itemRoot, documentPath, out)
   }
   if (family.name === 'listing') {
+    checkItemType(document, itemRoot, out)
     checkMediaOnDisk(document, itemRoot, out)
   }
 

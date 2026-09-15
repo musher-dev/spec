@@ -251,8 +251,10 @@ function familyKey(family: { readonly name: string; readonly major: string }): s
  * fails here rather than failing every case one at a time.
  *
  * Core §7 also says a family table adds codes and MUST NOT declare a core code
- * again: two rows for one code can carry two meanings, which is exactly how
- * blueprint and listing came to disagree on `ERR_VERSION_MISMATCH`.
+ * again: two rows for one code can carry two meanings, and two families once
+ * declared one item-identity code apiece with the rows saying different things.
+ * ADR 0022 records that instance; the code it names has since been withdrawn,
+ * which is why the hazard is described here rather than spelled.
  */
 export function resolveReach(
   family: Family,
@@ -1039,12 +1041,6 @@ const UNPINNED: ReadonlyMap<string, string> = new Map([
     'metadata is required by every fixture in every corpus, so no single case pins it',
   ],
   ['CORE-ENV-004', 'spec is required by every fixture in every corpus, so no single case pins it'],
-  [
-    'LIST-MEDIA-004',
-    'a rule about what a consumer emits once it has relocated an item media set; ' +
-      'the corpus validates documents and cannot observe a storefront output, the ' +
-      'same limit ADR 0004 records for the listing §4.1 renderer clause',
-  ],
 ])
 
 /**

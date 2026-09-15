@@ -1,0 +1,16 @@
+# The regression pin for listing §3.1: an item with no blueprint has an item
+# root all the same, the directory holding this document. The slug is measured
+# against it, `itemType: COMPONENT` is checked against what it holds, and
+# `media/icon.png` resolves inside it. A validator that anchored the item root
+# on `blueprint.yaml` finds none here and reports something.
+specVersion: v1
+kind: LISTING
+metadata:
+  slug: pgvector
+spec:
+  itemType: COMPONENT
+  displayName: pgvector
+  summary: Vector similarity search for PostgreSQL
+  category: INFRASTRUCTURE
+  lifecycleStage: STABLE
+  icon: media/icon.png

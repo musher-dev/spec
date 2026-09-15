@@ -1,6 +1,6 @@
-# The published reference form: a component UUID plus the lineage version it
-# pins. The version is required here because, unlike a local reference, there
-# is no document on disk whose `metadata.version` could supply it.
+# The published reference form: a component UUID plus the revision it pins.
+# The revision is required here because, unlike a local reference, there is no
+# document on disk whose `metadata.revision` could supply it.
 specVersion: v1
 kind: BLUEPRINT
 metadata:

@@ -1,0 +1,11 @@
+{
+  "id": "semantic-015-item-type-claims-a-blueprint-the-item-lacks",
+  "phase": "semantic",
+  "expected": "fail",
+  "clause": "specifications/listing/v1/spec.md#identity",
+  "requirements": [
+    "LIST-ITEM-001"
+  ],
+  "summary": "itemType BLUEPRINT in an item holding no blueprint.yaml is rejected.",
+  "document": "acme-wiki/listing.yaml"
+}

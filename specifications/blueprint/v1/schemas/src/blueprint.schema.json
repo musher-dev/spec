@@ -105,7 +105,7 @@
     },
     "BlueprintConnection": {
       "additionalProperties": false,
-      "description": "A consumer-anchored wire (map value; keyed by the consumer input key).\n\nThe value names only the producer end (``fromRole`` / ``fromOutput``); the\nconsumer end is derived from the enclosing node (the node name) and the map\nkey (the input it fills). At most one wire per consumer input — the map key\nmakes that structural.",
+      "description": "A consumer-anchored wire (map value; keyed by the consumer input key).\n\nThe value names only the producer end (`fromRole` / `fromOutput`); the\nconsumer end is derived from the enclosing node (the node name) and the map\nkey (the input it fills). At most one wire per consumer input — the map key\nmakes that structural.",
       "properties": {
         "fromOutput": {
           "description": "Declared output key on the producer component.",
@@ -127,10 +127,10 @@
     },
     "BlueprintMetadata": {
       "additionalProperties": false,
-      "description": "Identity block of a blueprint document. The same shape carries on the sibling listing document, and the two must agree.",
+      "description": "Identity block of a blueprint document. The blueprint carries the item's revision; its sibling listing carries none. See spec.md §3.",
       "properties": {
         "revision": {
-          "description": "Item revision — must agree between blueprint.yaml and listing.yaml.",
+          "description": "Item revision — the position of this release in the catalog item's lineage. Orders releases and nothing more.",
           "minimum": 1,
           "type": "integer"
         },
@@ -544,7 +544,7 @@
     },
     "BlueprintSpec": {
       "additionalProperties": false,
-      "description": "The ``spec`` block of a blueprint document.\n\nAn empty ``parameters`` map means the install-form parameters are derived\nfrom the graph's merged USER-supplied inputs — the standard path. A\nnon-empty map is an authored override, used verbatim.",
+      "description": "The `spec` block of a blueprint document.\n\nAn empty `parameters` map means the install-form parameters are derived from\nthe graph's merged USER-supplied inputs — the standard path. A non-empty map\nis an authored override, used verbatim.",
       "properties": {
         "components": {
           "additionalProperties": {

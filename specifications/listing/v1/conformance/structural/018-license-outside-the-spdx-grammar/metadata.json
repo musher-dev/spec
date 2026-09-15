@@ -1,0 +1,7 @@
+{
+  "id": "structural-018-license-outside-the-spdx-grammar",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/listing/v1/spec.md#presentation",
+  "summary": "A license outside the SPDX expression grammar is rejected."
+}

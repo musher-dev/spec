@@ -11,7 +11,7 @@ spec:
     type: SERVICE
     source:
       type: GIT
-      repositoryUrl: https://github.com/musher-dev/examples
+      repositoryURL: https://github.com/musher-dev/examples
       ref:
         type: BRANCH
         name: main

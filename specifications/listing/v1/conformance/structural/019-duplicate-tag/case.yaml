@@ -1,0 +1,17 @@
+# The grammar exists so that one tag cannot be spelled two ways. Permitting the
+# one spelling twice would leave the same defect a step along: a storefront
+# grouping on `wiki` would count this listing under it twice.
+specVersion: v1
+kind: LISTING
+metadata:
+  slug: acme-wiki
+spec:
+  itemType: BLUEPRINT
+  displayName: Acme Wiki
+  summary: A wiki for Acme.
+  category: PRODUCTIVITY
+  lifecycleStage: STABLE
+  tags:
+    - wiki
+    - self-hosted
+    - wiki

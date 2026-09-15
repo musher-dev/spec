@@ -41,7 +41,7 @@ defend separately.
 [Blueprint §3.1](../../specifications/blueprint/v1/spec.md#item-directory)
 defines the item root as "the directory containing `blueprint.yaml`". A
 `COMPONENT` item has no such file, so
-[listing §3.1](../../specifications/listing/v1/spec.md#component-item) defines a
+[listing §3.1](../../specifications/listing/v1/spec.md#item-directory) defines a
 second item root and adds "the two definitions agree wherever both apply". The
 rules measured against that root are declared twice. `BP-ID-001` and
 `LIST-ID-001` have the same text. `BP-ID-002` is unconditional, while

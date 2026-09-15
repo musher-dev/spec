@@ -48,14 +48,14 @@
       "path": "structural/008-bare-component-stem"
     },
     {
-      "id": "structural-009-version-pinned-on-local-reference",
+      "id": "structural-009-revision-pinned-on-local-reference",
       "phase": "structural",
-      "path": "structural/009-version-pinned-on-local-reference"
+      "path": "structural/009-revision-pinned-on-local-reference"
     },
     {
-      "id": "structural-010-published-reference-without-version",
+      "id": "structural-010-published-reference-without-revision",
       "phase": "structural",
-      "path": "structural/010-published-reference-without-version"
+      "path": "structural/010-published-reference-without-revision"
     },
     {
       "id": "structural-011-traversal-inside-local-reference",
@@ -203,144 +203,139 @@
       "path": "semantic/003-slug-disagrees-with-directory"
     },
     {
-      "id": "semantic-004-version-disagrees-with-listing",
+      "id": "semantic-004-unreferenced-component-document",
       "phase": "semantic",
-      "path": "semantic/004-version-disagrees-with-listing"
+      "path": "semantic/004-unreferenced-component-document"
     },
     {
-      "id": "semantic-005-unreferenced-component-document",
+      "id": "semantic-005-reference-names-no-document",
       "phase": "semantic",
-      "path": "semantic/005-unreferenced-component-document"
+      "path": "semantic/005-reference-names-no-document"
     },
     {
-      "id": "semantic-006-reference-names-no-document",
+      "id": "semantic-006-reference-escaping-the-item",
       "phase": "semantic",
-      "path": "semantic/006-reference-names-no-document"
+      "path": "semantic/006-reference-escaping-the-item"
     },
     {
-      "id": "semantic-007-reference-escaping-the-item",
+      "id": "semantic-007-connection-names-unknown-output",
       "phase": "semantic",
-      "path": "semantic/007-reference-escaping-the-item"
+      "path": "semantic/007-connection-names-unknown-output"
     },
     {
-      "id": "semantic-008-connection-names-unknown-output",
+      "id": "semantic-008-conflicting-input-schema",
       "phase": "semantic",
-      "path": "semantic/008-connection-names-unknown-output"
+      "path": "semantic/008-conflicting-input-schema"
     },
     {
-      "id": "semantic-009-conflicting-input-schema",
+      "id": "semantic-009-well-formed-item",
       "phase": "semantic",
-      "path": "semantic/009-conflicting-input-schema"
+      "path": "semantic/009-well-formed-item"
     },
     {
-      "id": "semantic-010-well-formed-item",
+      "id": "semantic-010-three-node-cycle",
       "phase": "semantic",
-      "path": "semantic/010-well-formed-item"
+      "path": "semantic/010-three-node-cycle"
     },
     {
-      "id": "semantic-011-three-node-cycle",
+      "id": "semantic-011-connection-type-mismatch",
       "phase": "semantic",
-      "path": "semantic/011-three-node-cycle"
+      "path": "semantic/011-connection-type-mismatch"
     },
     {
-      "id": "semantic-012-connection-type-mismatch",
+      "id": "semantic-012-connection-resource-type-mismatch",
       "phase": "semantic",
-      "path": "semantic/012-connection-type-mismatch"
+      "path": "semantic/012-connection-resource-type-mismatch"
     },
     {
-      "id": "semantic-013-connection-resource-type-mismatch",
+      "id": "semantic-013-connection-names-unknown-input",
       "phase": "semantic",
-      "path": "semantic/013-connection-resource-type-mismatch"
+      "path": "semantic/013-connection-names-unknown-input"
     },
     {
-      "id": "semantic-014-connection-names-unknown-input",
+      "id": "semantic-014-required-connection-input-unwired",
       "phase": "semantic",
-      "path": "semantic/014-connection-names-unknown-input"
+      "path": "semantic/014-required-connection-input-unwired"
     },
     {
-      "id": "semantic-015-required-connection-input-unwired",
+      "id": "semantic-015-parameter-covers-no-input",
       "phase": "semantic",
-      "path": "semantic/015-required-connection-input-unwired"
+      "path": "semantic/015-parameter-covers-no-input"
     },
     {
-      "id": "semantic-016-parameter-covers-no-input",
+      "id": "semantic-016-required-input-uncovered",
       "phase": "semantic",
-      "path": "semantic/016-parameter-covers-no-input"
+      "path": "semantic/016-required-input-uncovered"
     },
     {
-      "id": "semantic-017-required-input-uncovered",
+      "id": "semantic-017-optional-parameter-does-not-cover",
       "phase": "semantic",
-      "path": "semantic/017-required-input-uncovered"
+      "path": "semantic/017-optional-parameter-does-not-cover"
     },
     {
-      "id": "semantic-018-optional-parameter-does-not-cover",
+      "id": "semantic-018-parameter-type-disagrees",
       "phase": "semantic",
-      "path": "semantic/018-optional-parameter-does-not-cover"
+      "path": "semantic/018-parameter-type-disagrees"
     },
     {
-      "id": "semantic-019-parameter-type-disagrees",
+      "id": "semantic-019-authored-override-well-formed",
       "phase": "semantic",
-      "path": "semantic/019-parameter-type-disagrees"
+      "path": "semantic/019-authored-override-well-formed"
     },
     {
-      "id": "semantic-020-authored-override-well-formed",
+      "id": "semantic-020-published-reference-suppresses-unbound",
       "phase": "semantic",
-      "path": "semantic/020-authored-override-well-formed"
+      "path": "semantic/020-published-reference-suppresses-unbound"
     },
     {
-      "id": "semantic-021-published-reference-suppresses-unbound",
+      "id": "semantic-021-identical-input-redeclaration",
       "phase": "semantic",
-      "path": "semantic/021-published-reference-suppresses-unbound"
+      "path": "semantic/021-identical-input-redeclaration"
     },
     {
-      "id": "semantic-022-identical-input-redeclaration",
+      "id": "semantic-022-parameter-enum-label-names-no-member",
       "phase": "semantic",
-      "path": "semantic/022-identical-input-redeclaration"
+      "path": "semantic/022-parameter-enum-label-names-no-member"
     },
     {
-      "id": "semantic-023-parameter-enum-label-names-no-member",
+      "id": "semantic-023-parameter-resource-type-disagrees",
       "phase": "semantic",
-      "path": "semantic/023-parameter-enum-label-names-no-member"
+      "path": "semantic/023-parameter-resource-type-disagrees"
     },
     {
-      "id": "semantic-024-parameter-resource-type-disagrees",
+      "id": "semantic-024-parameter-declares-no-resource-type",
       "phase": "semantic",
-      "path": "semantic/024-parameter-resource-type-disagrees"
+      "path": "semantic/024-parameter-declares-no-resource-type"
     },
     {
-      "id": "semantic-025-parameter-declares-no-resource-type",
+      "id": "semantic-025-external-node-feeds-a-consumer",
       "phase": "semantic",
-      "path": "semantic/025-parameter-declares-no-resource-type"
+      "path": "semantic/025-external-node-feeds-a-consumer"
     },
     {
-      "id": "semantic-026-external-node-feeds-a-consumer",
+      "id": "semantic-026-compute-on-a-node-that-runs-nothing",
       "phase": "semantic",
-      "path": "semantic/026-external-node-feeds-a-consumer"
+      "path": "semantic/026-compute-on-a-node-that-runs-nothing"
     },
     {
-      "id": "semantic-027-compute-on-a-node-that-runs-nothing",
+      "id": "semantic-027-no-compute-on-a-node-that-runs",
       "phase": "semantic",
-      "path": "semantic/027-compute-on-a-node-that-runs-nothing"
+      "path": "semantic/027-no-compute-on-a-node-that-runs"
     },
     {
-      "id": "semantic-028-no-compute-on-a-node-that-runs",
+      "id": "semantic-028-connection-fills-a-user-input",
       "phase": "semantic",
-      "path": "semantic/028-no-compute-on-a-node-that-runs"
+      "path": "semantic/028-connection-fills-a-user-input"
     },
     {
-      "id": "semantic-029-connection-fills-a-user-input",
+      "id": "semantic-029-parameter-type-disagrees-on-string-list",
       "phase": "semantic",
-      "path": "semantic/029-connection-fills-a-user-input"
+      "path": "semantic/029-parameter-type-disagrees-on-string-list"
     },
     {
-      "id": "semantic-030-parameter-type-disagrees-on-string-list",
+      "id": "semantic-030-connection-type-disagrees-on-string-list",
       "phase": "semantic",
-      "path": "semantic/030-parameter-type-disagrees-on-string-list"
-    },
-    {
-      "id": "semantic-031-connection-type-disagrees-on-string-list",
-      "phase": "semantic",
-      "path": "semantic/031-connection-type-disagrees-on-string-list"
+      "path": "semantic/030-connection-type-disagrees-on-string-list"
     }
   ]
 }

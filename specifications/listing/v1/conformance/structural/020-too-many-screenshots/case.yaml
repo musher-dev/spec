@@ -1,0 +1,27 @@
+# The bound is on the gallery a person scrolls rather than on the bytes an item
+# ships. Thirteen entries is the first count the contract refuses; each path
+# here is well formed, and only the length of the list is wrong.
+specVersion: v1
+kind: LISTING
+metadata:
+  slug: acme-wiki
+spec:
+  itemType: BLUEPRINT
+  displayName: Acme Wiki
+  summary: A wiki for Acme.
+  category: PRODUCTIVITY
+  lifecycleStage: STABLE
+  screenshots:
+    - file: media/shot-01.png
+    - file: media/shot-02.png
+    - file: media/shot-03.png
+    - file: media/shot-04.png
+    - file: media/shot-05.png
+    - file: media/shot-06.png
+    - file: media/shot-07.png
+    - file: media/shot-08.png
+    - file: media/shot-09.png
+    - file: media/shot-10.png
+    - file: media/shot-11.png
+    - file: media/shot-12.png
+    - file: media/shot-13.png
