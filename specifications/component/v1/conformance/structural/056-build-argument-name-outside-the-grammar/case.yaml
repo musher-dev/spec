@@ -12,7 +12,7 @@ spec:
     type: SERVICE
     source:
       type: GIT
-      repositoryUrl: https://github.com/acme/web.git
+      repositoryURL: https://github.com/acme/web.git
       build:
         strategy: DOCKERFILE
         dockerfilePath: Dockerfile

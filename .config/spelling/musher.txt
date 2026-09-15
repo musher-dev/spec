@@ -34,6 +34,7 @@ Consolas
 Pydantic
 Segoe
 SLSA
+SPDX
 
 # --- Hardware and format vocabulary the schemas name --------------------------
 buildpacks

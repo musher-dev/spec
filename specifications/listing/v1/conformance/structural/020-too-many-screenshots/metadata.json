@@ -1,0 +1,7 @@
+{
+  "id": "structural-020-too-many-screenshots",
+  "phase": "structural",
+  "expected": "fail",
+  "clause": "specifications/listing/v1/spec.md#media",
+  "summary": "A gallery of more than twelve screenshots is rejected."
+}

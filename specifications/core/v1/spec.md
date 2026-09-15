@@ -198,9 +198,10 @@ release its consumers hold.
 ## <a id="items"></a>4. Items
 
 Some rules are about a document's surroundings rather than its contents: that
-its slug matches the directory holding it, that two documents in one directory
-agree, that a path stays inside the directory. This section defines those
-surroundings once.
+its slug matches the directory holding it, that a path stays inside that
+directory, that a sibling a family expects is beside it. This section defines
+the surroundings those rules are measured against, once, and states the one of
+them that every family shares.
 
 ### <a id="item-directory"></a>4.1 The item directory
 
@@ -210,7 +211,7 @@ one directory holding one deployable thing.
 
 An **item document** is a document whose file name its family specification
 binds ([§1.1](#bindings)). The directory containing an item document is the
-**item root**. It is what [§4.2](#item-identity)'s rules are measured against,
+**item root**. It is what [§4.2](#item-identity)'s rule is measured against,
 and what a family's rules about paths inside an item are measured against.
 
 **Item documents are siblings.** An item holding more than one item document
@@ -226,30 +227,26 @@ and a diagnostic it cannot substantiate is worse than a silence.
 
 ### <a id="item-identity"></a>4.2 Item identity
 
-Two rules bind an item's documents together. Both are `semantic`, both are
-measured against the item root [§4.1](#item-directory) defines, and both read
-fields the item document's family defines in its `metadata`.
+One rule binds an item document to the item holding it. It is `semantic`, it is
+measured against the item root [§4.1](#item-directory) defines, and it reads a
+field the item document's family defines in its `metadata`.
 
 | ID | Rule | Diagnostic |
 |---|---|---|
 | <a id="CORE-ITEM-001"></a>`CORE-ITEM-001` | An item document's `metadata.slug` MUST equal the item directory name. | `ERR_SLUG_MISMATCH` |
-| <a id="CORE-ITEM-002"></a>`CORE-ITEM-002` | Every item document in an item MUST carry the same `metadata.revision`. | `ERR_VERSION_MISMATCH` |
 
 A document handed over with no directory has no item root, and
-[§4.1](#item-directory) says what that means for both rules.
+[§4.1](#item-directory) says what that means for this rule.
 
-**The item documents are one item's halves.** A listing whose revision has
-moved ahead of its blueprint describes something other than what would be
-installed — this release's storefront copy over last release's graph. The rule
-is what keeps "read about this" and "install this" the same thing.
-
-**An item holding one item document satisfies `CORE-ITEM-002` trivially.** The
-rule pins an item's documents to each other, so it takes two, and where an item
-holds one there is no second operand — not a different one. A document inside
-the item that is not an item document is not that operand either; what its
-revision counts is its own family's to say.
-[Listing §3](../../listing/v1/spec.md#identity) records what that means for an
-item whose only item document is a listing.
+**The item, not its siblings, is what an item document is measured against.**
+An item's documents agree on their identity because each agrees with the one
+directory holding them, never by being compared with one another. Nothing here
+requires an item to hold any particular item document, or two of them to agree
+on anything beyond the name they share with their directory. What a family's
+other `metadata` fields count is that family's to say:
+[blueprint §3](../../blueprint/v1/spec.md#identity) says what an item's revision
+counts, and [component §4](../../component/v1/spec.md#metadata) says why a
+component's is a different number.
 
 ## <a id="grammars"></a>5. Identifier grammars
 
@@ -454,7 +451,6 @@ code names one condition.
 | `ERR_INVALID_TYPE` | `structural` | A value has the wrong type. |
 | `ERR_INVALID_VALUE` | `structural` | A value violates a pattern, enum, or bound. |
 | `ERR_SLUG_MISMATCH` | `semantic` | `metadata.slug` disagrees with the item directory name. |
-| `ERR_VERSION_MISMATCH` | `semantic` | `metadata.revision` disagrees with another item document in the same item. |
 
 ## <a id="conformance"></a>8. Conformance
 

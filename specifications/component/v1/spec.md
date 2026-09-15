@@ -137,18 +137,17 @@ Whether a registry treats an identical re-submission as a no-op rather than as a
 publication is outside this contract. This document orders publications; it does
 not define when two YAML files are the same document.
 
-**The revision is not the item's revision.**
-[Core v1 §4.2](../../core/v1/spec.md#item-identity) pins a blueprint to its
-sibling listing, and neither is pinned to any component beneath it. The two
-numbers count different things: an item's revision counts releases of the item, a
-component's counts releases of the component, and in the published form one
-component is deployed by many items at once.
+**The revision is not the item's revision.** The item's is the blueprint's
+([blueprint §3](../../blueprint/v1/spec.md#identity)), and it is pinned to no
+component beneath it. The two numbers count different things: an item's revision
+counts releases of the item, a component's counts releases of the component, and
+in the published form one component is deployed by many items at once.
 
 A release of a component an item deploys SHOULD be accompanied by a release of
-the item, because the listing describes what would be installed and a component
-that has moved makes that description stale. It is a SHOULD and carries no
-diagnostic: the disagreement is visible only across two revisions, and a
-validator is handed one.
+the item, because the item's listing describes what would be installed and a
+component that has moved makes that description stale. It is a SHOULD and
+carries no diagnostic: the disagreement is visible only across two revisions,
+and a validator is handed one.
 
 **What v1 does not constrain.** Nothing orders one component's revisions against
 another's — two components in the same item sitting at 4 and 11 mean nothing
@@ -229,7 +228,7 @@ the `parser` phase, before any rule in this section is considered.
 `build` on this branch — a prebuilt image is not built again, and the field is
 absent rather than ignored so it cannot be misread as an override.
 
-**`GIT`.** `repositoryUrl` and `build` are both REQUIRED. `ref` is OPTIONAL and
+**`GIT`.** `repositoryURL` and `build` are both REQUIRED. `ref` is OPTIONAL and
 pins a branch or a commit; omitting it takes the repository's default branch. A
 `BRANCH` ref resolves at build time, so two builds of one unchanged document
 can produce different images. A `COMMIT` ref is reproducible. Neither is
@@ -1178,28 +1177,8 @@ skipped case is never a passed one.
 
 ## <a id="known-debt"></a>10. Known debt
 
-This schema was seeded from the platform's Pydantic-generated catalog schema.
-The naming that arrived with it — `$defs` keys carrying `Seed…`/`…Request`
-affixes, and generated `title` values like `Specversion` — has been cleaned,
-and `tools/src/schema/lint.ts` now rejects both. No section of this document is marked
-TODO any longer: every rule it states is stated in prose, and the schema
-implements the prose rather than standing in for it.
-
-**The vocabulary debt is closed.** Schema `description` fields no longer speak
-the platform's vocabulary. The phrase that named it — "resolved server-side at
-snapshot compute" — described a pipeline stage a reader outside
-`musher-dev/platform` could not look up, and it is gone: a `CONFIG_REF` is now
-described as this document describes it, a name whose value is resolved
-elsewhere and never appears in the file ([§5.3](#env-vars)). Descriptions are
-explanatory rather than normative, so nothing here turned on them; a reader who
-could not resolve the words was still being sent somewhere they could not reach.
-
-The Compute Profile half closed earlier.
-[Blueprint §4.3](../../blueprint/v1/spec.md#node-compute) carries the slug
-grammar and names where the offered profiles are published, so a slug like
-`general.standard.small` resolves for a reader outside the platform.
-[ADR 0003](../../../docs/adr/0003-controlled-vocabulary-placement.md) records
-the rule that decided it.
+Each entry below is a gap this version leaves open, with the section that
+records it.
 
 **What the install form still cannot say.** [§6.4](#install-form) gives a field
 a name, a position, a standing and a wording for its choices. It gives it no
@@ -1228,7 +1207,7 @@ connection cannot reach outside the graph it is written in, so sharing an
 instance needs a reference form that does, plus a phase to resolve it — a new
 contract surface rather than a field. What *is* reusable today is the
 definition: many blueprints may reference one component document, and
-[listing §3.1](../../listing/v1/spec.md#component-item) already admits a catalog
+[listing §3.1](../../listing/v1/spec.md#item-directory) already admits a catalog
 item that is a single standalone building block, so a general-purpose external
 component ships as its own item with nothing added to the listing family.
 

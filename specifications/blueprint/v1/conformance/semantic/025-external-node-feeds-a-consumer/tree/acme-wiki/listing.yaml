@@ -1,0 +1,10 @@
+specVersion: v1
+kind: LISTING
+metadata:
+  slug: acme-wiki
+spec:
+  itemType: BLUEPRINT
+  displayName: Acme Wiki
+  summary: A wiki for Acme.
+  category: PRODUCTIVITY
+  lifecycleStage: STABLE

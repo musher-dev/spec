@@ -90,15 +90,25 @@ declarative apply — describe a row in a control plane, not a document. They
 MUST NOT appear on a blueprint document, and a validator MUST reject them with
 `ERR_UNKNOWN_FIELD` like any other unknown property.
 
-Three rules bind the item together. All three are `semantic`, and all three
-are measured against the item root [§3.1](#item-directory) locates. Two of them
-are stated once for every family in
+**`revision` counts releases of the catalog item.** It is an integer, 1 or
+greater, REQUIRED and never defaulted. Like a component's
+([component §4](../../component/v1/spec.md#metadata)) it names a position in one
+lineage and nothing more: nothing is derivable from the distance between 2 and
+7, and nothing is promised about how one revision of an item behaves against
+another. It orders, and that is the whole of its job.
+
+**It is the item's only revision.** A blueprint is the one item document that
+carries one: [listing §3](../../listing/v1/spec.md#identity) says why the
+sibling listing carries none, and component §4 says why the component documents
+beneath the item count something else. An item holding no blueprint therefore
+has no item revision at all, and is ordered by the components it publishes.
+
+Two rules bind the item together. Both are `semantic`, and both are measured
+against the item root [§3.1](#item-directory) locates. The first is stated once
+for every family in
 [core v1 §4.2](../../core/v1/spec.md#item-identity):
 [`CORE-ITEM-001`](../../core/v1/spec.md#CORE-ITEM-001) binds `metadata.slug` to
-the item directory name, and
-[`CORE-ITEM-002`](../../core/v1/spec.md#CORE-ITEM-002) binds
-`metadata.revision` to that of every other item document in the item — where
-the item holds a sibling listing, to the listing's. The third is this family's:
+the item directory name. The second is this family's:
 
 | ID | Rule | Diagnostic |
 |---|---|---|
@@ -114,11 +124,14 @@ because a JSON Pointer addresses this document, and the file it is complaining
 about is not in it.
 
 **What v1 does not constrain.** An item holding a `blueprint.yaml` and no
-`listing.yaml` is not rejected. The revision rule takes two item documents, so
-where the blueprint is the only one it goes silent rather than failing, and
-nothing in [core v1 §4.2](../../core/v1/spec.md#item-identity) requires the
-sibling listing [§3.1](#item-directory) shows. Closing this needs a rule that
-rejects items validating today, which makes it a breaking change.
+`listing.yaml` is not rejected. Nothing in
+[core v1 §4.2](../../core/v1/spec.md#item-identity) requires the sibling listing
+[§3.1](#item-directory) shows, and an item with no storefront entry is one that
+is deployable and not browsable rather than one that is malformed. Nothing
+orders one item's revisions against another's either, and nothing checks a
+blueprint revision against the lineage it extends: `minimum: 1` is the whole of
+the offline rule. Component §4 carries a `capability` rule for a component's
+lineage, and this family has no analogue of it.
 
 ### <a id="item-directory"></a>3.1 The item directory
 
@@ -917,13 +930,8 @@ skipped case is never a passed one.
 
 ## <a id="known-debt"></a>9. Known debt
 
-Seeded from the platform's generated schema. The naming that arrived with it
-has been cleaned, and [§4.3](#node-compute) now names where the Compute Profile
-vocabulary is published rather than assuming a reader can already resolve it.
-
-No section of this document is marked TODO any longer. The last of them — how an
-authored parameter binds to the component inputs it satisfies — is answered by
-[§5.3](#authored-parameters).
+Each entry below is a gap this version leaves open, with the section that
+records it.
 
 **No configured instance is shared across graphs.** [§4.2](#connections) is
 explicit that a connection cannot reach outside the graph it is written in, so

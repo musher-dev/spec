@@ -15,4 +15,4 @@ spec:
         visibility: PRIVATE
     source:
       type: GIT
-      repositoryUrl: https://github.com/musher-dev/examples
+      repositoryURL: https://github.com/musher-dev/examples

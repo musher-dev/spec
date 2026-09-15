@@ -40,8 +40,8 @@ listing is never an input to deployment.
 ```yaml
 specVersion: v1
 kind: LISTING
-metadata: { slug: …, revision: … }
-spec: { listingKind: …, displayName: …, … }
+metadata: { slug: … }
+spec: { itemType: …, displayName: …, … }
 ```
 
 A Listing Document is a Musher document as the
@@ -67,58 +67,56 @@ built and tested against is recorded with that release
 |---|---|
 | [core](../../core/v1/spec.md) | v1 |
 
-Do not confuse `kind` with `spec.listingKind`. `kind` identifies the document
-format; `listingKind` identifies what the listing points at (`BLUEPRINT` or
-`COMPONENT`).
-
 ## <a id="identity"></a>3. Identity
 
-`metadata` carries `slug` and `revision` — the same shape a blueprint carries.
-Both are bound by rules stated once for every family in
-[core v1 §4.2](../../core/v1/spec.md#item-identity):
-[`CORE-ITEM-001`](../../core/v1/spec.md#CORE-ITEM-001) binds the slug to the
-item directory name, and [`CORE-ITEM-002`](../../core/v1/spec.md#CORE-ITEM-002)
-binds the revision to that of every other item document in the item — where the
-item holds a blueprint, to the blueprint's. Both are measured against the item
-root [§3.1](#component-item) locates.
+`metadata` carries `slug` and nothing else. It is bound by the rule stated once
+for every family in [core v1 §4.2](../../core/v1/spec.md#item-identity):
+[`CORE-ITEM-001`](../../core/v1/spec.md#CORE-ITEM-001) binds it to the item
+directory name, measured against the item root [§3.1](#item-directory) locates.
 
-**A `COMPONENT` item's listing revision is bound to nothing, and that is a rule
-rather than the absence of one.** The rule above pins an item's two halves to
-each other, so it takes two. An item whose listing is
-`listingKind: COMPONENT` need not hold a blueprint, and where it holds none the
-rule has no second operand — not a different one.
+**A listing carries no revision, and the absence is the contract.** A listing
+presents an item; it does not release one. What counts releases of a catalog
+item is the blueprint's `metadata.revision`
+([blueprint §3](../../blueprint/v1/spec.md#identity)), and an item holding no
+blueprint is released by the component documents beneath it, each of which
+counts its own ([component §4](../../component/v1/spec.md#metadata)). A copy of
+either number on this document could only agree with the original or be wrong,
+and a reader who found the two disagreeing would have no way to tell which one
+described what would be installed.
+[ADR 0025](../../../docs/adr/0025-the-listing-carries-no-revision.md) records
+the withdrawal, and the rule that policed the copy with it.
 
-The component documents beneath it are not that second operand.
-[Component §4](../../component/v1/spec.md#metadata) settles this for the
-blueprint shape already: an item's revision counts releases of the item, a
-component's counts releases of the component, and in the published form one
-component is deployed by many items at once. The SHOULD stated there — that a
-release of a component an item deploys is accompanied by a release of the item
-— reaches a `COMPONENT` item unchanged, and carries no diagnostic here for the
-reason it carries none there.
+`spec.itemType` says which of those two shapes the item has, and the item
+decides:
 
-**Why not a designated primary.** An item MAY hold more than one component
-document ([§3.1](#component-item)), so no single one of them is *the*
-component. Pinning to a designated one would need a field naming which, which
-is contract surface added to reproduce what the blueprint shape gets from its
-graph — and it would contradict
-[component §4](../../component/v1/spec.md#metadata), which says no item is pinned to a
-component beneath it.
+| ID | Rule | Diagnostic |
+|---|---|---|
+| <a id="LIST-ITEM-001"></a>`LIST-ITEM-001` | `spec.itemType` MUST be `BLUEPRINT` if and only if the item root holds `blueprint.yaml`. | `ERR_ITEM_TYPE_MISMATCH` |
 
-**What v1 does not constrain.** A listing declaring `listingKind: BLUEPRINT` in
-an item holding no `blueprint.yaml` is not detected. The revision rule is
-conditioned on there being a sibling, so it goes silent rather than failing,
-and `listingKind` is presentation ([§1](#scope)) — nothing reads it to decide
-which files an item must hold. Closing this needs a rule that rejects items
-validating today, which makes it a breaking change.
+`semantic`, because it reads the item root rather than the document, and
+reported at `/spec/itemType`.
 
-### <a id="component-item"></a>3.1 The COMPONENT item
+**A classification a storefront renders should be a fact rather than a claim.**
+`itemType` decides which shelf an item appears on, and it is the one field here
+that something outside the document can settle. Left to the author it is an
+assertion about a directory they may not have looked at: an item whose
+`blueprint.yaml` was removed goes on advertising a composition nobody can
+install, and an item that gained one goes on presenting itself as a single
+building block. Without the rule above, both validate.
 
-[Core v1 §4.1](../../core/v1/spec.md#item-directory) anchors the item root on an
-item document rather than on `blueprint.yaml`. An item whose listing is
-`listingKind: COMPONENT` need hold no `blueprint.yaml`, and the revision rule is
-not the only one that needs a root: `metadata.slug` above is measured against
-one, and [§5](#media) resolves every media path inside one.
+Do not confuse `kind` with `spec.itemType`. `kind` identifies the document
+format, and [ADR 0007](../../../docs/adr/0007-naming-conventions.md) §1 reserves
+the word for that; `itemType` identifies the shape of the item this document
+presents.
+
+### <a id="item-directory"></a>3.1 The item directory
+
+`listing.yaml` is this family's item document, so the directory containing it is
+the item root [core v1 §4.1](../../core/v1/spec.md#item-directory) defines. An
+item whose `itemType` is `COMPONENT` holds no `blueprint.yaml`, and it has a
+root all the same: `metadata.slug` is measured against it,
+[`LIST-ITEM-001`](#LIST-ITEM-001) looks inside it, and [§5](#media) resolves
+every media path within it.
 
 ```
 <slug>/
@@ -127,9 +125,8 @@ one, and [§5](#media) resolves every media path inside one.
   media/                icon and screenshots
 ```
 
-**The directory containing `listing.yaml` is the item root.** `listing.yaml` is
-this family's item document. Where the item holds a blueprint as well, the two
-are siblings under that one root.
+Where the item holds a blueprint as well, the two are siblings under that one
+root.
 
 Two names in that tree are fixed: `listing.yaml`, and `media/` by
 [§5](#media). Component documents MAY sit anywhere under the root —
@@ -146,24 +143,35 @@ graph does not name is invisible; there is no graph here to name anything.
 The no-directory rule of [core v1 §4.1](../../core/v1/spec.md#item-directory)
 reaches §5 as well as §3. A listing handed over without
 a directory has no item root, so an implementation in that position MUST NOT
-report `ERR_MEDIA_NOT_FOUND` or `ERR_PATH_ESCAPE` either — both resolve a path
-inside a root it has not been given.
+report `ERR_ITEM_TYPE_MISMATCH`, `ERR_MEDIA_NOT_FOUND` or `ERR_PATH_ESCAPE`
+either — each of them reads a root it has not been given.
 
 ## <a id="presentation"></a>4. Presentation
 
+`displayName` is the item's title on the storefront. It is REQUIRED and at most
+200 characters. It is the name a reader sees before anything else on the page,
+and it is the item's own: a listing that repeats its category or its summary
+here has given the storefront nothing to label the entry with.
+
 `summary` is plain text, at most 280 characters, and MUST NOT be rendered as
 Markdown. It is a one-line tagline; rendering it as Markdown turns an
-underscore in a product name into emphasis and an asterisk into a bullet.
+underscore in a product name into emphasis and an asterisk into a bullet. This
+is the first of three rules here that bind what a consumer emits rather than
+what an author writes; [§4.1](#description-markdown) states the second and
+[§5.1](#media-resolution) the third.
 
 `description` is Markdown, at most 20 000 characters, and is constrained to the
 profile in [§4.1](#description-markdown).
 
-`homepageUrl`, `sourceRepoUrl`, and `supportUrl` MUST use the `https`, `http`,
-or `mailto` scheme, in any case. A value that does not is rejected in the
-`structural` phase with `ERR_INVALID_VALUE`. The rule is
-[§4.1](#description-markdown)'s, applied to the fields that carry a URL directly
-rather than inside Markdown — `javascript:` in `homepageUrl` is the same stored
-injection as `javascript:` in a description link, and a storefront renders both.
+`homepageURL`, `sourceRepoURL`, and `supportURL` each carry one absolute URL. A
+value MUST use the `https`, `http`, or `mailto` scheme, in any case, MUST carry
+no whitespace, and is at most 2048 characters; one that does not is rejected in
+the `structural` phase with `ERR_INVALID_VALUE`. The scheme set is
+[§4.1](#description-markdown)'s, because `javascript:` in `homepageURL` is the
+same stored injection as `javascript:` in a description link and a storefront
+renders both. The rest of that rule is not shared: a description link may also
+be a fragment beginning `#`, and a fragment is not a destination one of these
+fields can have.
 
 **The scheme is compared case-insensitively, and this is stated because the
 schema cannot state it.** [RFC 3986 §3.1](https://datatracker.ietf.org/doc/html/rfc3986#section-3.1)
@@ -189,6 +197,26 @@ instead of a normalisation every consumer has to reinvent. The vocabulary
 itself stays open — what a tag *says* is the author's, and only how it is
 spelled is this contract's.
 
+**The tags are a set, and a short one.** A member MUST NOT repeat, and there are
+at most sixteen. The grammar above exists to stop one tag being spelled two
+ways; permitting it twice in one list would leave the same defect one step
+along. The bound is what keeps a discovery key a discovery key: a list long
+enough to hold every word in the description is a list a storefront cannot group
+on.
+
+`license` names the licence of the listed software. It MUST be an SPDX licence
+expression, and one that is not is rejected in the `structural` phase with
+`ERR_INVALID_VALUE`. The identifiers are published at
+<https://spdx.org/licenses/> and are deliberately not restated here, for the
+reason [ADR 0003](../../../docs/adr/0003-controlled-vocabulary-placement.md) §2
+gives. What this contract fixes is the shape: an identifier, optionally joined
+to others by `AND`, `OR`, or `WITH`. Whether the identifier is one SPDX
+publishes is not decided here ([§9](#known-debt)), and neither is a parenthesised
+expression, which this grammar does not spell.
+
+A `license` is still the author's claim rather than a verified fact, and
+[§10](#security) says what a storefront may do with it.
+
 Featured-row placement is **not** part of this contract. A listing document
 MUST NOT declare `spec.featured`; promotion is a storefront-operator action,
 not an authoring one. A document that declares it is rejected in the
@@ -211,7 +239,7 @@ the rules that make it safe to render. The reasoning is recorded in
 | ID | Rule | Diagnostic |
 |---|---|---|
 | <a id="LIST-MD-001"></a>`LIST-MD-001` | A description MUST NOT contain raw HTML — an *HTML block* ([CommonMark §4.6](https://spec.commonmark.org/0.31.2/#html-blocks)) or *raw HTML* inline ([§6.6](https://spec.commonmark.org/0.31.2/#raw-html)). | `ERR_RAW_HTML` |
-| <a id="LIST-MD-002"></a>`LIST-MD-002` | A link destination MUST use the `https`, `http`, or `mailto` scheme, in any case ([§4](#presentation)), or be a fragment beginning `#`. | `ERR_DISALLOWED_SCHEME` |
+| <a id="LIST-MD-002"></a>`LIST-MD-002` | A link destination MUST use the `https`, `http`, or `mailto` scheme, in any case (the comparison is [§4](#presentation)'s), or be a fragment beginning `#`. | `ERR_DISALLOWED_SCHEME` |
 | <a id="LIST-MD-003"></a>`LIST-MD-003` | An image destination MUST be a media path as defined by [§5](#media). | `ERR_IMAGE_NOT_LOCAL` |
 
 All three are `semantic`. Finding a link destination means parsing the document,
@@ -229,11 +257,16 @@ raw HTML.
 
 **The rule reaches the renderer.** A consumer rendering `description` MUST NOT
 emit an HTML element, an attribute, or a URL that this profile forbids, whether
-or not it validated the document first. This is the only rule in this
-specification that constrains an implementation's output rather than a document,
-and it is stated because an authoring rule alone would protect nobody: the
-document this profile exists to stop is written by someone who will not run the
-validator.
+or not it validated the document first. It is stated because an authoring rule
+alone would protect nobody: the document this profile exists to stop is written
+by someone who will not run the validator.
+
+This is the second of the three rules here that constrain an implementation's
+output rather than a document, after [§4](#presentation)'s on `summary` and
+before [§5.1](#media-resolution)'s on a description image. All three are here
+because what a consumer does with a listing is not settled by a rule about what
+an author may write, and a rule each consumer resolves privately is not a
+contract.
 
 **An image is a media path, with everything that follows from it.** [§5](#media)
 fixes `media/` as the one directory an item ships assets from, and a description
@@ -295,6 +328,13 @@ a second copy in prose is a copy that can disagree — the same reasoning ADR 00
 `icon` and `screenshots[].file` are media paths, resolved inside the item root
 [core v1 §4.1](../../core/v1/spec.md#item-directory) defines.
 
+`screenshots` is the storefront gallery, in display order, and holds at most
+twelve entries. The bound is on the gallery a person scrolls rather than on the
+bytes an item ships: past a dozen, a reader has stopped looking and the entries
+after that are cost with no reader. Each entry MAY carry a `caption`, plain text
+of at most 280 characters, which is the accessible description of the image and
+is shown beneath it.
+
 A media path MUST satisfy all of the following, and is rejected in the
 `structural` phase with `ERR_INVALID_VALUE` when it does not:
 
@@ -302,13 +342,17 @@ A media path MUST satisfy all of the following, and is rejected in the
 - its first segment MUST be exactly `media`;
 - every segment after that MUST begin with a letter or a digit, which is how
   `.` and `..` are excluded as segments without a negative lookahead;
-- it MUST end in `.png`, `.jpg`, `.jpeg`, or `.webp`, in any case.
+- every later character of a segment MUST be a letter, a digit, `.`, `_`, or
+  `-`, which is how a space, a backslash and a control character are excluded;
+- it MUST end in `.png`, `.jpg`, `.jpeg`, or `.webp`, in any case;
+- it is at most 512 characters.
 
-**`media/` is a stronger rule than "relative to the listing document".** That
-was this section's earlier wording, and it is not what anything enforces. One
-fixed directory means a reader can find every asset an item ships without
-first reading its listing, and a publisher can copy that directory without
-walking the document to work out what to take.
+**`media/` is a stronger rule than "relative to the listing document".** One
+fixed directory means a reader can find every asset an item ships without first
+reading its listing, and a publisher can copy that directory without walking the
+document to work out what to take. A path merely relative to the document buys
+neither, and the two are easy to confuse because every conforming path satisfies
+both.
 
 Three rules need the filesystem and are therefore `semantic`:
 
@@ -360,9 +404,12 @@ ships, the location it serves those bytes from. A consumer that rewrites `icon`
 already has this mapping — it is what the rewrite is — and this section does no
 more than say a description image is entitled to it.
 
-| ID | Rule | Diagnostic |
-|---|---|---|
-| <a id="LIST-MEDIA-004"></a>`LIST-MEDIA-004` | A consumer that rewrites `icon` or `screenshots[].file` to a location it serves MUST resolve a `description` image destination through the same mapping. | — |
+**A consumer that rewrites `icon` or `screenshots[].file` to a location it
+serves MUST resolve a `description` image destination through the same
+mapping.** The obligation carries no requirement ID: no document can violate it,
+so an identifier on it would name a rule the corpus could never pin, which is
+what [docs/conformance.md](../../../docs/conformance.md#requirements) reserves
+prose for. It is cited by section, as the two output rules beside it are.
 
 **The mapping is keyed on the media path**, whole and unmodified — not on the
 basename, and not on the location the bytes end up at. This is why
@@ -387,20 +434,17 @@ helpful one: a storefront repairing a broken image by pointing it somewhere
 reachable has reopened the beacon [§4.1](#description-markdown) closed, on a
 page the author no longer controls.
 
-**This binds an implementation's output, which is the second such rule here.**
-[§4.1](#description-markdown)'s renderer clause is the first, and the grounds
-are the same — what a consumer does with a description is not settled by a rule
-about what an author may write. Left unsaid, the resolution is invented once per
-consumer and in private, and a rule each consumer resolves differently is not a
-contract. That is the objection
+**This binds an implementation's output, which is the third such rule here.**
+[§4.1](#description-markdown) counts them, and the grounds are the same in each
+case. Left unsaid, the resolution is invented once per consumer and in private.
+That is the objection
 [ADR 0004](../../../docs/adr/0004-listing-description-trust-boundary.md) opens
 with, reaching one step further downstream than it did.
 
 **No fixture pins this section.** The corpus validates documents, and nothing in
 it can observe what a storefront emits — the limit ADR 0004 already records for
-the renderer clause. `LIST-MEDIA-004` is carried in the conformance runner's
-`UNPINNED` list with that reason. It is a rule this specification states and
-cannot test, and saying so is better than a fixture that appears to cover it.
+the renderer clause. It is a rule this specification states and cannot test, and
+saying so is better than a fixture that appears to cover it.
 
 ## <a id="validation-layers"></a>6. Validation layers
 
@@ -415,6 +459,7 @@ document in this family. This family adds:
 
 | Code | Phase | Meaning |
 |---|---|---|
+| `ERR_ITEM_TYPE_MISMATCH` | `semantic` | `spec.itemType` disagrees with what the item root holds. |
 | `ERR_MEDIA_NOT_FOUND` | `semantic` | A referenced media file does not exist. |
 | `ERR_PATH_ESCAPE` | `semantic` | A media path resolves outside the item directory. |
 | `ERR_DUPLICATE_MEDIA_BASENAME` | `semantic` | Two screenshots share a basename. |
@@ -433,35 +478,39 @@ skipped case is never a passed one.
 
 ## <a id="known-debt"></a>9. Known debt
 
-Seeded from the platform's generated schema. The naming that arrived with it
-has been cleaned, and the seed-authoring-only `featured` block has been removed
-from the contract (§4).
+Each entry below is a gap this version leaves open, with the section that
+records it. Unless an entry says otherwise, closing one rejects a document v1
+accepts, which makes it a new major once this family is released.
 
-No section of this document is marked TODO any longer. The last two were both in
-§4, and both were security or governance questions rather than undocumented
-behaviour: the permitted Markdown subset for `description`, now
-[§4.1](#description-markdown) and
-[ADR 0004](../../../docs/adr/0004-listing-description-trust-boundary.md); and
-the rule for admitting a `category` or `lifecycleStage` term, now
-[§4.2](#vocabularies) and docs/governance.md.
+**Media is unbounded in dimensions and file size** ([§5](#media)). A storefront
+cannot reserve space for an image whose aspect ratio it does not know, and
+nothing here tells it one.
 
-What remains is a gap rather than a silence, and each is recorded where it
-applies: media dimensions and file size are unbounded ([§5](#media)), a
-`listingKind: BLUEPRINT` listing in an item holding no blueprint goes undetected
-([§3](#identity)), and `license` is unbounded free text that nothing checks.
-Closing any of them rejects documents v1 accepts. `tags` was on that list and
-is not any longer: [§4](#presentation) fixes its spelling, though not its
-membership. See
-[component §10](../../component/v1/spec.md#known-debt).
+**An SPDX identifier is checked for its shape and not its membership**
+([§4](#presentation)). `license: MTI` is a well-formed expression naming a
+licence nobody publishes, and this version accepts it. Deciding membership needs
+the surface that publishes the vocabulary, which makes it a `capability` rule
+under [ADR 0003](../../../docs/adr/0003-controlled-vocabulary-placement.md) §3
+rather than one an offline validator may report.
+
+A parenthesised expression, which SPDX permits and [§4](#presentation)'s grammar
+does not spell, is open for a different reason: a `pattern` cannot express
+nesting. It is the exception this section opens by allowing for: admitting a
+parenthesised expression accepts documents this version rejects rather than the
+other way about, so it is a minor release whenever an author needs it.
+
+**A `tags` member is checked for its spelling and not its content**
+([§4](#presentation)). The grammar fixes how a tag is written; what it says is
+the author's.
 
 One debt is of a different kind, and is not closed by rejecting anything.
 [§5.1](#media-resolution) obliges a consumer to resolve a description image
-through the mapping it already holds, and no fixture can watch it do so — the
+through the mapping it already holds, and no fixture can watch it do so: the
 corpus validates documents and cannot observe what a storefront emits. It is the
-second clause here in that position, after [§4.1](#description-markdown)'s
-renderer clause, and it is the one carrying a requirement ID — so it is recorded
-in the conformance runner's `UNPINNED` list with its reason, rather than left to
-look covered.
+third clause here in that position, after [§4](#presentation)'s on `summary` and
+[§4.1](#description-markdown)'s renderer clause, and like them it carries no
+requirement ID. Saying so here is better than a fixture that appears to cover
+it.
 
 ## <a id="security"></a>10. Security considerations
 
@@ -476,14 +525,15 @@ rather than formatting ones:
 
 The renderer obligation in [§4.1](#description-markdown) — that a consumer MUST
 NOT emit an element, attribute, or URL the profile forbids, *whether or not it
-validated the document first* — is the only rule in this specification that
-constrains an implementation's output. It is stated that way deliberately.
+validated the document first* — is one of the three rules here that constrain an
+implementation's output rather than a document, and it is the one with teeth. It
+is stated that way deliberately.
 Validation happens where a document is submitted; rendering happens wherever the
 storefront runs, possibly against a document stored before a rule existed. A
 renderer that trusts validation to have happened is a renderer that will emit
 whatever is in the database.
 
-The URL scheme rule covers `homepageUrl`, `sourceRepoUrl`, and `supportUrl` as
+The URL scheme rule covers `homepageURL`, `sourceRepoURL`, and `supportURL` as
 well as links inside Markdown ([§4](#presentation)). `javascript:` in a
 storefront field is the same stored injection as `javascript:` in a description
 link, and a renderer treats both as a link.
@@ -508,8 +558,9 @@ implementation MUST NOT decode or transcode a media file to validate it —
 [§5](#media) turns on existence and containment, and nothing here requires an
 image parser to be pointed at untrusted bytes.
 
-**Text fields are unbounded in ways worth knowing.** `license` is free text that
-nothing checks, and a `tags` member is checked for its spelling and not its
-content ([§9](#known-debt)). A storefront MUST escape both
-on render and MUST NOT treat `license` as an assertion about licensing — it is
-an author's claim, not a verified fact.
+**A checked shape is not a checked fact.** `license` is held to the SPDX
+expression grammar and a `tags` member to the kebab-case one, and neither rule
+looks at what the value says ([§9](#known-debt)). A storefront MUST escape both
+on render and MUST NOT treat `license` as an assertion about licensing — a
+well-formed expression naming a real licence is still an author's claim about
+software this repository has never seen.

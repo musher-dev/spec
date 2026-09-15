@@ -93,6 +93,21 @@
       "path": "structural/017-tag-outside-the-grammar"
     },
     {
+      "id": "structural-018-license-outside-the-spdx-grammar",
+      "phase": "structural",
+      "path": "structural/018-license-outside-the-spdx-grammar"
+    },
+    {
+      "id": "structural-019-duplicate-tag",
+      "phase": "structural",
+      "path": "structural/019-duplicate-tag"
+    },
+    {
+      "id": "structural-020-too-many-screenshots",
+      "phase": "structural",
+      "path": "structural/020-too-many-screenshots"
+    },
+    {
       "id": "semantic-001-duplicate-screenshot-basename",
       "phase": "semantic",
       "path": "semantic/001-duplicate-screenshot-basename"
@@ -103,69 +118,74 @@
       "path": "semantic/002-slug-disagrees-with-directory"
     },
     {
-      "id": "semantic-003-version-disagrees-with-blueprint",
+      "id": "semantic-003-media-file-absent",
       "phase": "semantic",
-      "path": "semantic/003-version-disagrees-with-blueprint"
+      "path": "semantic/003-media-file-absent"
     },
     {
-      "id": "semantic-004-media-file-absent",
+      "id": "semantic-004-media-symlink-escaping-the-item",
       "phase": "semantic",
-      "path": "semantic/004-media-file-absent"
+      "path": "semantic/004-media-symlink-escaping-the-item"
     },
     {
-      "id": "semantic-005-media-symlink-escaping-the-item",
+      "id": "semantic-005-well-formed-item",
       "phase": "semantic",
-      "path": "semantic/005-media-symlink-escaping-the-item"
+      "path": "semantic/005-well-formed-item"
     },
     {
-      "id": "semantic-006-well-formed-item",
+      "id": "semantic-006-component-item-resolves-against-its-root",
       "phase": "semantic",
-      "path": "semantic/006-well-formed-item"
+      "path": "semantic/006-component-item-resolves-against-its-root"
     },
     {
-      "id": "semantic-007-component-item-version-independent",
+      "id": "semantic-007-description-raw-html",
       "phase": "semantic",
-      "path": "semantic/007-component-item-version-independent"
+      "path": "semantic/007-description-raw-html"
     },
     {
-      "id": "semantic-008-description-raw-html",
+      "id": "semantic-008-description-html-in-code-fence",
       "phase": "semantic",
-      "path": "semantic/008-description-raw-html"
+      "path": "semantic/008-description-html-in-code-fence"
     },
     {
-      "id": "semantic-009-description-html-in-code-fence",
+      "id": "semantic-009-description-javascript-url",
       "phase": "semantic",
-      "path": "semantic/009-description-html-in-code-fence"
+      "path": "semantic/009-description-javascript-url"
     },
     {
-      "id": "semantic-010-description-javascript-url",
+      "id": "semantic-010-description-remote-image",
       "phase": "semantic",
-      "path": "semantic/010-description-javascript-url"
+      "path": "semantic/010-description-remote-image"
     },
     {
-      "id": "semantic-011-description-remote-image",
+      "id": "semantic-011-description-uppercase-scheme",
       "phase": "semantic",
-      "path": "semantic/011-description-remote-image"
+      "path": "semantic/011-description-uppercase-scheme"
     },
     {
-      "id": "semantic-012-description-uppercase-scheme",
+      "id": "semantic-012-description-image-absent",
       "phase": "semantic",
-      "path": "semantic/012-description-uppercase-scheme"
+      "path": "semantic/012-description-image-absent"
     },
     {
-      "id": "semantic-013-description-image-absent",
+      "id": "semantic-013-description-image-escaping-the-item",
       "phase": "semantic",
-      "path": "semantic/013-description-image-absent"
+      "path": "semantic/013-description-image-escaping-the-item"
     },
     {
-      "id": "semantic-014-description-image-escaping-the-item",
+      "id": "semantic-014-description-image-resolves",
       "phase": "semantic",
-      "path": "semantic/014-description-image-escaping-the-item"
+      "path": "semantic/014-description-image-resolves"
     },
     {
-      "id": "semantic-015-description-image-resolves",
+      "id": "semantic-015-item-type-claims-a-blueprint-the-item-lacks",
       "phase": "semantic",
-      "path": "semantic/015-description-image-resolves"
+      "path": "semantic/015-item-type-claims-a-blueprint-the-item-lacks"
+    },
+    {
+      "id": "semantic-016-item-type-denies-the-blueprint-beside-it",
+      "phase": "semantic",
+      "path": "semantic/016-item-type-denies-the-blueprint-beside-it"
     }
   ]
 }

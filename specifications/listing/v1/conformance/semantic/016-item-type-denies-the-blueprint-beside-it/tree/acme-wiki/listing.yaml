@@ -1,0 +1,13 @@
+# The other direction, and it is the same rule. The item holds a composition and
+# the storefront presents it as a single building block, so a reader browsing
+# for building blocks is offered something that deploys a graph.
+specVersion: v1
+kind: LISTING
+metadata:
+  slug: acme-wiki
+spec:
+  itemType: COMPONENT
+  displayName: Acme Wiki
+  summary: A wiki for Acme.
+  category: PRODUCTIVITY
+  lifecycleStage: STABLE

@@ -1,0 +1,16 @@
+# The shape is this contract's and the membership is SPDX's. A sentence is not
+# an expression in that grammar under any reading, so it fails offline rather
+# than reaching a storefront that would render it as a licence claim. Whether
+# `MIT` is an identifier SPDX really publishes is the half this version does not
+# decide (§9).
+specVersion: v1
+kind: LISTING
+metadata:
+  slug: acme-wiki
+spec:
+  itemType: BLUEPRINT
+  displayName: Acme Wiki
+  summary: A wiki for Acme.
+  category: PRODUCTIVITY
+  lifecycleStage: STABLE
+  license: free for non-commercial use
